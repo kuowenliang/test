@@ -22,6 +22,7 @@
 #else
 #include <asm/sizes.h>
 #endif
+#include <model.h>
 
 /*
  *#define CONFIG_TI814X_NO_RUNTIME_PG_DETECT
@@ -29,7 +30,6 @@
 
 #define XMK_STR(x)	#x
 #define MK_STR(x)	XMK_STR(x)
-
 
 /* Display CPU info */
 #define CONFIG_DISPLAY_CPUINFO		1
@@ -80,7 +80,8 @@
 # else
 # define CONFIG_EXTRA_ENV_SETTINGS \
 	"verify=yes\0" \
-	"bootcmd=sf probe 0; sf read 0x81000000 0x20000 0x60000; go 0x81000000\0" \
+	"bootcmd=sf probe 0; sf read 0x81000000 0x20000 0x80000; go 0x81000000\0" \
+	""
 
 # endif
 #elif defined(CONFIG_NAND_BOOT)		/* Autoload the 2nd stage from NAND */
@@ -88,22 +89,28 @@
 #  define CONFIG_EXTRA_ENV_SETTINGS \
 	"verify=yes\0" \
 	"bootcmd=nand read 0x81000000 0x20000 0x80000; go 0x81000000\0" \
+	"loadubt=loady 0x81000000; nand erase 0x20000; nand write 0x81000000 0x20000 0x80000\0" \
+	""
 
 #elif defined(CONFIG_SD_BOOT)		/* Autoload the 2nd stage from SD */
 #  define CONFIG_MMC			1
 #  define CONFIG_EXTRA_ENV_SETTINGS \
 	"verify=yes\0" \
 	"bootcmd=mmc rescan 0; fatload mmc 0 0x80800000 u-boot.bin; go 0x80800000\0" \
+	"loadubt=loady 0x81000000; nand erase 0x20000; nand write 0x81000000 0x20000 0x80000\0" \
+	""
 
 #elif defined(CONFIG_UART_BOOT)                /* stop in the min prompt */
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"verify=yes\0" \
 	"bootcmd=\0" \
+	""
 
 #elif defined(CONFIG_ETH_BOOT)		/* Auto load 2nd stage from server */
-#  define CONFIG_EXTRA_ENV_SETTINGS \
+#define CONFIG_EXTRA_ENV_SETTINGS \
 	"verify=yes\0" \
-	"bootcmd=setenv autoload no;dhcp; tftp 0x81000000 u-boot.bin; go 0x81000000\0"
+	"bootcmd=setenv autoload no;dhcp; tftp 0x81000000 u-boot.bin; go 0x81000000\0" \
+	""
 
 #endif
 
@@ -222,7 +229,8 @@
 	"kernelfile="D4_KERNEL_FILE_NAME"\0" \
 	"fsfile="D4_FS_FILE_NAME"\0" \
 	"mpkernelfile="D4_MPKERNEL_FILE_NAME"\0" \
-	"mpfsfile="D4_MPFS_FILE_NAME"\0" 
+	"mpfsfile="D4_MPFS_FILE_NAME"\0" \
+	""
 
 # define CONFIG_BOOTARGS \
 	"console=ttyO0,115200n8 rootwait=1 rw ubi.mtd=${mtd_idx},2048 rootfstype=ubifs root=ubi0:rootfs init=/init mem=120M vram=4M notifyk.vpssm3_sva=0xBFD00000 eth=${ethaddr} cmemk.phys_start=0x87800000 cmemk.phys_end=0x8cc00000 cmemk.allowOverlap=1 earlyprintk"
@@ -291,8 +299,16 @@
 #define CONFIG_HW_VER 				0.0.0
 #define CONFIG_FW_VER 				0.0.0
 #define CONFIG_MP_VER 				0.0.0
-#define CONFIG_UBL_VER 				1.3.0
-#define CONFIG_UBOOT_VER 			1.3.0
+#if defined(_VPORT56)
+#define CONFIG_UBL_VER 				1.4.0
+#define CONFIG_UBOOT_VER 			1.4.0
+#elif defined(_VPORT66)
+#define CONFIG_UBL_VER 				1.0.0
+#define CONFIG_UBOOT_VER 			1.0.0
+#else
+#define CONFIG_UBL_VER 				1.0.0
+#define CONFIG_UBOOT_VER 			1.0.0
+#endif
 #define CFG_CBSIZE					CONFIG_SYS_CBSIZE
 #define CONFIG_MTD_IDX 				4
 #define CONFIG_MTD2_IDX 			6
@@ -392,6 +408,7 @@
 #define CONFIG_SYS_NS16550_COM1		0x48020000	/* Base EVM has UART0 */
 #define CONFIG_SYS_NS16550_COM2		0x48022000	//UART1
 #define CONFIG_SYS_NS16550_COM3		0x481A6000	//UART3
+#define CONFIG_SYS_NS16550_COM4		0x481A8000	//UART4
 
 #define CONFIG_BAUDRATE		115200
 #define CONFIG_SYS_BAUDRATE_TABLE	{ 110, 300, 600, 1200, 2400, \
@@ -400,8 +417,13 @@
 #if defined(CONFIG_SERIAL_MULTI)
 #define CONFIG_BAUDRATE_0		CONFIG_BAUDRATE
 #define CONFIG_BAUDRATE_1		CONFIG_BAUDRATE
+#if defined(_VPORT66)
+#define CONFIG_BAUDRATE_2		19200	// for MCU (PT ctrl)
+#define CONFIG_BAUDRATE_3		38400	// for Zoom camera module (MH322/MN330)
+#else
 #define CONFIG_BAUDRATE_2		38400	// for Zoom camera module (MH310)
 #define CONFIG_BAUDRATE_3		CONFIG_BAUDRATE
+#endif
 #define CONFIG_BAUDRATE_0_ITEM	"baudrate0"
 #define CONFIG_BAUDRATE_1_ITEM	"baudrate1"
 #define CONFIG_BAUDRATE_2_ITEM	"baudrate2"
@@ -417,7 +439,12 @@
 
 #define DEFAULT_NAME	"serial"
 #define RS485_NAME		"eserial1"
+#if defined(_VPORT66)
+#define PTCTRL_NAME		"eserial2"
+#define CAMERA_NAME		"eserial3"
+#else
 #define CAMERA_NAME		"eserial2"
+#endif
 
 #define CONFIG_CMD_TERMINAL	/* built-in Serial Terminal */
 
@@ -442,7 +469,9 @@
 #define CONFIG_BOOTP_SUBNETMASK
 #define CONFIG_NET_RETRY_COUNT 	10
 #define CONFIG_NET_MULTI
-//# define CONFIG_PHY_GIGE
+#if defined(_VPORT66)
+#define CONFIG_PHY_GIGE
+#endif
 /* increase network receive packet buffer count for reliable TFTP */
 # define CONFIG_SYS_RX_ETH_BUFFER      16
 #endif
@@ -466,7 +495,6 @@
 #define CONFIG_SYS_MAX_NAND_DEVICE	1		/* Max number of NAND */
 
 #define ISP_NAND
-//#define ISP_NAND_TEST
 #define FLASH_TEST_SIZE SZ_128K
 
 // locations in NAND flash
@@ -494,6 +522,7 @@
 #define MPKERNEL_SIZE  34 * SZ_128K
 #define MPROOTFS_SIZE  420 * SZ_128K
 #define DATA2_SIZE     96 * SZ_128K
+#define FREE_SIZE      508 * SZ_128K
 
 /* Kernel setting ************************************************
 	{
@@ -733,7 +762,7 @@ extern unsigned int boot_flash_type;
 #endif	/* CONFIG_TI814X_OPTI_CONFIG */
 /* U-boot Version */
 #define CONFIG_VERSION_VARIABLE
-#define CONFIG_IDENT_STRING " DM8127_IPNC_3.80.00"
+#define CONFIG_IDENT_STRING "DM8127_IPNC_3.80.00"
 /* Unsupported features */
 #undef CONFIG_USE_IRQ
 

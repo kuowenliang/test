@@ -38,6 +38,8 @@ struct nand_bch_priv {
 	uint8_t nibbles;
 };
 
+//#define NAND_DEBUG
+
 /* bch types */
 #define ECC_BCH4	0
 #define ECC_BCH8	1

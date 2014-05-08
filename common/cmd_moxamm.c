@@ -74,6 +74,11 @@ extern int net_loadimg (proto_t proto, ulong address, char* filename);
 extern int serial_loadimg (char* mode, ulong address);
 extern int do_fat_fsload(cmd_tbl_t *, int, int, char *[]);
 extern int do_nand(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[]);
+//extern u32 GPIO_BaseAddr(int bank);
+//extern u32 GPIO_SetClrAddr(int set);
+extern void GPIO_OutEn(int bank, int pin, int en);
+extern int GPIO_Input(int bank, int pin);
+extern void GPIO_Output(int bank, int pin, int set);
 extern void sys_led_R_ON(void);
 extern void sys_led_R_OFF(void);
 extern void sys_led_R_reverse(void);
@@ -99,10 +104,17 @@ extern void sdcard_disable(void);
 extern int sdcard_En_state(void);
 extern int sdcard_WPn_state(void);
 extern int sdcard_CDn_state(void);
-extern void PIHeater_Power_ON(void);
-extern void PIHeater_Power_OFF(void);
+extern void Heater_Cam_ON(void);
+extern void Heater_Cam_OFF(void);
+extern int Heatercam_int_state(void);
+extern void Heater_Sys_ON(void);
+extern void Heater_Sys_OFF(void);
+extern int Heatersys_int_state(void);
 extern void Camera_Power_ON(void);
 extern void Camera_Power_OFF(void);
+extern void Fan_con_ON(void);
+extern void Fan_con_OFF(void);
+extern int Fan_int_state(void);
 
 #ifdef CONFIG_ETHADDR
 extern int env_get_ethaddr(char **mac);
@@ -481,11 +493,11 @@ int _clean_buffer(cmd_tbl_t *cmdtp, int flag, ulong buff_addr, ulong size)
 	char imageLen[11];//0xffffffff
 
 	sprintf(buffAddr, "0x%08lx", buff_addr);
-	sprintf(imageLen, "0x%08lx", size/4);
+	sprintf(imageLen, "0x%08lx", size);
 
-	args[0] = "mw.l";
+	args[0] = "mw.b";
 	args[1] = buffAddr;
-	args[2] = "0xffffffff";
+	args[2] = "0xff";
 	args[3] = imageLen;
 	udelay(1000);
 	if(do_mem_mw(cmdtp, flag, 4, args)){
@@ -971,7 +983,7 @@ int general_load (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[], ulong nand
 		printf("===========>>>> %s %s %s\n", argv[0], argv[1], argv[2]);
 	else
 		printf("===========>>>> %s %s\n", argv[0], argv[1]);
-	//if(_clean_buffer(cmdtp, flag, data_addr, erase_size)) return -1;
+	if(_clean_buffer(cmdtp, flag, data_addr, erase_size)) return -1;
 	if((image_size = load_image(cmdtp, flag, argv[1], argc < 3 ? NULL : argv[2], data_addr)) <= 0) return -1;
 	if(erase_write_flash(cmdtp, flag, data_addr, nand_base, erase_size, image_size, 0x00)) return -1;
 	return 0;
@@ -1117,13 +1129,7 @@ static int diag_run_ispnand(int parameter)
 	char mmc[5];
 	char *args[2];
 	cmd_tbl_t cmd_tmp;
-#ifdef ISP_NAND_TEST
-	memset(tmp, 0, sizeof(tmp));
-	if(get_line("Test Count:", tmp, sizeof(tmp), 3, str_number_dec, NULL, NULL) > 0 ){
-		count = (int)simple_strtoul(tmp, NULL, 10);
-	}
-	printf("Count = %d\n", count);
-#endif
+
 	if(get_line("Download image from mmc[0]* / tftp[1]:", tmp, 3, -1, "01", NULL, "0") < 0) return -1;
 	if(tmp[0] == '0'){
 		if(get_line("Enter mmc partition(>1):", tmp, sizeof(tmp), -1, str_number_dec, NULL, "1") < 0) return -1;
@@ -1231,13 +1237,31 @@ int do_ispnand (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 	return 0;
 }
+#endif
+
+int do_ispnandsd(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+{
+	char tmp[64];
+	char file = NULL;
+	int mmc_part = 1;
+
+	if(argc > 3){
+		if(get_line("Enter mmc partition(>1):", tmp, sizeof(tmp), -1, str_number_dec, NULL, NULL) < 0) return DIAG_ERROR;
+		mmc_part = (int)simple_strtoul(tmp, NULL, 10);
+		if(get_line("File Name:", tmp, sizeof(tmp), -1, NULL, NULL, NULL) <= 0 ) return DIAG_ERROR;
+		file = tmp;
+	}else{
+		mmc_part = (int)simple_strtoul(argv[1], NULL, 10);
+		file = argv[2];
+	}
+	return ispnand_from_mmc(mmc_part, file);
+}
 U_BOOT_CMD(
-	ispnand, 2, 0,	do_ispnand,
-	"In System Program Nand Flash.\n\
-	[tftp/mmc(dev[:part])]",
+	ispnandsd, 3, 0,	do_ispnandsd,
+	"In System Program Nand Flash(SD).\n\
+	[mmc_part]][filename]",
 	NULL
 );
-#endif
 
 char* IsCommentLine(const char * s, const char * p) //comment line
 {
@@ -1656,12 +1680,13 @@ int do_ispnand_from_mmc(char* buff, int size)
 	return 0;
 }
 
-int ispnand_from_mmc()
+int ispnand_from_mmc(int mmc_part, char* file)
 {
 	char *args[5];
 	char buffAddr[11];//0xffffffff
 	char buff[1024];
 	char tmp[64];
+	char mmc[5];
 	char *ptr, *ptr1, *ptr2;
 	cmd_tbl_t cmd_tmp;
 	bool do_saveenv = false;
@@ -1670,20 +1695,31 @@ int ispnand_from_mmc()
 	int count = 1;
 	int enable = 1;
 	int cleanflash = 0;
+	int mpflag = CONFIG_MP_FLAG_T0_BIOS;
 	int delay = 1;
 
 	memset(&cmd_tmp, 0, sizeof(cmd_tbl_t));
 	sprintf(buffAddr, "0x%08x", buff);
-	
+
 	if(SD_init()) return -1;
+
+	sprintf(mmc, "0:%d", mmc_part);
+
 	args[0] = "fatload";
 	args[1] = "mmc";
-	args[2] = "0:2";
+	args[2] = mmc;
 	args[3] = buffAddr;
-	args[4] = "isp.ini";
+	args[4] = file;
 	if (do_fat_fsload(&cmd_tmp, 0, 5, args) == 0) {
 		if((size = (int)simple_strtoul(getenv("filesize"), NULL, 16)) <= 0){
 			return -1;
+		}
+
+		memset(tmp, 0, sizeof(tmp));
+		if(parseIniValue(tmp, buff, "ctrl", "enable") > 0){
+			enable = (int)simple_strtoul(tmp, NULL, 10);
+			printf("ctrl_enable = %d\n", enable);
+			if(enable == 0) return -1;
 		}
 
 		memset(tmp, 0, sizeof(tmp));
@@ -1696,13 +1732,6 @@ int ispnand_from_mmc()
 		get_line("\n Detected ISP setting, Run ISP? <Y/n>:", tmp, sizeof(tmp), delay, "YyNn", NULL, "Y");
 		if((tmp[0] != 'Y') && (tmp[0] != 'y')) return -1;
 		printf("\n");
-
-		memset(tmp, 0, sizeof(tmp));
-		if(parseIniValue(tmp, buff, "ctrl", "enable") > 0){
-			enable = (int)simple_strtoul(tmp, NULL, 10);
-			printf("ctrl_enable = %d\n", enable);
-			if(enable == 0) return -1;
-		}
 
 		memset(tmp, 0, sizeof(tmp));
 		if(parseIniValue(tmp, buff, "ctrl", "cleanflash") > 0){
@@ -1727,9 +1756,22 @@ int ispnand_from_mmc()
 	return 0;
 }
 
+static int diag_ispnand_from_mmc(int parameter)
+{
+	int ret = 0;
+	char tmp[64];
+	int mmc_part = 1;
+
+	if(get_line("Enter mmc partition(>1):", tmp, sizeof(tmp), -1, str_number_dec, NULL, NULL) < 0) return DIAG_ERROR;
+	mmc_part = (int)simple_strtoul(tmp, NULL, 10);
+	if(get_line("File Name:", tmp, sizeof(tmp), -1, NULL, NULL, NULL) <= 0 ) return DIAG_ERROR;
+	ret = ispnand_from_mmc(mmc_part, tmp);
+	return DIAG_OK;
+}
+
 int mmcboot_processor()
 {
-	return ispnand_from_mmc();
+	return ispnand_from_mmc(2, "isp.ini");
 }
 
 //MP Flag Menu==================================================================
@@ -1777,7 +1819,7 @@ static int MM_Set_MP_Flag(int parameter)
 {
 	printf("Set MP Flag = 0x%03x (%s)\n", parameter, Get_MP_Flag_String(parameter));
 	if(Set_MP_Flag(parameter) < 0){
-		printf("Set MP Flag Fail\n");
+		printf("Set MP Flag Failed!!\n");
 		return -1;
 	}
 	return 0;
@@ -1787,7 +1829,7 @@ static int MM_Get_MP_Flag(int parameter)
 {
 	int rs = 0;
 	if(Get_MP_Flag(&rs) < 0){
-		printf("Get MP Flag Fail\n");
+		printf("Get MP Flag Failed!!\n");
 		return -1;
 	}
 	printf("Get MP Flag = 0x%03x (%s)\n", rs, Get_MP_Flag_String(rs));
@@ -1802,7 +1844,7 @@ static int MM_Set_MP_Flag_Manual(int parameter)
 	data = (int)simple_strtoul(tmp, NULL, 16);
 	printf("Set MP Flag = 0x%03x (%s)\n", data, Get_MP_Flag_String(data));
 	if(Set_MP_Flag(data) < 0){
-		printf("Set MP Flag Fail\n");
+		printf("Set MP Flag Failed!!\n");
 		return -1;
 	}
 	return 0;
@@ -3530,53 +3572,139 @@ static int uart_test_cam_send_command(int parameter)
 }
 
 //GPIO Test ---------------------------------------------------------------------------
-#define GPIO_READ_RESET_BUTTON 0
-#define GPIO_READ_LIGHT_SENSOR 1
-#define GPIO_READ_DI_0 2
-#define GPIO_READ_DO_0 3
-#define GPIO_READ_HW_VER_0 4
-#define GPIO_READ_HW_VER_1 5
-#define GPIO_READ_HW_VER_2 6
-#define GPIO_READ_SD_En 7
-#define GPIO_READ_SD_CDn 8
-#define GPIO_READ_SD_WPn 9
+enum{
+	GPIO_READ_RESET_BUTTON, 
+	GPIO_READ_LIGHT_SENSOR, 
+	GPIO_READ_DI_0, 
+	GPIO_READ_DO_0, 
+	GPIO_READ_SD_En, 
+	GPIO_READ_SD_CDn, 
+	GPIO_READ_SD_WPn, 
+	GPIO_READ_Heatercam_Int, 
+	GPIO_READ_Heatersys_Int, 
+	GPIO_READ_FAN_Int, 
 
-#define GPIO_WRITE_HIGH_ICR 0
-#define GPIO_WRITE_LOW_ICR 1
-#define GPIO_WRITE_HIGH_DO_0 2
-#define GPIO_WRITE_LOW_DO_0 3
-#define GPIO_WRITE_HIGH_IR_LED 4
-#define GPIO_WRITE_LOW_IR_LED 5
-#define GPIO_WRITE_HIGH_SD_En 6
-#define GPIO_WRITE_LOW_SD_En 7
-#define GPIO_WRITE_HIGH_PI_POWER 8
-#define GPIO_WRITE_LOW_PI_POWER 9
-#define GPIO_WRITE_HIGH_CAMERA_POWER 10
-#define GPIO_WRITE_LOW_CAMERA_POWER 11
+	GPIO_WRITE_HIGH_ICR, 
+	GPIO_WRITE_LOW_ICR, 
+	GPIO_WRITE_HIGH_DO_0, 
+	GPIO_WRITE_LOW_DO_0, 
+	GPIO_WRITE_HIGH_IR_LED, 
+	GPIO_WRITE_LOW_IR_LED, 
+	GPIO_WRITE_HIGH_SD_En, 
+	GPIO_WRITE_LOW_SD_En, 
+	GPIO_WRITE_HIGH_Heater_cam, 
+	GPIO_WRITE_LOW_Heater_cam, 
+	GPIO_WRITE_HIGH_Heater_sys, 
+	GPIO_WRITE_LOW_Heater_sys, 
+	GPIO_WRITE_HIGH_CAMERA_POWER, 
+	GPIO_WRITE_LOW_CAMERA_POWER, 
+	GPIO_WRITE_HIGH_FAN_CON, 
+	GPIO_WRITE_LOW_FAN_CON, 
+};
 
 static int gpio_read_func(int parameter);
 static int gpio_write_func(int parameter);
+static int gpio_test_func(int parameter);
 static int pwm_test_func(int parameter);
+
+static DiagMenuTableStruct FanMenuTable[] = {
+	{ '0',	"Fan Power write high",		GPIO_WRITE_HIGH_FAN_CON,		gpio_write_func,	NULL},
+	{ '1',	"Fan Power write low",		GPIO_WRITE_LOW_FAN_CON,			gpio_write_func,	NULL},
+	{ '2',	"Fan_Int state",			GPIO_READ_FAN_Int,				gpio_read_func, 	NULL},
+};
+static DiagMenuStruct FanMenu = {
+	sizeof(FanMenuTable)/sizeof(DiagMenuTableStruct),
+	FanMenuTable,
+	"<<<Fan Menu>>>",
+	0, NULL
+};
+
+static DiagMenuTableStruct CameraMenuTable[] = {
+	{ '0',	"Camera Power write high",	GPIO_WRITE_HIGH_CAMERA_POWER,	gpio_write_func,	NULL},
+	{ '1',	"Camera Power write low",	GPIO_WRITE_LOW_CAMERA_POWER,	gpio_write_func,	NULL},
+};
+static DiagMenuStruct CameraMenu = {
+	sizeof(CameraMenuTable)/sizeof(DiagMenuTableStruct),
+	CameraMenuTable,
+	"<<<Camera Menu>>>",
+	0, NULL
+};
+
+static DiagMenuTableStruct HeaterMenuTable[] = {
+	{ '0',	"Camera Heater write high",	GPIO_WRITE_HIGH_Heater_cam,		gpio_write_func,	NULL},
+	{ '1',	"Camera Heater write low",	GPIO_WRITE_LOW_Heater_cam,		gpio_write_func,	NULL},
+	{ '2',	"System Heater write high",	GPIO_WRITE_HIGH_Heater_sys, 	gpio_write_func,	NULL},
+	{ '3',	"System Heater write low",	GPIO_WRITE_LOW_Heater_sys,		gpio_write_func,	NULL},
+	{ '4',	"Heater_cam_Int state", 	GPIO_READ_Heatercam_Int,		gpio_read_func, 	NULL},
+	{ '5',	"Heater_sys_Int state",		GPIO_READ_Heatersys_Int,		gpio_read_func, 	NULL},
+};
+static DiagMenuStruct HeaterMenu = {
+	sizeof(HeaterMenuTable)/sizeof(DiagMenuTableStruct),
+	HeaterMenuTable,
+	"<<<Heater Menu>>>",
+	0, NULL
+};
+
+static DiagMenuTableStruct SDMenuTable[] = {
+	{ '0',	"SD_EN write high",			GPIO_WRITE_HIGH_SD_En,			gpio_write_func, 	NULL},
+	{ '1',	"SD_EN write low",			GPIO_WRITE_LOW_SD_En,			gpio_write_func, 	NULL},
+	{ '2',	"SD_EN state",				GPIO_READ_SD_En,				gpio_read_func, 	NULL},
+	{ '3',	"SD_CDn state", 			GPIO_READ_SD_CDn,				gpio_read_func, 	NULL},
+	{ '4',	"SD_WPn state", 			GPIO_READ_SD_WPn,				gpio_read_func, 	NULL},
+};
+static DiagMenuStruct SDMenu = {
+	sizeof(SDMenuTable)/sizeof(DiagMenuTableStruct),
+	SDMenuTable,
+	"<<<SD Menu>>>",
+	0, NULL
+};
+
+static DiagMenuTableStruct IRLEDMenuTable[] = {
+	{ '0',	"IR LED write high",		GPIO_WRITE_HIGH_IR_LED,			gpio_write_func,	NULL},
+	{ '1',	"IR LED write low",			GPIO_WRITE_LOW_IR_LED, 			gpio_write_func,	NULL},
+};
+static DiagMenuStruct IRLEDMenu = {
+	sizeof(IRLEDMenuTable)/sizeof(DiagMenuTableStruct),
+	IRLEDMenuTable,
+	"<<<IR LED Menu>>>",
+	0, NULL
+};
+
+static DiagMenuTableStruct PWMMenuTable[] = {
+	{ '0',	"PWM 0 test",				0,								pwm_test_func,		NULL},
+	{ '1',	"PWM 1 test",				1,								pwm_test_func,		NULL},
+	{ '2',	"PWM 2 test",				2,								pwm_test_func,		NULL},
+	{ '3',	"PWM 3 test",				3,								pwm_test_func,		NULL},
+};
+static DiagMenuStruct PWMMenu = {
+	sizeof(PWMMenuTable)/sizeof(DiagMenuTableStruct),
+	PWMMenuTable,
+	"<<<PWM Menu>>>",
+	0, NULL
+};
+
+static DiagMenuTableStruct ICRMenuTable[] = {
+	{ '0',	"ICR write high", 			GPIO_WRITE_HIGH_ICR,			gpio_write_func,	NULL},
+	{ '1',	"ICR write low",			GPIO_WRITE_LOW_ICR,				gpio_write_func,	NULL},
+};
+static DiagMenuStruct ICRMenu = {
+	sizeof(ICRMenuTable)/sizeof(DiagMenuTableStruct),
+	ICRMenuTable,
+	"<<<ICR Menu>>>",
+	0, NULL
+};
+
 static DiagMenuTableStruct GPIOTestMenuTable[] = {
-	{ '0',	"Reset Button",				GPIO_READ_RESET_BUTTON, 		gpio_read_func,		NULL},
-	{ '1',	"Light Sensor", 			GPIO_READ_LIGHT_SENSOR, 		gpio_read_func,		NULL},
-	{ '2',	"HW Version 0", 			GPIO_READ_HW_VER_0, 			gpio_read_func, 	NULL},
-	{ '3',	"HW Version 1", 			GPIO_READ_HW_VER_1, 			gpio_read_func, 	NULL},
-	{ '4',	"HW Version 2", 			GPIO_READ_HW_VER_2, 			gpio_read_func, 	NULL},
-	{ '5',	"ICR write high", 			GPIO_WRITE_HIGH_ICR,			gpio_write_func,	NULL},
-	{ '6',	"ICR write low",			GPIO_WRITE_LOW_ICR,				gpio_write_func,	NULL},
-	{ '7',	"PWM 1 test",				1,								pwm_test_func,		NULL},
-	{ '8',	"IR LED write high",		GPIO_WRITE_HIGH_IR_LED,			gpio_write_func,	NULL},
-	{ '9',	"IR LED write low",			GPIO_WRITE_LOW_IR_LED, 			gpio_write_func,	NULL},
-	{ 'a',	"SD_EN state", 				GPIO_READ_SD_En, 				gpio_read_func, 	NULL},
-	{ 'b',	"SD_EN write high",			GPIO_WRITE_HIGH_SD_En,			gpio_write_func, 	NULL},
-	{ 'c',	"SD_EN write low",			GPIO_WRITE_LOW_SD_En,			gpio_write_func, 	NULL},
-	{ 'd',	"SD_CDn state", 			GPIO_READ_SD_CDn,				gpio_read_func, 	NULL},
-	{ 'e',	"SD_WPn state", 			GPIO_READ_SD_WPn,				gpio_read_func, 	NULL},
-	{ 'f',	"PI Power write high",		GPIO_WRITE_HIGH_PI_POWER,		gpio_write_func,	NULL},
-	{ 'g',	"PI Power write low",		GPIO_WRITE_LOW_PI_POWER,		gpio_write_func,	NULL},
-	{ 'h',	"Camera Power write high",	GPIO_WRITE_HIGH_CAMERA_POWER,	gpio_write_func,	NULL},
-	{ 'i',	"Camera Power write low",	GPIO_WRITE_LOW_CAMERA_POWER,	gpio_write_func,	NULL},
+	{ '0',	"GPIO test",		0,							gpio_test_func,		NULL},
+	{ '1',	"Reset Button",		GPIO_READ_RESET_BUTTON,		gpio_read_func,		NULL},
+	{ '2',	"Light Sensor",		GPIO_READ_LIGHT_SENSOR,		gpio_read_func,		NULL},
+	{ '3',	"ICR test",			0,							NULL,				&ICRMenu},
+	{ '4',	"PWM test",			0,							NULL,				&PWMMenu},
+	{ '5',	"IR LED test",		0,							NULL,				&IRLEDMenu},
+	{ '6',	"SD Card test",		0,							NULL,				&SDMenu},
+	{ '7',	"Heater test",		0,							NULL,				&HeaterMenu},
+	{ '8',	"Camera test",		0,							NULL,				&CameraMenu},
+	{ '9',	"Fan test",			0,							NULL,				&FanMenu},
 };
 static DiagMenuStruct GPIOTestMenu = {
 	sizeof(GPIOTestMenuTable)/sizeof(DiagMenuTableStruct),
@@ -3604,15 +3732,6 @@ static int gpio_read_func(int parameter)
 			case GPIO_READ_DO_0:
 				printf(" DO 0 ->%s\r", DO_state() ? "High" : "Low ");
 				break;
-			case GPIO_READ_HW_VER_0:
-				printf(" HW_VER 0 ->%s\r", HW_VER_0_state() ? "High" : "Low ");
-				break;
-			case GPIO_READ_HW_VER_1:
-				printf(" HW_VER 1 ->%s\r", HW_VER_1_state() ? "High" : "Low ");
-				break;
-			case GPIO_READ_HW_VER_2:
-				printf(" HW_VER 2 ->%s\r", HW_VER_2_state() ? "High" : "Low ");
-				break;
 			case GPIO_READ_SD_En:
 				printf(" SD_EN ->%s\r", sdcard_En_state() ? "High" : "Low ");
 				break;
@@ -3621,6 +3740,15 @@ static int gpio_read_func(int parameter)
 				break;
 			case GPIO_READ_SD_CDn:
 				printf(" SD_CDn ->%s\r", sdcard_CDn_state() ? "High" : "Low ");
+				break;
+			case GPIO_READ_Heatercam_Int:
+				printf(" Heatercam_Int ->%s\r", Heatercam_int_state() ? "High" : "Low ");
+				break;
+			case GPIO_READ_Heatersys_Int:
+				printf(" Heatersys_Int ->%s\r", Heatersys_int_state() ? "High" : "Low ");
+				break;
+			case GPIO_READ_FAN_Int:
+				printf(" FAN_Int ->%s\r", Fan_int_state() ? "High" : "Low ");
 				break;
 			default:
 				break;
@@ -3653,11 +3781,17 @@ static int gpio_write_func(int parameter)
 		case GPIO_WRITE_LOW_SD_En:
 			sdcard_disable();
 			break;
-		case GPIO_WRITE_HIGH_PI_POWER:
-			PIHeater_Power_ON();
+		case GPIO_WRITE_HIGH_Heater_cam:
+			Heater_Cam_ON();
 			break;
-		case GPIO_WRITE_LOW_PI_POWER:
-			PIHeater_Power_OFF();
+		case GPIO_WRITE_LOW_Heater_cam:
+			Heater_Cam_OFF();
+			break;
+		case GPIO_WRITE_HIGH_Heater_sys:
+			Heater_Sys_ON();
+			break;
+		case GPIO_WRITE_LOW_Heater_sys:
+			Heater_Sys_OFF();
 			break;
 		case GPIO_WRITE_HIGH_CAMERA_POWER:
 			Camera_Power_ON();
@@ -3665,8 +3799,52 @@ static int gpio_write_func(int parameter)
 		case GPIO_WRITE_LOW_CAMERA_POWER:
 			Camera_Power_OFF();
 			break;
+		case GPIO_WRITE_HIGH_FAN_CON:
+			Fan_con_ON();
+			break;
+		case GPIO_WRITE_LOW_FAN_CON:
+			Fan_con_OFF();
+			break;
 		default:
 			break;
+	}
+	return DIAG_OK;
+}
+
+static int gpio_input_stat(int bank, int pin)
+{
+	int c = 0;
+	printf("Press 'ESC' to exit.\n");
+	while(c != 0x1B){
+		if(tstc()) c = getc();
+		printf(" GP%d[%d] ->%s\r", bank, pin, GPIO_Input(bank, pin) ? "High" : "Low ");
+		udelay(500000);
+	}
+	return DIAG_OK;
+}
+
+static int gpio_test_bank = 0;
+static int gpio_test_pin = 0;
+static int gpio_test_data = 0;
+static int gpio_test_func(int parameter)
+{
+	char tmp[10];
+	printf("Bank[GP0~GP3](GP%d):GP", gpio_test_bank);
+	if(get_line(NULL, tmp, 3, -1, "0123", NULL, NULL) > 0)
+		gpio_test_bank = (int)(simple_strtoul(tmp, NULL, 10));
+	printf("Pin[0~31](%d):", gpio_test_pin);
+	if(get_line(NULL, tmp, 4, -1, str_number_dec, NULL, NULL) > 0)
+		gpio_test_pin = (int)(simple_strtoul(tmp, NULL, 10));
+	printf("Data[0:Low, 1:High, 2:Input](%d):", gpio_test_data);
+	if(get_line(NULL, tmp, 3, -1, "012", NULL, NULL) > 0)
+		gpio_test_data = (int)(simple_strtoul(tmp, NULL, 10));
+
+	if(gpio_test_data == 2){
+		GPIO_OutEn(gpio_test_bank, gpio_test_pin, 0);
+		gpio_input_stat(gpio_test_bank, gpio_test_pin);
+	}else{
+		GPIO_OutEn(gpio_test_bank, gpio_test_pin, 1);
+		GPIO_Output(gpio_test_bank, gpio_test_pin, gpio_test_data);
 	}
 	return DIAG_OK;
 }
@@ -3683,12 +3861,10 @@ int pwm_test_setting(u32* per, u32* ph1d)
 
 static int pwm_test_func(int parameter)
 {
-//	u32 per, ph1d;
 	switch(parameter){
 		case 0:
 			break;
 		case 1:
-//			if(pwm_test_setting(&per, &ph1d) == DIAG_OK) DEVICE_PWM1_start(per, ph1d);
 			break;
 		case 2:
 			break;
@@ -4673,6 +4849,31 @@ int flash_erase(nand_info_t *nand, loff_t offset, size_t length)
 	return 0;
 }
 
+#define ERR_FLASH_ERASE -1
+#define ERR_FLASH_WRITE -2
+#define ERR_FLASH_READ -3
+#define ERR_MEMCMP -4
+static char* error_string(int err_code)
+{
+	switch(err_code){
+		case ERR_FLASH_ERASE: 
+			return "NAND Erase error";
+			break;
+		case ERR_FLASH_WRITE: 
+			return "NAND Write error";
+			break;
+		case ERR_FLASH_READ: 
+			return "NAND Read error";
+			break;
+		case ERR_MEMCMP: 
+			return "MEM Compare error";
+			break;
+		default: 
+			return "Unknown error";
+			break;
+	}
+}
+
 int flash_compared(nand_info_t *nand, loff_t offset, size_t length, char pattern)
 {
 	int ret = 0;
@@ -4680,30 +4881,14 @@ int flash_compared(nand_info_t *nand, loff_t offset, size_t length, char pattern
 	long timepass = 0;
 	u_char buf_rd[FLASH_TEST_SIZE];
 	u_char buf_wt[FLASH_TEST_SIZE];
-
-//	printf("\nNAND Test %d Byte at offset 0x%08llX, pattern:0x%02X\n", length, offset, pattern);
-
-	if(flash_erase(nand, offset, length)) return -1;
-
+	if(flash_erase(nand, offset, length)) return ERR_FLASH_ERASE;
 	memset(buf_wt, pattern, FLASH_TEST_SIZE);
-//	reset_timer();
-//	start = get_timer(0);
 	ret = nand_write_skip_bad(nand, offset, &length, (u_char *)buf_wt);
-//	timepass = get_timer(start);
-//	printf(" %zu bytes written: %s, Time pass: %ld msec.\n", length, ret ? "ERROR" : "OK", timepass);
-	if (ret != 0) return -1;
-	
-//	reset_timer();
-//	start = get_timer(0);
+	if (ret != 0) return ERR_FLASH_WRITE;
 	ret = nand_read_skip_bad(nand, offset, &length, (u_char *)buf_rd);
-//	timepass = get_timer(start);
-//	printf(" %zu bytes read: %s, Time pass: %ld msec.\n", length, ret ? "ERROR" : "OK", timepass);
-	if (ret != 0) return -1;
-	
+	if (ret != 0) return ERR_FLASH_READ;
 	ret = memcmp(buf_rd, buf_wt, FLASH_TEST_SIZE);
-//	printf(" %zu bytes compare: %s.\n", length, ret ? "ERROR" : "OK");
-	if (ret != 0) return -1;
-	
+	if (ret != 0) return ERR_MEMCMP;
 	return 0;
 }
 
@@ -4712,13 +4897,8 @@ static int flash_backup(nand_info_t *nand, loff_t offset, size_t length, u_char*
 	int ret = DIAG_OK;
 	ulong start = 0;
 	long timepass = 0;
-//	printf("\nNAND Backup %d Byte at offset 0x%08llX\n", length, offset);
-//	reset_timer();
-//	start = get_timer(0);
 	ret = nand_read_skip_bad(nand, offset, &length, (u_char *)buff);
-//	timepass = get_timer(start);
-//	printf(" %zu bytes read: %s, Time pass: %ld msec.\n", length, ret ? "ERROR" : "OK", timepass);
-	if (ret != 0) return -1;
+	if (ret != 0) return ERR_FLASH_READ;
 	return 0;
 }
 
@@ -4727,14 +4907,9 @@ static int flash_restore(nand_info_t *nand, loff_t offset, size_t length, u_char
 	int ret = DIAG_OK;
 	ulong start = 0;
 	long timepass = 0;
-//	printf("\nNAND Restore %d Byte at offset 0x%08llX\n", length, offset);
-	if(flash_erase(nand, offset, length)) return -1;
-//	reset_timer();
-//	start = get_timer(0);
+	if(flash_erase(nand, offset, length)) return ERR_FLASH_ERASE;
 	ret = nand_write_skip_bad(nand, offset, &length, (u_char *)buff);
-//	timepass = get_timer(start);
-//	printf(" %zu bytes written: %s, Time pass: %ld msec.\n", length, ret ? "ERROR" : "OK", timepass);
-	if (ret != 0) return -1;
+	if (ret != 0) return ERR_FLASH_WRITE;
 	return 0;
 }
 
@@ -4743,6 +4918,7 @@ static int flash_restore(nand_info_t *nand, loff_t offset, size_t length, u_char
 static int flash_test_func(int parameter)
 {
 	int ret = DIAG_OK;
+	int i = 0;
 	char tmp[10];//ffffffff
 	u_char c_in = 0;
 	struct rtc_time tm_start,tm_end;
@@ -4759,7 +4935,7 @@ static int flash_test_func(int parameter)
 		return DIAG_ERROR;
 	}
 	loff_t start_addr = FREE_FLASH;
-	size_t test_length = FLASH_TEST_SIZE;
+	size_t test_length = FREE_SIZE;
 
 	printf("\nStart address(0x%08llX):0x", start_addr);
 	ret = get_line(NULL, tmp, sizeof(tmp), -1, str_number_hex, NULL, NULL);
@@ -4795,7 +4971,7 @@ static int flash_test_func(int parameter)
 	size_t total_length = 0;
 	int err = 0;
 	int user_abort = 0;
-	char pattern = 0x00;
+	char pattern[] = {0x00, 0x55, 0xAA, 0xFF};
 	do{
 		err = 0;
 		if(test_length > sizeof(buf_bk)) length = sizeof(buf_bk);
@@ -4803,40 +4979,41 @@ static int flash_test_func(int parameter)
 
 		CHK_USER_ABORT(user_abort);
 		if(user_abort) break;
-		printf("NAND Backup %d Byte at offset 0x%08llX                      \r", length, offset);
-		if(flash_backup(nand, offset, length, buf_bk)) return DIAG_ERROR;
 
-		CHK_USER_ABORT(user_abort);
-		pattern = 0x00;
-		printf("NAND Test %d Byte at offset 0x%08llX, pattern:0x%02X        \r", length, offset, pattern);
-		if((user_abort == 0) && (flash_compared(nand, offset, length, pattern))) err++;
-
-		CHK_USER_ABORT(user_abort);
-		pattern = 0x55;
-		printf("NAND Test %d Byte at offset 0x%08llX, pattern:0x%02X         \r", length, offset, pattern);
-		if((user_abort == 0) && (flash_compared(nand, offset, length, pattern))) err++;
-
-		CHK_USER_ABORT(user_abort);
-		pattern = 0xAA;
-		printf("NAND Test %d Byte at offset 0x%08llX, pattern:0x%02X         \r", length, offset, pattern);
-		if((user_abort == 0) && (flash_compared(nand, offset, length, pattern))) err++;
-
-		CHK_USER_ABORT(user_abort);
-		pattern = 0xFF;
-		printf("NAND Test %d Byte at offset 0x%08llX, pattern:0x%02X         \r", length, offset, pattern);
-		if((user_abort == 0) && (flash_compared(nand, offset, length, pattern))) err++;
-
-		printf("NAND Restore %d Byte at offset 0x%08llX                      \r", length, offset);
-		if(flash_restore(nand, offset, length, buf_bk)) err++;
-		if(err){
-			printf("\n\nNAND Test %d Byte at offset 0x%08llX Failed!!\n", length, offset);
+		printf("NAND Backup  %d Bytes at offset 0x%08llX                         \r", length, offset);
+		if((ret = flash_backup(nand, offset, length, buf_bk)) != 0){
+			printf("\n %s!! (%d Bytes at offset 0x%08llX)\n", error_string(ret), length, offset);
 			return DIAG_ERROR;
 		}
+
+		for(i = 0; i < sizeof(pattern); i++){
+			CHK_USER_ABORT(user_abort);
+			if(user_abort) break;
+			printf("NAND Compare %d Bytes at offset 0x%08llX, pattern:0x%02X 		\r", length, offset, pattern[i]);
+			if((ret = flash_compared(nand, offset, length, pattern[i])) != 0){
+				err++;
+				printf("\n %s!! (%d Byte at offset 0x%08llX)\n", error_string(ret), length, offset);
+			}
+		}
+
+		printf("NAND Restore %d Bytes at offset 0x%08llX                         \r", length, offset);
+		if((ret = flash_restore(nand, offset, length, buf_bk)) != 0){
+			err++;
+			printf("\n %s!! (%d Byte at offset 0x%08llX)\n", error_string(ret), length, offset);
+		}
+
+		if(err){
+			printf("\n\n NAND Test %d Bytes at offset 0x%08llX Failed!!\n", length, offset);
+			return DIAG_ERROR;
+		}
+
+		CHK_USER_ABORT(user_abort);
 		if(user_abort) break;
+
 		offset += length;
 		total_length += length;
 	}while(total_length < test_length);
-	printf("\n\nNAND Test at offset 0x%08llX~0x%08llX Passed.\n", start_addr, start_addr + test_length);
+	printf("\n\n NAND Test at offset 0x%08llX~0x%08llX Passed.\n", start_addr, start_addr + test_length);
 	return DIAG_OK;
 }
 
@@ -5077,11 +5254,16 @@ static int ping_test_func(int parameter)
 
 //Status Reader Menu======================================================
 static DiagMenuTableStruct StatusReaderMenuTable[] = {
-	{ '0',	"Reset Button",				GPIO_READ_RESET_BUTTON, gpio_read_func,		NULL},
-	{ '1',	"Light Sensor", 			GPIO_READ_LIGHT_SENSOR, gpio_read_func,		NULL},
-	{ '2',	"HW Version 0", 			GPIO_READ_HW_VER_0,		gpio_read_func, 	NULL},
-	{ '3',	"HW Version 1", 			GPIO_READ_HW_VER_1,		gpio_read_func, 	NULL},
-	{ '4',	"HW Version 2", 			GPIO_READ_HW_VER_2, 	gpio_read_func, 	NULL},
+	{ '0',	"Reset Button",				GPIO_READ_RESET_BUTTON,		gpio_read_func,					NULL},
+	{ '1',	"Light Sensor", 			GPIO_READ_LIGHT_SENSOR,		gpio_read_func,					NULL},
+	{ '2',	"Light Sensor (I2C)",		0,							LightSensor_I2C_test_func,		NULL},
+	{ '3',	"Thermal Sensor (I2C)",		0,							ThermalSensor_I2C_test_func,	NULL},
+	{ '4',	"SD_EN state",				GPIO_READ_SD_En,			gpio_read_func, 				NULL},
+	{ '5',	"SD_CDn state", 			GPIO_READ_SD_CDn,			gpio_read_func, 				NULL},
+	{ '6',	"SD_WPn state", 			GPIO_READ_SD_WPn,			gpio_read_func, 				NULL},
+	{ '7',	"Heater_cam_Int state", 	GPIO_READ_Heatercam_Int,	gpio_read_func, 				NULL},
+	{ '8',	"Heater_sys_Int state", 	GPIO_READ_Heatersys_Int,	gpio_read_func, 				NULL},
+	{ '9',	"Fan_Int state",			GPIO_READ_FAN_Int,			gpio_read_func, 				NULL},
 };
 static DiagMenuStruct StatusReaderMenu = {
 	sizeof(StatusReaderMenuTable)/sizeof(DiagMenuTableStruct),
@@ -5112,7 +5294,7 @@ void init_version_env(void)
 	int s = 0;
 
 #ifdef CONFIG_HW_VER
-	sprintf(tmp, "%d.%d.%d", HW_VER_0_state()?1:0, HW_VER_1_state()?1:0, HW_VER_2_state()?1:0);
+	sprintf(tmp, "%s", MK_STR(CONFIG_HW_VER));
 	if(strcmp(tmp, getenv("hw_ver")) != 0){
 		setenv("hw_ver", tmp);
 		s = 1;
@@ -5522,7 +5704,7 @@ static int check_thermal()
 					env_get_pi_off_temp(&pi_off_temp);
 					env_get_sys_on_temp(&sys_on_temp);
 					printf("\nCheck System temperature.(PI_ON:%dC, PI_OFF:%dC, SYS_ON:%dC)\n", t_temp(pi_on_temp), t_temp(pi_off_temp), t_temp(sys_on_temp));
-					PIHeater_Power_ON();
+					Heater_Cam_ON();
 					sys_led_R_ON();
 				}
 			}else{
@@ -5532,15 +5714,13 @@ static int check_thermal()
 			if(t_temp(value) >= t_temp(pi_off_temp)){
 				if(pi_on){
 					pi_on = false;
-					PIHeater_Power_OFF();
+					Heater_Cam_OFF();
 					sys_led_R_OFF();
 				}
 			}
 #ifdef CONFIG_SYS_ON_TIMEOUT
 			if((count = get_timer(start)) < (sys_on_timeout * 1000)) {
 				printf(" (%u)", count / 1000);
-			//if(sys_on_timeout){
-			//	printf(" (%u)", sys_on_timeout-- / 10);
 			}else{
 				/* time out */
 				printf("\nTime out!!\n");
@@ -5630,7 +5810,7 @@ static void printf_title(char *title)
 	printf("%s",str);
 }
 
-static void printf_menu(pDiagMenuStruct menu)
+static void printf_menu(pDiagMenuStruct menu, bool showBack2Root)
 {
 	int i,j,k;
 	char res[32];
@@ -5646,22 +5826,26 @@ static void printf_menu(pDiagMenuStruct menu)
 			j = (40 - strlen(menu->MenuTable[i].Description) - 4);
 		}
 	}
-	printf("\n[q] Quit this menu.");
+	if(showBack2Root == true)
+		printf("\n[q] Quit this menu.                     [z] Back to Main Menu");
+	else
+		printf("\n[q] Quit this menu.");
 	printf("\n%s", EqualLine);
 	printf("\nPlease input the select : ");
 }
 
-void menu_process(pDiagMenuStruct menu)
+void menu_process(pDiagMenuStruct menu, bool *back2Root, int *layer)
 {
 	bool prompt = true;
 	int i;
 	int res;
 	char tmp[3];
+	bool back2Root_en = ((back2Root != NULL) && (layer != NULL) && ((*layer) > 0)) ? true : false;
 
 	while ( 1 ) 
 	{
 		if( prompt ){
-			printf_menu(menu);
+			printf_menu(menu, back2Root_en);
 			prompt = false;
 		}
 		res = get_line(NULL, tmp, sizeof(tmp), -1, str_menu_operate, NULL, NULL);
@@ -5669,18 +5853,32 @@ void menu_process(pDiagMenuStruct menu)
 			continue;
 
 		if( tmp[0] == 'q' || tmp[0] == 'Q' )
-			break;	
+			break;
+
+		if( (back2Root_en == true) && (tmp[0] == 'z' || tmp[0] == 'Z') ){
+			if(back2Root != NULL) *back2Root = true;
+			break;
+		}else{
+			if(back2Root != NULL) *back2Root = false;
+		}
 
 		for(i=0; i<menu->TableNo; i++)
 		{
 			if(menu->MenuTable[i].index == tmp[0])
 			{
-				if ( menu->MenuTable[i].SubMenu )
-					menu_process(menu->MenuTable[i].SubMenu);
-				else if ( menu->MenuTable[i].Func )
+				if ( menu->MenuTable[i].SubMenu ){
+					if(layer != NULL) (*layer)++;
+					menu_process(menu->MenuTable[i].SubMenu, back2Root, layer);
+					if((layer != NULL) && ((*layer) > 0)) (*layer)--;
+					if((back2Root != NULL) && (*back2Root == true)){
+						if((*layer) > 0) return;
+						else break;
+					}
+				}else if ( menu->MenuTable[i].Func ){
 					menu->MenuTable[i].Func(menu->MenuTable[i].Parameter);
-				else
+				}else{
 					printf("\nNOT IMPLEMENTED!!\n");
+				}
 				break;
 			}
 		}
@@ -5758,7 +5956,7 @@ int backdoor_process(void)
 			if(!resetkey_state()){
 				udelay(500000);
 				if(resetkey_state()) return BACKDOOR_FWRCVR;
-				else return BACKDOOR_NONE;
+				//else return BACKDOOR_NONE;
 			}
 #endif
 		}
@@ -6028,7 +6226,7 @@ static DiagMenuTableStruct NewDownloadMenuTable[] = {
 	{ 'd',	"Set to default",		0,	diag_do_default,			NULL},
 	{ 'e',	"Reset system",			0,	diag_do_reset,				NULL},
 #ifdef ISP_NAND
-	{ 'f',	"ISP Nand Flash(SD)",	1,	ispnand_from_mmc,			NULL},
+	{ 'f',	"ISP Nand Flash(SD)",	0,	diag_ispnand_from_mmc,		NULL},
 #endif
 };
 static DiagMenuStruct NewDownloadMenu = {
@@ -6182,8 +6380,10 @@ static DiagMenuStruct NewMainMenu = {
 
 int do_mmmenu (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
+	bool back2Root = false;
+	int layer = 0;
 	printf("\n\n");
-	menu_process(&NewMainMenu);
+	menu_process(&NewMainMenu, &back2Root, &layer);
 	printf("\n\n");
 	return 0;
 }
@@ -6212,7 +6412,7 @@ int do_moxamm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		printf("\n\n");
 #ifdef CONFIG_FW_RECOVERY
 	}else if(boot_mode == BACKDOOR_FWRCVR){
-		menu_process(&fw_recoveryMenu);
+		menu_process(&fw_recoveryMenu, NULL, NULL);
 		printf("\n\n");
 		diag_do_reset(0);
 	}else if(boot_mode == BACKDOOR_AUTOFR){

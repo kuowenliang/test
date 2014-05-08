@@ -184,13 +184,61 @@ int Audio_HW_Reset(void);
 #endif
 
 //// GPIO function ////
-/* GPIO0 */
-void GPIO0_OE(int pin, int en) //GPIO Output Enable
+u32 GPIO_BaseAddr(int bank)
+{
+	switch(bank){
+		case 0: return GPIO0_BASE; break;
+		case 1: return GPIO1_BASE; break;
+		case 2: return GPIO2_BASE; break;
+		case 3: return GPIO3_BASE; break;
+		default: return 0; break;
+	}
+	return 0;
+}
+
+u32 GPIO_SetClrAddr(int set)
+{
+	if(set) return GPIO_SETDATAOUT;
+	else return GPIO_CLEARDATAOUT;
+}
+
+void GPIO_OutEn(int bank, int pin, int en) //GPIO Output Enable
 {
 	u32  add, val;
-	add=(GPIO0_BASE + GPIO_OE);
+	add = (GPIO_BaseAddr(bank) + GPIO_OE);
 	val = __raw_readl(add);
-	if(en) val |= (1<<pin);
+	if(!en) val |= (1<<pin);
+	else val &=~(1<<pin);
+	__raw_writel(val, add);
+}
+
+int GPIO_Input(int bank, int pin)
+{
+	return (__raw_readl((GPIO_BaseAddr(bank) + GPIO_DATAIN)) & (1<<pin)) ? 1 : 0;
+}
+
+void GPIO_Output(int bank, int pin, int set)
+{
+	__raw_writel((1<<pin), (GPIO_BaseAddr(bank) + GPIO_SetClrAddr(set)));
+}
+
+void GPIO_Output_High(int bank, int pin)
+{
+	__raw_writel((1<<pin), (GPIO_BaseAddr(bank) + GPIO_SETDATAOUT));
+}
+
+void GPIO_Output_Low(int bank, int pin)
+{
+	__raw_writel((1<<pin), (GPIO_BaseAddr(bank) + GPIO_CLEARDATAOUT));
+}
+
+/* GPIO0 */
+void GPIO0_OutEn(int pin, int en) //GPIO Output Enable
+{
+	u32  add, val;
+	add = (GPIO0_BASE + GPIO_OE);
+	val = __raw_readl(add);
+	if(!en) val |= (1<<pin);
 	else val &=~(1<<pin);
 	__raw_writel(val, add);
 }
@@ -211,12 +259,12 @@ void GPIO0_Output_Low(int pin)
 }
 
 /* GPIO1 */
-void GPIO1_OE(int pin, int en) //GPIO Output Enable
+void GPIO1_OutEn(int pin, int en) //GPIO Output Enable
 {
 	u32  add, val;
-	add=(GPIO1_BASE + GPIO_OE);
+	add = (GPIO1_BASE + GPIO_OE);
 	val = __raw_readl(add);
-	if(en) val |= (1<<pin);
+	if(!en) val |= (1<<pin);
 	else val &=~(1<<pin);
 	__raw_writel(val, add);
 }
@@ -237,12 +285,12 @@ void GPIO1_Output_Low(int pin)
 }
 
 /* GPIO2 */
-void GPIO2_OE(int pin, int en) //GPIO Output Enable
+void GPIO2_OutEn(int pin, int en) //GPIO Output Enable
 {
 	u32  add, val;
-	add=(GPIO2_BASE + GPIO_OE);
+	add = (GPIO2_BASE + GPIO_OE);
 	val = __raw_readl(add);
-	if(en) val |= (1<<pin);
+	if(!en) val |= (1<<pin);
 	else val &=~(1<<pin);
 	__raw_writel(val, add);
 }
@@ -263,12 +311,12 @@ void GPIO2_Output_Low(int pin)
 }
 
 /* GPIO3 */
-void GPIO3_OE(int pin, int en) //GPIO Output Enable
+void GPIO3_OutEn(int pin, int en) //GPIO Output Enable
 {
 	u32  add, val;
-	add=(GPIO3_BASE + GPIO_OE);
+	add = (GPIO3_BASE + GPIO_OE);
 	val = __raw_readl(add);
-	if(en) val |= (1<<pin);
+	if(!en) val |= (1<<pin);
 	else val &=~(1<<pin);
 	__raw_writel(val, add);
 }
@@ -290,33 +338,33 @@ void GPIO3_Output_Low(int pin)
 
 void sys_led_R_ON(void)
 {
-	GPIO3_Output_Low(13); //GP3_13 output low
+	GPIO_Output(3, 13, 0); //GP3_13 output low
 }
 
 void sys_led_R_OFF(void)
 {
-	GPIO3_Output_High(13); //GP3_13 output high
+	GPIO_Output(3, 13, 1); //GP3_13 output high
 }
 
 void sys_led_R_reverse(void)
 {
-	if(GPIO3_Input(13)) sys_led_R_ON();
+	if(GPIO_Input(3, 13)) sys_led_R_ON();
 	else sys_led_R_OFF();
 }
 
 void sys_led_G_ON(void)
 {
-	GPIO3_Output_Low(12); //GP3_12 output low
+	GPIO_Output(3, 12, 0); //GP3_12 output low
 }
 
 void sys_led_G_OFF(void)
 {
-	GPIO3_Output_High(12); //GP3_12 output high
+	GPIO_Output(3, 12, 1); //GP3_12 output high
 }
 
 void sys_led_G_reverse(void)
 {
-	if(GPIO3_Input(12)) sys_led_G_ON();
+	if(GPIO_Input(3, 12)) sys_led_G_ON();
 	else sys_led_G_OFF();
 }
 
@@ -340,104 +388,140 @@ void sys_led_RG_reverse(void)
 
 void RS485_SetTx(void)
 {
-	__raw_writel((1<<18), (GPIO1_BASE + GPIO_SETDATAOUT));  //GP1_18-RS485_ENT output high
-	__raw_writel((1<<26), (GPIO1_BASE + GPIO_SETDATAOUT));  //GP1_26-RS485_ENRn output high
+	GPIO_Output(1, 18, 1);	//GP1_18-RS485_ENT output high
+	GPIO_Output(1, 26, 1);	//GP1_26-RS485_ENRn output high
 }
 
 void RS485_SetRx(void)
 {
-	__raw_writel((1<<18), (GPIO1_BASE + GPIO_CLEARDATAOUT));  //GP1_18-RS485_ENT output low
-	__raw_writel((1<<26), (GPIO1_BASE + GPIO_CLEARDATAOUT));  //GP1_26-RS485_ENRn output low
+	GPIO_Output(1, 18, 0);	//GP1_18-RS485_ENT output low
+	GPIO_Output(1, 26, 0);	//GP1_26-RS485_ENRn output low
 }
 
 void DO_High(void)
 {
-	__raw_writel((1<<8), (GPIO3_BASE + GPIO_SETDATAOUT));  //GP3_8 output high
+	GPIO_Output(3, 8, 1);	//GP3_8 output high
 }
 
 void DO_Low(void)
 {
-	__raw_writel((1<<8), (GPIO3_BASE + GPIO_CLEARDATAOUT));  //GP3_8 output low
+	GPIO_Output(3, 8, 0);	//GP3_8 output low
 }
 
 u32 DI_state(void)
 {
-	return (__raw_readl((GPIO3_BASE + GPIO_DATAIN)) & (1<<7)) ? 1 : 0;	//GP3_7
+	return GPIO_Input(3, 7);	//GP3_7
 }
 
 u32 DO_state(void)
 {
-	return (__raw_readl((GPIO3_BASE + GPIO_DATAIN)) & (1<<8)) ? 1 : 0;	//GP3_8
-}
-
-u32 HW_VER_0_state(void)
-{
-	return 0;
-}
-
-u32 HW_VER_1_state(void)
-{
-	return 0;
-}
-
-u32 HW_VER_2_state(void)
-{
-	return 0;
+	return GPIO_Input(3, 8);	//GP3_8
 }
 
 u32 resetkey_state(void)
 {
-	return (__raw_readl((GPIO2_BASE + GPIO_DATAIN)) & (1<<21)) ? 0 : 1;	//GP2_21
+	return GPIO_Input(2, 21);	//GP2_21
 }
 
 u32 lightsen_state(void)
 {
-	return (__raw_readl((GPIO3_BASE + GPIO_DATAIN)) & (1<<9)) ? 1 : 0;	//GP3_9
+	return GPIO_Input(3, 9);	//GP3_9
 }
 
 void sdcard_enable(void)
 {
-	__raw_writel((1<<31), (GPIO0_BASE + GPIO_SETDATAOUT));	//GP0_31 output high
+	GPIO_Output(0, 31, 1);	//GP0_31 output high
 }
 
 void sdcard_disable(void)
 {
-	__raw_writel((1<<31), (GPIO0_BASE + GPIO_CLEARDATAOUT));	//GP0_31 output low
+	GPIO_Output(0, 31, 0);	//GP0_31 output low
 }
 
 int sdcard_WPn_state(void)
 {
-	return (__raw_readl((GPIO0_BASE + GPIO_DATAIN)) & (1<<29)) ? 1 : 0;	//GP0_29
+	return GPIO_Input(0, 29);	//GP0_29
 }
 
 int sdcard_CDn_state(void)
 {
-	return (__raw_readl((GPIO0_BASE + GPIO_DATAIN)) & (1<<30)) ? 1 : 0;	//GP0_30
+	return GPIO_Input(0, 30);	//GP0_30
 }
 
 int sdcard_En_state(void)
 {
-	return (__raw_readl((GPIO0_BASE + GPIO_DATAIN)) & (1<<31)) ? 1 : 0;	//GP0_31
+	return GPIO_Input(0, 31);	//GP0_31
 }
 
-void PIHeater_Power_ON(void)
+void Heater_Cam_ON(void)
 {
-	__raw_writel((1<<29), (GPIO2_BASE + GPIO_SETDATAOUT));	//GP2_29 output high
+#ifdef _VPORT66
+	GPIO_Output(0, 26, 1);	//GP0_26 output high
+#else
+	GPIO_Output(2, 29, 1);	//GP2_29 output high
+#endif
 }
 
-void PIHeater_Power_OFF(void)
+void Heater_Cam_OFF(void)
 {
-	__raw_writel((1<<29), (GPIO2_BASE + GPIO_CLEARDATAOUT));	//GP2_29 output low
+#ifdef _VPORT66
+	GPIO_Output(0, 26, 0);	//GP0_26 output low
+#else
+	GPIO_Output(2, 29, 0);	//GP2_29 output low
+#endif
+}
+
+int Heatercam_int_state(void)
+{
+	return GPIO_Input(1, 4);	//GP1_4
+}
+
+void Heater_Sys_ON(void)
+{
+	GPIO_Output(0, 22, 1);	//GP0_22 output high
+}
+
+void Heater_Sys_OFF(void)
+{
+	GPIO_Output(0, 22, 0);	//GP0_22 output low
+}
+
+int Heatersys_int_state(void)
+{
+	return GPIO_Input(0, 17);	//GP0_17
 }
 
 void Camera_Power_ON(void)
 {
-	__raw_writel((1<<30), (GPIO2_BASE + GPIO_SETDATAOUT));	//GP2_30 output high
+#ifdef _VPORT66
+	GPIO_Output(2, 25, 1);	//GP2_25 output high
+#else
+	GPIO_Output(2, 30, 1);	//GP2_30 output high
+#endif
 }
 
 void Camera_Power_OFF(void)
 {
-	__raw_writel((1<<30), (GPIO2_BASE + GPIO_CLEARDATAOUT));	//GP2_30 output low
+#ifdef _VPORT66
+	GPIO_Output(2, 25, 0);	//GP2_25 output low
+#else
+	GPIO_Output(2, 30, 0);	//GP2_30 output low
+#endif
+}
+
+void Fan_con_ON(void)
+{
+	GPIO_Output(1, 10, 1);	//GP1_10 output high
+}
+
+void Fan_con_OFF(void)
+{
+	GPIO_Output(1, 10, 1);	//GP1_10 output low
+}
+
+int Fan_int_state(void)
+{
+	return GPIO_Input(1, 9);	//GP1_9
 }
 
 /*
@@ -465,8 +549,13 @@ int board_init(void)
 	__raw_writel(0x4, RMII_REFCLK_SRC);
 
 	if (PG2_1 <= get_cpu_rev()) {
+#ifndef _VPORT66
 		/*program GMII_SEL register for G/MII mode */
 		__raw_writel(0x00,GMII_SEL);
+#else
+		/*program GMII_SEL register for RGMII mode */
+		__raw_writel(0x30a,GMII_SEL);
+#endif
 	}
 	gpio_init();
 	/* Get Timer and UART out of reset */
@@ -1130,10 +1219,12 @@ void per_clocks_enable(void)
 	__raw_writel(0x2, CM_ALWON_UART_3_CLKCTRL);
 	while(__raw_readl(CM_ALWON_UART_3_CLKCTRL) != 0x2);
 
-	/* Selects UART3_CLK_SOURCE to SYSCLK10 */
+	/* Selects UART3_CLK_SOURCE & UART4_CLK_SOURCE to SYSCLK10 */
 	temp = __raw_readl(McBSP_UART_CLKSRC);
-	temp &= ~(0x3 << 3);
-	temp |= (0x1 << 3);
+	temp &= ~(0x3 << 3);	//UART3_CLK_SOURCE
+	temp |= (0x1 << 3);		//set to SYSCLK10
+	temp &= ~(0x3 << 5);	//UART4_CLK_SOURCE
+	temp |= (0x1 << 5);		//set to SYSCLK10
 	__raw_writel(temp, McBSP_UART_CLKSRC);
 
 	while((__raw_readl(CM_ALWON_L3_SLOW_CLKSTCTRL) & 0x2100) != 0x2100);
@@ -1335,6 +1426,7 @@ static void cpsw_pad_config()
 {
 	volatile u32 val = 0;
 
+#ifndef _VPORT66
 	/*configure pin mux for rmii_refclk,mdio_clk,mdio_d */
 	val = PAD232_CNTRL;
 	PAD232_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
@@ -1376,6 +1468,45 @@ static void cpsw_pad_config()
 		PAD253_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
 		val = PAD258_CNTRL; /*mii0_txen*/
 		PAD258_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+#else
+	/*configure pin mux for rmii_refclk,mdio_clk,mdio_d */
+	val = PAD232_CNTRL;
+	PAD232_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+	val = PAD233_CNTRL;
+	PAD233_CNTRL = (volatile unsigned int) (BIT(19) | BIT(17) | BIT(0));
+	val = PAD234_CNTRL;
+	PAD234_CNTRL = (volatile unsigned int) (BIT(19) | BIT(18) | BIT(17) |
+			BIT(0));
+
+		/* In this case we enable rgmii_en bit in GMII_SEL register and
+		 * still program the pins in gmii mode: gmii0 pins in mode 1*/
+		val = PAD235_CNTRL; /*rgmii0_rxc*/
+		PAD235_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+		val = PAD236_CNTRL; /*rgmii0_rxctl*/
+		PAD236_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+		val = PAD237_CNTRL; /*rgmii0_rxd[2]*/
+		PAD237_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+		val = PAD238_CNTRL; /*rgmii0_txctl*/
+		PAD238_CNTRL = (volatile unsigned int) BIT(0);
+		val = PAD239_CNTRL; /*rgmii0_txc*/
+		PAD239_CNTRL = (volatile unsigned int) BIT(0);
+		val = PAD240_CNTRL; /*rgmii0_txd[0]*/
+		PAD240_CNTRL = (volatile unsigned int) BIT(0);
+		val = PAD241_CNTRL; /*rgmii0_rxd[0]*/
+		PAD241_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+		val = PAD242_CNTRL; /*rgmii0_rxd[1]*/
+		PAD242_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+		val = PAD243_CNTRL; /*rgmii1_rxctl*/
+		PAD243_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+		val = PAD244_CNTRL; /*rgmii0_rxd[3]*/
+		PAD244_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+		val = PAD245_CNTRL; /*rgmii0_txd[3]*/
+		PAD245_CNTRL = (volatile unsigned int) BIT(0);
+		val = PAD246_CNTRL; /*rgmii0_txd[2]*/
+		PAD246_CNTRL = (volatile unsigned int) BIT(0);
+		val = PAD247_CNTRL; /*rgmii0_txd[1]*/
+		PAD247_CNTRL = (volatile unsigned int) BIT(0);
+#endif
 #if 0 /* switch off second RGMII to save power */
 		val = PAD248_CNTRL; /*rgmii1_rxd[1]*/
 		PAD248_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
@@ -1514,6 +1645,10 @@ void gpio_init(void)
 	//GPIO0[] group
 	add=(GPIO0_BASE + GPIO_OE);			//GPIO_OE Output Enable Register
 	val = __raw_readl(add);
+	val &=~(1<<14); 					//GP0_14-TP65 output (test)
+	val |= (1<<17); 					//GP0_17-Heatersys_int input
+	val &=~(1<<22); 					//GP0_22-Heater_sys output
+	val &=~(1<<26); 					//GP0_26-Heater_cam output
 	val |= (1<<29); 					//GP0_29-SD_WPn input
 	val |= (1<<30); 					//GP0_30-SD_CDn input
 	val &=~(1<<31); 					//GP0_31-SD_EN output
@@ -1524,6 +1659,12 @@ void gpio_init(void)
 	add=(GPIO1_BASE + GPIO_OE);			//GPIO_OE Output Enable Register
 	val = __raw_readl(add);
 	val &=~(1<<0); 						//GP1_0-FLASH_WP output
+#ifdef _VPORT66
+	val |= (1<<4);						//GP1_4-Heatercam_int input
+#endif
+	val &=~(1<<7); 						//GP1_7-TP62 output (test)
+	val |= (1<<9);						//GP1_9-Fan_int input
+	val &=~(1<<10);						//GP1_10-Fan_con output
 	val &=~(1<<17); 					//GP1_17-RS485_4W output
 	val &=~(1<<18); 					//GP1_18-RS485_ENT output
 	val &=~(1<<26); 					//GP1_26-RS485_ENRn output
@@ -1731,7 +1872,9 @@ static void phy_init(char *name, int addr)
 		miiphy_write(name, addr, PHY_CONF_REG, val);
 		miiphy_read(name, addr, PHY_CONF_REG, &val);
 	}
-
+	else if (phy_id == MARVELL_PHY_ID) {
+		printf("Configuring MARVELL Phy\n\n");
+	}
 	/* Enable Autonegotiation */
 	if (miiphy_read(name, addr, PHY_BMCR, &val) != 0) {
 		printf("failed to read bmcr\n");
@@ -1795,14 +1938,14 @@ static void cpsw_control(int enabled)
 
 static struct cpsw_slave_data cpsw_slaves[] = {
 	{
-		.slave_reg_ofs  = 0x90,
-		.sliver_reg_ofs = 0x740,
-		.phy_id         = 0,
-	},
-	{
-		.slave_reg_ofs	= 0x50,
+		.slave_reg_ofs  = 0x50,
 		.sliver_reg_ofs = 0x700,
 		.phy_id         = 1,
+	},
+	{
+		.slave_reg_ofs	= 0x90,
+		.sliver_reg_ofs = 0x740,
+		.phy_id         = 0,
 	},
 };
 
@@ -1813,7 +1956,7 @@ static struct cpsw_platform_data cpsw_data = {
 	.channels               = 8,
 	.cpdma_reg_ofs          = 0x100,
 	.cpdma_sram_ofs         = 0x200,
-	.slaves                 = 2,
+	.slaves                 = 1,
 	.slave_data             = cpsw_slaves,
 	.ale_reg_ofs            = 0x600,
 	.ale_entries            = 1024,
@@ -1864,10 +2007,12 @@ int board_eth_init(bd_t *bis)
 		printf("Caution:using static MACID!! Set <ethaddr> variable\n");
 	}
 
+#ifdef _VPORT66
 	if (PG1_0 != get_cpu_rev()) {
 		cpsw_slaves[0].phy_id = 0;
 		cpsw_slaves[1].phy_id = 1;
 	}
+#endif
 
 	return cpsw_register(&cpsw_data);
 }
