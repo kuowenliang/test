@@ -511,17 +511,17 @@ void Camera_Power_OFF(void)
 
 void Fan_con_ON(void)
 {
-	GPIO_Output(1, 10, 1);	//GP1_10 output high
+	GPIO_Output(0, 14, 1);	//GP0_14 output high
 }
 
 void Fan_con_OFF(void)
 {
-	GPIO_Output(1, 10, 1);	//GP1_10 output low
+	GPIO_Output(0, 14, 0);	//GP0_14 output low
 }
 
 int Fan_int_state(void)
 {
-	return GPIO_Input(1, 9);	//GP1_9
+	return GPIO_Input(1, 7);	//GP1_7
 }
 
 /*
@@ -1645,7 +1645,7 @@ void gpio_init(void)
 	//GPIO0[] group
 	add=(GPIO0_BASE + GPIO_OE);			//GPIO_OE Output Enable Register
 	val = __raw_readl(add);
-	val &=~(1<<14); 					//GP0_14-TP65 output (test)
+	val &=~(1<<14); 					//GP0_14-Fan_con output
 	val |= (1<<17); 					//GP0_17-Heatersys_int input
 	val &=~(1<<22); 					//GP0_22-Heater_sys output
 	val &=~(1<<26); 					//GP0_26-Heater_cam output
@@ -1662,9 +1662,9 @@ void gpio_init(void)
 #ifdef _VPORT66
 	val |= (1<<4);						//GP1_4-Heatercam_int input
 #endif
-	val &=~(1<<7); 						//GP1_7-TP62 output (test)
-	val |= (1<<9);						//GP1_9-Fan_int input
-	val &=~(1<<10);						//GP1_10-Fan_con output
+	val &=~(1<<7); 						//GP1_7-Fan_int output
+//	val |= (1<<9);						//GP1_9-Fan_int input
+//	val &=~(1<<10);						//GP1_10-Fan_con output
 	val &=~(1<<17); 					//GP1_17-RS485_4W output
 	val &=~(1<<18); 					//GP1_18-RS485_ENT output
 	val &=~(1<<26); 					//GP1_26-RS485_ENRn output

@@ -44,6 +44,7 @@
 #endif
 
 #include "fw_env.h"
+#include "../include/configs/ti8148_ipnc.h"
 
 #define	CMD_GETENV	"fw_printenv"
 #define	CMD_SETENV	"fw_setenv"
@@ -124,83 +125,196 @@ static unsigned char obsolete_flag = 0;
 #define MK_STR(x)	XMK_STR(x)
 
 static char default_environment[] = {
-#if defined(CONFIG_BOOTARGS)
-	"bootargs=" CONFIG_BOOTARGS "\0"
+#ifdef	CONFIG_NETRETRY
+	"netretry="	MK_STR(CONFIG_NETRETRY)		"\0"
 #endif
-#if defined(CONFIG_BOOTCOMMAND)
-	"bootcmd=" CONFIG_BOOTCOMMAND "\0"
+#ifdef	CFG_NAND_QUIET
+	"quiet=" MK_STR(CFG_NAND_QUIET) 		"\0"
 #endif
-#if defined(CONFIG_RAMBOOTCOMMAND)
-	"ramboot=" CONFIG_RAMBOOTCOMMAND "\0"
+#ifdef	CONFIG_BOOTARGS
+	"bootargs="	CONFIG_BOOTARGS			"\0"
 #endif
-#if defined(CONFIG_NFSBOOTCOMMAND)
-	"nfsboot=" CONFIG_NFSBOOTCOMMAND "\0"
+#ifdef	CONFIG_BOOTCOMMAND
+	"bootcmd="	CONFIG_BOOTCOMMAND		"\0"
+#endif
+#ifdef	CONFIG_MPBOOTCOMMAND
+	"mpbootcmd="	CONFIG_MPBOOTCOMMAND		"\0"
+#endif
+#ifdef	CONFIG_RAMBOOTCOMMAND
+	"ramboot="	CONFIG_RAMBOOTCOMMAND		"\0"
+#endif
+#ifdef	CONFIG_NFSBOOTCOMMAND
+	"nfsboot="	CONFIG_NFSBOOTCOMMAND		"\0"
 #endif
 #if defined(CONFIG_BOOTDELAY) && (CONFIG_BOOTDELAY >= 0)
-	"bootdelay=" MK_STR (CONFIG_BOOTDELAY) "\0"
+	"bootdelay="	MK_STR(CONFIG_BOOTDELAY)	"\0"
 #endif
 #if defined(CONFIG_BAUDRATE) && (CONFIG_BAUDRATE >= 0)
-	"baudrate=" MK_STR (CONFIG_BAUDRATE) "\0"
+	"baudrate="	MK_STR(CONFIG_BAUDRATE)		"\0"
+#endif
+#if defined(CONFIG_SERIAL_MULTI)
+#if defined(CONFIG_BAUDRATE_0_ITEM) && defined(CONFIG_BAUDRATE_0) && (CONFIG_BAUDRATE_0 >= 0)
+	CONFIG_BAUDRATE_0_ITEM"="	MK_STR(CONFIG_BAUDRATE_0)		"\0"
+#endif
+#if defined(CONFIG_BAUDRATE_1_ITEM) && defined(CONFIG_BAUDRATE_1) && (CONFIG_BAUDRATE_1 >= 0)
+	CONFIG_BAUDRATE_1_ITEM"="	MK_STR(CONFIG_BAUDRATE_1)		"\0"
+#endif
+#if defined(CONFIG_BAUDRATE_2_ITEM) && defined(CONFIG_BAUDRATE_2) && (CONFIG_BAUDRATE_2 >= 0)
+	CONFIG_BAUDRATE_2_ITEM"="	MK_STR(CONFIG_BAUDRATE_2)		"\0"
+#endif
+#if defined(CONFIG_BAUDRATE_3_ITEM) && defined(CONFIG_BAUDRATE_3) && (CONFIG_BAUDRATE_3 >= 0)
+	CONFIG_BAUDRATE_3_ITEM"="	MK_STR(CONFIG_BAUDRATE_3)		"\0"
+#endif
 #endif
 #ifdef	CONFIG_LOADS_ECHO
-	"loads_echo=" MK_STR (CONFIG_LOADS_ECHO) "\0"
+	"loads_echo="	MK_STR(CONFIG_LOADS_ECHO)	"\0"
+#endif
+#ifdef	CONFIG_BOOTARGS_MEM
+	"mem="	MK_STR(CONFIG_BOOTARGS_MEM)		"\0"
 #endif
 #ifdef	CONFIG_ETHADDR
-	"ethaddr=" MK_STR (CONFIG_ETHADDR) "\0"
+	"ethaddr="	MK_STR(CONFIG_ETHADDR)		"\0"
 #endif
 #ifdef	CONFIG_ETH1ADDR
-	"eth1addr=" MK_STR (CONFIG_ETH1ADDR) "\0"
+	"eth1addr="	MK_STR(CONFIG_ETH1ADDR)		"\0"
 #endif
 #ifdef	CONFIG_ETH2ADDR
-	"eth2addr=" MK_STR (CONFIG_ETH2ADDR) "\0"
+	"eth2addr="	MK_STR(CONFIG_ETH2ADDR)		"\0"
 #endif
 #ifdef	CONFIG_ETH3ADDR
-	"eth3addr=" MK_STR (CONFIG_ETH3ADDR) "\0"
+	"eth3addr="	MK_STR(CONFIG_ETH3ADDR)		"\0"
 #endif
 #ifdef	CONFIG_ETH4ADDR
-	"eth4addr=" MK_STR (CONFIG_ETH4ADDR) "\0"
+	"eth4addr="	MK_STR(CONFIG_ETH4ADDR)		"\0"
 #endif
 #ifdef	CONFIG_ETH5ADDR
-	"eth5addr=" MK_STR (CONFIG_ETH5ADDR) "\0"
-#endif
-#ifdef	CONFIG_ETHPRIME
-	"ethprime=" CONFIG_ETHPRIME "\0"
+	"eth5addr="	MK_STR(CONFIG_ETH5ADDR)		"\0"
 #endif
 #ifdef	CONFIG_IPADDR
-	"ipaddr=" MK_STR (CONFIG_IPADDR) "\0"
+	"ipaddr="	MK_STR(CONFIG_IPADDR)		"\0"
 #endif
 #ifdef	CONFIG_SERVERIP
-	"serverip=" MK_STR (CONFIG_SERVERIP) "\0"
+	"serverip="	MK_STR(CONFIG_SERVERIP)		"\0"
 #endif
 #ifdef	CONFIG_SYS_AUTOLOAD
-	"autoload=" CONFIG_SYS_AUTOLOAD "\0"
-#endif
-#ifdef	CONFIG_ROOTPATH
-	"rootpath=" MK_STR (CONFIG_ROOTPATH) "\0"
-#endif
-#ifdef	CONFIG_GATEWAYIP
-	"gatewayip=" MK_STR (CONFIG_GATEWAYIP) "\0"
-#endif
-#ifdef	CONFIG_NETMASK
-	"netmask=" MK_STR (CONFIG_NETMASK) "\0"
-#endif
-#ifdef	CONFIG_HOSTNAME
-	"hostname=" MK_STR (CONFIG_HOSTNAME) "\0"
-#endif
-#ifdef	CONFIG_BOOTFILE
-	"bootfile=" MK_STR (CONFIG_BOOTFILE) "\0"
-#endif
-#ifdef	CONFIG_LOADADDR
-	"loadaddr=" MK_STR (CONFIG_LOADADDR) "\0"
+	"autoload="	CONFIG_SYS_AUTOLOAD			"\0"
 #endif
 #ifdef	CONFIG_PREBOOT
-	"preboot=" CONFIG_PREBOOT "\0"
+	"preboot="	CONFIG_PREBOOT			"\0"
 #endif
-#ifdef	CONFIG_CLOCKS_IN_MHZ
-	"clocks_in_mhz=" "1" "\0"
+#ifdef	CONFIG_ROOTPATH
+	"rootpath="	MK_STR(CONFIG_ROOTPATH)		"\0"
+#endif
+#ifdef	CONFIG_GATEWAYIP
+	"gatewayip="	MK_STR(CONFIG_GATEWAYIP)	"\0"
+#endif
+#ifdef	CONFIG_DNSIP
+	"dnsip="	MK_STR(CONFIG_DNSIP)	"\0"
+#endif
+#ifdef	CONFIG_NTPSERVERIP
+	"ntpserverip="	MK_STR(CONFIG_NTPSERVERIP)	"\0"
+#endif
+#ifdef	CONFIG_NETMASK
+	"netmask="	MK_STR(CONFIG_NETMASK)		"\0"
+#endif
+#ifdef	CONFIG_HOSTNAME
+	"hostname="	MK_STR(CONFIG_HOSTNAME)		"\0"
+#endif
+#ifdef	CONFIG_BOOTFILE
+	"bootfile="	MK_STR(CONFIG_BOOTFILE)		"\0"
+#endif
+#ifdef	CONFIG_LOADADDR
+	"loadaddr="	MK_STR(CONFIG_LOADADDR)		"\0"
+#endif
+#ifdef	KERNEL_FLASH
+	"kernelflash="	MK_STR(KERNEL_FLASH)		"\0"
+#endif
+#ifdef	MPKERNEL_FLASH
+	"mpkernelflash="	MK_STR(MPKERNEL_FLASH)		"\0"
+#endif
+#ifdef  CONFIG_CLOCKS_IN_MHZ
+	"clocks_in_mhz=1\0"
 #endif
 #if defined(CONFIG_PCI_BOOTDELAY) && (CONFIG_PCI_BOOTDELAY > 0)
-	"pcidelay=" MK_STR (CONFIG_PCI_BOOTDELAY) "\0"
+	"pcidelay="	MK_STR(CONFIG_PCI_BOOTDELAY)	"\0"
+#endif
+#ifdef CONFIG_DUT_MODEL
+	"dut_model=" CONFIG_DUT_MODEL 		"\0"
+#endif
+#ifdef CONFIG_DUT_HOST
+	"dut_host=" CONFIG_DUT_HOST		"\0"
+#endif
+#ifdef CONFIG_DUT_DESC
+	"dut_desc=" CONFIG_DUT_DESC		"\0"
+#endif
+#ifdef CONFIG_DUT_ID
+	"dut_id=" MK_STR(CONFIG_DUT_ID)		"\0"
+#endif
+#ifdef CONFIG_HW_VER
+	"hw_ver=" MK_STR(CONFIG_HW_VER)		"\0"
+#endif
+#ifdef CONFIG_FW_VER
+	"fw_ver=" MK_STR(CONFIG_FW_VER)		"\0"
+#endif
+#ifdef CONFIG_MP_VER
+	"mp_ver=" MK_STR(CONFIG_MP_VER)		"\0"
+#endif
+#ifdef CONFIG_UBL_VER
+	"ubl_ver=" MK_STR(CONFIG_UBL_VER)		"\0"
+#endif
+#ifdef CONFIG_UBOOT_VER
+	"uboot_ver=" MK_STR(CONFIG_UBOOT_VER)		"\0"
+#endif
+#ifdef CONFIG_UBOOT_IDX
+	"uboot_idx=" MK_STR(CONFIG_UBOOT_IDX)		"\0"
+#endif
+#ifdef CONFIG_KERNEL_IDX
+	"kernel_idx=" MK_STR(CONFIG_KERNEL_IDX)		"\0"
+#endif
+#ifdef CONFIG_MTD_IDX
+	"mtd_idx=" MK_STR(CONFIG_MTD_IDX)		"\0"
+#endif
+#ifdef CONFIG_FW_BOOTUP_COUNTER
+	"fwboot_ctr=" MK_STR(CONFIG_FW_BOOTUP_COUNTER)		"\0"
+#endif
+#ifdef CONFIG_MP_FLAG
+	"mp_flag=" MK_STR(CONFIG_MP_FLAG)		"\0"
+#endif
+#ifdef CONFIG_IVA_FLAG
+	"iva_flag=" MK_STR(CONFIG_IVA_FLAG)		"\0"
+#endif
+#ifdef CONFIG_BURNIN_TIME
+	"burntime=" MK_STR(CONFIG_BURNIN_TIME)		"\0"
+#endif
+#ifdef CONFIG_FW_RECOVERY
+	"fw_rcvr=" MK_STR(CONFIG_FW_RECOVERY)		"\0"
+#endif
+#if !(defined(CONFIG_FW_RECOVERY_FIX) && defined(CONFIG_FW_RECOVERY_FILE))
+	"fw_rcvrfile=" CONFIG_FW_RECOVERY_FILE		"\0"
+#endif
+#ifdef CONFIG_T2_BOOTUP_COUNTER
+	"boot_ctr=" MK_STR(CONFIG_T2_BOOTUP_COUNTER)		"\0"
+#endif
+#ifdef CONFIG_SERIAL_NUMBER
+	"ser_num=" MK_STR(CONFIG_SERIAL_NUMBER)		"\0"
+#endif
+#ifdef CONFIG_PI_ON_TEMP
+	"pi_on=" MK_STR(CONFIG_PI_ON_TEMP)		"\0"
+#endif
+#ifdef CONFIG_PI_OFF_TEMP
+	"pi_off=" MK_STR(CONFIG_PI_OFF_TEMP)		"\0"
+#endif
+#ifdef CONFIG_SYS_ON_TEMP
+	"sys_on=" MK_STR(CONFIG_SYS_ON_TEMP)		"\0"
+#endif
+#ifdef CONFIG_PI_OFF_OFFS
+	"pi_off_offs=" MK_STR(CONFIG_PI_OFF_OFFS)		"\0"
+#endif
+#ifdef CONFIG_SYS_ON_OFFS
+	"sys_on_offs=" MK_STR(CONFIG_SYS_ON_OFFS)		"\0"
+#endif
+#ifdef CONFIG_SYS_ON_TIMEOUT
+	"sys_on_time=" MK_STR(CONFIG_SYS_ON_TIMEOUT)		"\0"
 #endif
 #ifdef  CONFIG_EXTRA_ENV_SETTINGS
 	CONFIG_EXTRA_ENV_SETTINGS

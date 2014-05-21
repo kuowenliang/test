@@ -588,6 +588,20 @@ U_BOOT_CMD(
 );
 #endif
 
+#ifdef RESERVE_FLASH
+int do_eraserese (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+{
+	if(_erase_flash(cmdtp, flag, RESERVE_FLASH, RESERVE_SIZE)) return -1;
+	return 0;
+}
+
+U_BOOT_CMD(
+	eraseres, 1, 0,	do_eraserese,
+	"Erase reserve",
+	NULL
+);
+#endif
+
 int _write_flash(cmd_tbl_t *cmdtp, int flag, ulong buff_addr, ulong nand_addr, ulong size)
 {
 	char *args[5];
@@ -1081,6 +1095,18 @@ int do_loaddata2 (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 U_BOOT_CMD(
 	loadda2, 3, 0,	do_loaddata2,
 	"Load data 2\n\
+	[kermit/xymodem/tftp/mmc(dev[:part])][filename]",
+	NULL
+);
+#endif
+#ifdef RESERVE_FLASH
+int do_loadreserve (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+{
+	return general_load(cmdtp, flag, argc, argv, RESERVE_FLASH, RESERVE_SIZE);
+}
+U_BOOT_CMD(
+	loadrese, 3, 0,	do_loadreserve,
+	"Load reserve\n\
 	[kermit/xymodem/tftp/mmc(dev[:part])][filename]",
 	NULL
 );
@@ -1695,7 +1721,6 @@ int ispnand_from_mmc(int mmc_part, char* file)
 	int count = 1;
 	int enable = 1;
 	int cleanflash = 0;
-	int mpflag = CONFIG_MP_FLAG_T0_BIOS;
 	int delay = 1;
 
 	memset(&cmd_tmp, 0, sizeof(cmd_tbl_t));
@@ -3062,6 +3087,16 @@ static int diag_erase_Data2(int parameter)
 }
 #endif
 
+#ifdef RESERVE_FLASH
+static int diag_erase_Reserve(int parameter)
+{
+	cmd_tbl_t cmd_tmp;
+	memset(&cmd_tmp, 0, sizeof(cmd_tbl_t));
+	if(do_eraserese(&cmd_tmp, 0, 0, NULL)) return DIAG_ERROR;
+	else return DIAG_OK;
+}
+#endif
+
 static int diag_erase_WholeFlash(int parameter)
 {
 	char cmd[3];
@@ -3245,7 +3280,7 @@ int uart_tx_test(char *name)
 	if(dev == NULL) return DIAG_ERROR;
 	dev->init();
 	printf("Press 'Reset button' to exit.\n");
-	while(resetkey_state()){
+	while(!resetkey_state()){
 		if(tstc()) dev->putc(getc());
 		udelay(10000);
 	}
@@ -3259,7 +3294,7 @@ int uart_rx_test(char *name)
 	if(dev == NULL) return DIAG_ERROR;
 	dev->init();
 	printf("Press 'Reset button' to exit.\n");
-	while(resetkey_state()){
+	while(!resetkey_state()){
 		if(dev->tstc()) putc((char)dev->getc());
 		udelay(10000);
 	}
@@ -4260,7 +4295,7 @@ static int LightSensor_test_func(int parameter)
 	printf("[Cover   -> SYS LED:  Red, IR LED: ON]\n");
 	printf("Press reset button to exit.\n");
 	printf("==============================================\n");
-	while(resetkey_state()){
+	while(!resetkey_state()){
 		currstat = lightsen_state();
 		if((oldstat == -1) || (oldstat != currstat)){
 			oldstat = currstat;
@@ -4934,8 +4969,8 @@ static int flash_test_func(int parameter)
 		printf("ERROR: NAND Device has unacceptable Bad Block.\n");
 		return DIAG_ERROR;
 	}
-	loff_t start_addr = FREE_FLASH;
-	size_t test_length = FREE_SIZE;
+	loff_t start_addr = RESERVE_FLASH;
+	size_t test_length = RESERVE_SIZE;
 
 	printf("\nStart address(0x%08llX):0x", start_addr);
 	ret = get_line(NULL, tmp, sizeof(tmp), -1, str_number_hex, NULL, NULL);
@@ -5302,7 +5337,7 @@ void init_version_env(void)
 #endif
 
 #ifdef CONFIG_UBL_VER
-	sprintf(tmp, "%s", (char*)CONFIG_SYS_MEMTEST_START);
+	sprintf(tmp, "%s", MK_STR(CONFIG_UBL_VER));
 	if(strcmp(tmp, getenv("ubl_ver")) != 0){
 		setenv("ubl_ver", tmp);
 		s = 1;
@@ -5347,15 +5382,19 @@ static int diag_get_Info(int parameter)
 	printf("Model name : %s\n", getenv("dut_model"));
 	printf("Host name  : %s\n", getenv("dut_host"));
 	printf("Description: %s\n", getenv("dut_desc"));
+
 #if defined(CONFIG_SPI_BOOT) || defined(CONFIG_SPI_ENV)
-	printf("Boot from  : %s\n", "SPI");
+	sprintf(tmp, "Boot from  : %s", "SPI");
 #elif defined(CONFIG_NAND_BOOT) || defined(CONFIG_NAND_ENV)
-	printf("Boot from  : %s\n", "NAND");
+	sprintf(tmp, "Boot from  : %s", "NAND");
 #elif defined(CONFIG_SD_BOOT) || defined(CONFIG_MMC_ENV)
-	printf("Boot from  : %s\n", "SD");
+	sprintf(tmp, "Boot from  : %s", "SD");
 #elif defined(CONFIG_ETH_BOOT)
-	printf("Boot from  : %s\n", "ETH");
+	sprintf(tmp, "Boot from  : %s", "ETH");
 #endif
+	_PRINT_FIRST(tmp, i, j);
+	sprintf(tmp, "Kernel idx : %s", getenv("kernel_idx"));
+	_PRINT_SECOND(tmp, j);
 
 	sprintf(tmp, "DUT IP     : %s ", getenv("ipaddr"));
 	_PRINT_FIRST(tmp, i, j);
@@ -5563,7 +5602,7 @@ static int RunT1BIOS(int parameter)
 
 	//Step 2: Test Reset Button
 	printf("Press reset button for detection.\n");
-	while(resetkey_state()) udelay(500000);
+	while(!resetkey_state()) udelay(500000);
 	printf("\n[Button detected.]\n\n");
 	sys_led_RG_OFF();
 	Sleep(1);
@@ -5574,7 +5613,7 @@ static int RunT1BIOS(int parameter)
 #endif
 
 	//Step 4: Test DDR
-	if(sdram_test_func(0x80000)) return DIAG_ERROR;
+	if(sdram_test_func(0x200000)) return DIAG_ERROR;
 	printf("\n[DDR Test Passed.]\n\n");
 	Sleep(1);
 
@@ -5635,12 +5674,24 @@ static int check_fw_bootup_counter()
 		}
 		return DIAG_ERROR;
 	}else{
+#ifdef TEST_SYS_HALT
+		if(val > 0){
+			printf("\n");
+			printf(" !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+			printf("\n System Halt.\n\n");
+			printf(" !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+			printf("\n");
+			sys_led_R_ON();
+			sys_led_G_OFF();
+			while(1) Sleep(1);
+#else
 		if(val > MAX_FW_BOOTUP_COUNTER){
 			printf("\n");
 			printf(" !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 			printf("\n  Boot times(%u) exceeds the default(%d), switch to the backup system.\n\n", val, MAX_FW_BOOTUP_COUNTER);
 			printf(" !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 			printf("\n");
+  #ifndef TEST_NO_SWITCH_KERNEL_IDX
 			if(env_get_kernel_idx(&idx)){
 				printf("Get Kernel index Failed\n");
 				idx = CONFIG_KERNEL_IDX;
@@ -5656,6 +5707,8 @@ static int check_fw_bootup_counter()
 				printf("Set Bootup Counter(%u) Failed!!\n", val);
 				return DIAG_ERROR;
 			}
+  #endif
+#endif
 		}else{
 			printf("FW Bootup Counter: %u\n", val);
 			val++;
@@ -5687,7 +5740,6 @@ static int check_thermal()
 	ulong count, countBak = -1;
 	unsigned int sys_on_timeout = CONFIG_SYS_ON_TIMEOUT;
 	env_get_sys_on_timeout(&sys_on_timeout);
-	//sys_on_timeout *= 10;
 #endif
 
 	if (i2c_probe(THERMAL_SENSOR_ADDR) == 0){
@@ -5769,10 +5821,14 @@ static int BootPreProcessor(int parameter)
 		case CONFIG_MP_FLAG_T2_T_MP: 
 		case CONFIG_MP_FLAG_T2_T_MP_ERR: 
 		case CONFIG_MP_FLAG_T3_BIOS: 
+#ifdef TEST_SYS_HALT_MP
+			check_fw_bootup_counter();  //Bobby-20140512-test
+#endif
 			setenv("mtd_idx", MK_STR(CONFIG_MTD_IDX_MP));
 			s = getenv("mpbootcmd");
-			if(s) run_command (s, 0);
-			else printf("\nFailed to getenv 'mpbootcmd'!!\n");
+			if(s){
+				run_command (s, 0);
+			}else printf("\nFailed to getenv 'mpbootcmd'!!\n");
 			break;
 		case CONFIG_MP_FLAG_FIRMWARE: 
 		default: 
@@ -5953,9 +6009,9 @@ int backdoor_process(void)
 				break;
 			}
 #ifdef CONFIG_FW_RECOVERY
-			if(!resetkey_state()){
+			if(resetkey_state()){
 				udelay(500000);
-				if(resetkey_state()) return BACKDOOR_FWRCVR;
+				if(!resetkey_state()) return BACKDOOR_FWRCVR;
 				//else return BACKDOOR_NONE;
 			}
 #endif
@@ -6127,10 +6183,21 @@ static int diag_set_kernel_index(int parameter)
 	printf("Kernel index(%d):", idx);
 	if(get_line(NULL, tmp, sizeof(tmp), -1, str_number_dec, NULL, NULL) > 0 ){
 		idx = (int)simple_strtoul(tmp, NULL, 10);
-		if(env_set_kernel_idx(idx) < 0){
-			printf("Set Kernel index Fail\n");
-			return DIAG_ERROR;
-		}
+	}
+	if(env_set_kernel_idx(idx) < 0){
+		printf("Set Kernel index Fail\n");
+		return DIAG_ERROR;
+	}
+	return DIAG_OK;
+}
+#endif
+
+#ifdef CONFIG_FW_BOOTUP_COUNTER
+static int diag_reset_fw_bootup_counter(int parameter)
+{
+	if(env_set_fw_bootup_counter(CONFIG_FW_BOOTUP_COUNTER)){
+		printf("Set Bootup Counter(%u) Failed!!\n", CONFIG_FW_BOOTUP_COUNTER);
+		return DIAG_ERROR;
 	}
 	return DIAG_OK;
 }
@@ -6180,19 +6247,22 @@ static DiagMenuStruct DownloadFilesystemMenu = {
 // Kernel Menu =================================================
 static DiagMenuTableStruct DownloadKernelMenuTable[] = {
 #ifdef KERNEL_FLASH
-	{ '0',	"Kernel",				0,	diag_download_Kernel,		NULL},
+	{ '0',	"Kernel",					0,	diag_download_Kernel,			NULL},
 #endif
 #ifdef KERNEL2_FLASH
-	{ '1',	"Kernel 2",				0,	diag_download_Kernel2,		NULL},
+	{ '1',	"Kernel 2",					0,	diag_download_Kernel2,			NULL},
 #endif
 #ifdef MPKERNEL_FLASH
-	{ '2',	"Kernel(MP)",			0,	diag_download_MPKernel, 	NULL},
+	{ '2',	"Kernel(MP)",				0,	diag_download_MPKernel, 		NULL},
 #endif
 #ifdef CONFIG_KERNEL_IDX
-	{ 'i',	"Set Kernel index", 	0,	diag_set_kernel_index,		NULL},
+	{ 'i',	"Set Kernel index",			0,	diag_set_kernel_index,			NULL},
+#endif
+#ifdef CONFIG_FW_BOOTUP_COUNTER
+	{ 'r',	"Reset FW Boot counter",	0,	diag_reset_fw_bootup_counter,	NULL},
 #endif
 #ifdef KERNEL_FLASH
-	{ 's',	"Set Kernel address",	0,	diag_set_kernel_addr, 		NULL},
+	{ 's',	"Set Kernel address",		0,	diag_set_kernel_addr, 			NULL},
 #endif
 };
 static DiagMenuStruct DownloadKernelMenu = {
@@ -6207,7 +6277,7 @@ static DiagMenuTableStruct NewDownloadMenuTable[] = {
 #ifdef UBOOT_FLASH
 	{ '0',	"U-Boot",				0,	diag_download_UBoot,		NULL},
 #endif
-	{ '1',	"Firmware",				0,	diag_download_Firmware,	 	NULL},
+	{ '1',	"Firmware/MP/BIOS",		0,	diag_download_Firmware,	 	NULL},
 	{ '2',	"Error Log",			0,	NULL,						NULL},
 	{ '3',	"IMAGE(FB)",			0,	NULL,						NULL},
 #ifdef UBL_FLASH
@@ -6227,6 +6297,9 @@ static DiagMenuTableStruct NewDownloadMenuTable[] = {
 	{ 'e',	"Reset system",			0,	diag_do_reset,				NULL},
 #ifdef ISP_NAND
 	{ 'f',	"ISP Nand Flash(SD)",	0,	diag_ispnand_from_mmc,		NULL},
+#endif
+#ifdef RESERVE_FLASH
+	{ 'g',	"Erase Reserve Flash",	0,	diag_erase_Reserve,			NULL},
 #endif
 };
 static DiagMenuStruct NewDownloadMenu = {

@@ -40,28 +40,28 @@
 /* enable d-cache only on 2nd stage */
 #define CONFIG_SYS_DCACHE_OFF
 
-# define CONFIG_CMD_MEMORY	/* for mtest */
-# undef CONFIG_GZIP
-# undef CONFIG_ZLIB
-# undef CONFIG_SYS_HUSH_PARSER
-# define CONFIG_CMD_LOADB	/* loadb */
-# define CONFIG_CMD_LOADY	/* loady */
-# define CONFIG_SETUP_PLL
-# define CONFIG_TI814X_CONFIG_DDR
-# define CONFIG_TI814X_EVM_DDR3
-# define CONFIG_ENV_SIZE			0x400
-# define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (8 * 1024))
-# define CONFIG_SYS_PROMPT		"UBL#"
+#define CONFIG_CMD_MEMORY	/* for mtest */
+#undef CONFIG_GZIP
+#undef CONFIG_ZLIB
+#undef CONFIG_SYS_HUSH_PARSER
+#define CONFIG_CMD_LOADB	/* loadb */
+#define CONFIG_CMD_LOADY	/* loady */
+#define CONFIG_SETUP_PLL
+#define CONFIG_TI814X_CONFIG_DDR
+#define CONFIG_TI814X_EVM_DDR3
+#define CONFIG_ENV_SIZE				0x400
+#define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (8 * 1024))
+#define CONFIG_SYS_PROMPT			"UBL#"
 /* set to negative value for no autoboot */
-# define CONFIG_BOOTDELAY		1
+#define CONFIG_BOOTDELAY			1
 #if defined(CONFIG_SPI_BOOT)		/* Autoload the 2nd stage from SPI */
-#  define CONFIG_SPI			1
-# if defined(CONFIG_TI81XX_PCIE_BOOT)
-# define CONFIG_CMDLINE_TAG		1	/* enable passing of ATAGs  */
-# define CONFIG_SETUP_MEMORY_TAGS	1
-# define CONFIG_INITRD_TAG		1	/* Required for ramdisk support */
-# define CONFIG_CMD_SOURCE
-# define CONFIG_EXTRA_ENV_SETTINGS \
+#define CONFIG_SPI					1
+#if defined(CONFIG_TI81XX_PCIE_BOOT)
+#define CONFIG_CMDLINE_TAG			1	/* enable passing of ATAGs  */
+#define CONFIG_SETUP_MEMORY_TAGS	1
+#define CONFIG_INITRD_TAG			1	/* Required for ramdisk support */
+#define CONFIG_CMD_SOURCE
+#define CONFIG_EXTRA_ENV_SETTINGS \
 	"verify=yes\0" \
 	"bootcmd=source 0x80400000\0" \
 	""
@@ -77,27 +77,25 @@
 #define CONFIG_REG4_64  (0x2000000ULL)
 
 
-# else
-# define CONFIG_EXTRA_ENV_SETTINGS \
+#else
+#define CONFIG_EXTRA_ENV_SETTINGS \
 	"verify=yes\0" \
 	"bootcmd=sf probe 0; sf read 0x81000000 0x20000 0x80000; go 0x81000000\0" \
 	""
 
-# endif
+#endif
 #elif defined(CONFIG_NAND_BOOT)		/* Autoload the 2nd stage from NAND */
-#  define CONFIG_NAND			1
-#  define CONFIG_EXTRA_ENV_SETTINGS \
+#define CONFIG_NAND			1
+#define CONFIG_EXTRA_ENV_SETTINGS \
 	"verify=yes\0" \
 	"bootcmd=nand read 0x81000000 0x20000 0x80000; go 0x81000000\0" \
-	"loadubt=loady 0x81000000; nand erase 0x20000; nand write 0x81000000 0x20000 0x80000\0" \
 	""
 
 #elif defined(CONFIG_SD_BOOT)		/* Autoload the 2nd stage from SD */
-#  define CONFIG_MMC			1
-#  define CONFIG_EXTRA_ENV_SETTINGS \
+#define CONFIG_MMC			1
+#define CONFIG_EXTRA_ENV_SETTINGS \
 	"verify=yes\0" \
 	"bootcmd=mmc rescan 0; fatload mmc 0 0x80800000 u-boot.bin; go 0x80800000\0" \
-	"loadubt=loady 0x81000000; nand erase 0x20000; nand write 0x81000000 0x20000 0x80000\0" \
 	""
 
 #elif defined(CONFIG_UART_BOOT)                /* stop in the min prompt */
@@ -121,24 +119,24 @@
 #endif
 
 #elif defined(CONFIG_TI814X_OPTI_CONFIG)		/* Optimized code */
-# include <config_cmd_default.h>
+#include <config_cmd_default.h>
 
-# define CONFIG_ZERO_BOOTDELAY_CHECK
-# define CONFIG_ENV_SIZE			0x2000
-# define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (32 * 1024))
-# define CONFIG_ENV_OVERWRITE
-# define CONFIG_SYS_LONGHELP
-# define CONFIG_SYS_PROMPT		"UBOOT-OPTI#"
-# define CONFIG_CMDLINE_TAG        	1	/* enable passing of ATAGs  */
-# define CONFIG_SETUP_MEMORY_TAGS  	1
-# define CONFIG_INITRD_TAG	  	1	/* Required for ramdisk support */
-# define CONFIG_BOOTDELAY		3	/* set to negative value for no autoboot */
-# define CONFIG_NAND			1
-# define CONFIG_SETUP_PLL
-# define CONFIG_TI814X_CONFIG_DDR
-# define CONFIG_TI814X_EVM_DDR3
-# define CONFIG_SYS_DCACHE_OFF
-# define CONFIG_SYS_ICACHE_OFF
+#define CONFIG_ZERO_BOOTDELAY_CHECK
+#define CONFIG_ENV_SIZE				0x2000
+#define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (32 * 1024))
+#define CONFIG_ENV_OVERWRITE
+#define CONFIG_SYS_LONGHELP
+#define CONFIG_SYS_PROMPT			"UBOOT-OPTI#"
+#define CONFIG_CMDLINE_TAG        	1	/* enable passing of ATAGs  */
+#define CONFIG_SETUP_MEMORY_TAGS  	1
+#define CONFIG_INITRD_TAG	  		1	/* Required for ramdisk support */
+#define CONFIG_BOOTDELAY			3	/* set to negative value for no autoboot */
+#define CONFIG_NAND					1
+#define CONFIG_SETUP_PLL
+#define CONFIG_TI814X_CONFIG_DDR
+#define CONFIG_TI814X_EVM_DDR3
+#define CONFIG_SYS_DCACHE_OFF
+#define CONFIG_SYS_ICACHE_OFF
 
 
 #define CONFIG_CMD_BDI		/* bdinfo			*/
@@ -185,42 +183,42 @@
 #undef CONFIG_CMD_IMLS
 #undef CONFIG_CMD_ECHO
 
- # define CONFIG_EXTRA_ENV_SETTINGS \
+ #define CONFIG_EXTRA_ENV_SETTINGS \
  	"verify=no\0" \
 	"bootdelay=0\0" \
 	"bootfile=uImage\0" \
 	"loadaddr=0x81000000\0" \
 	"bootargs=console=ttyO0,115200n8 mem=256M  notifyk.vpssm3_sva=0xBF900000 vram=50M ubi.mtd=4 root=ubi0:rootfs rootfstype=ubifs rw rootwait=1 rw lpj=4997120 ip=${ipaddr}:${serverip}:${gateway}:${subnet}::eth0:off ethaddr=${ethaddr}\0 "\
  
- # define CONFIG_BOOTCOMMAND \
+ #define CONFIG_BOOTCOMMAND \
          "nboot 80007FC0 0 0x280000;bootm 80007FC0"
 
 #else /* 2st stage u-boot */
 
 #ifndef ENVAPI_IN_LINUX
-# include <config_cmd_default.h>
+#include <config_cmd_default.h>
 #endif
-#define CONFIG_SERIAL_TAG		1
-#define CONFIG_REVISION_TAG		1
-# define CONFIG_SKIP_LOWLEVEL_INIT	/* 1st stage would have done the basic init */
-# define CONFIG_ENV_SIZE			0x2000
-# define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (512 * 1024))
-# define CONFIG_ENV_OVERWRITE
-# define CONFIG_SYS_LONGHELP
-# define CONFIG_SYS_PROMPT			"UBOOT#"
-# define CONFIG_SYS_HUSH_PARSER		/* Use HUSH parser to allow command parsing */
-# define CONFIG_SYS_PROMPT_HUSH_PS2	"> "
-# define CONFIG_CMDLINE_TAG        	1	/* enable passing of ATAGs  */
-# define CONFIG_SETUP_MEMORY_TAGS  	1
-# define CONFIG_INITRD_TAG	  		1	/* Required for ramdisk support */
-# define CONFIG_BOOTDELAY			3	/* set to negative value for no autoboot */
-# define CONFIG_CMD_AUTOTEST	/* for autotest */
+#define CONFIG_SERIAL_TAG			1
+#define CONFIG_REVISION_TAG			1
+#define CONFIG_SKIP_LOWLEVEL_INIT	/* 1st stage would have done the basic init */
+#define CONFIG_ENV_SIZE				0x2000
+#define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (512 * 1024))
+#define CONFIG_ENV_OVERWRITE
+#define CONFIG_SYS_LONGHELP
+#define CONFIG_SYS_PROMPT			"UBOOT#"
+#define CONFIG_SYS_HUSH_PARSER		/* Use HUSH parser to allow command parsing */
+#define CONFIG_SYS_PROMPT_HUSH_PS2	"> "
+#define CONFIG_CMDLINE_TAG        	1	/* enable passing of ATAGs  */
+#define CONFIG_SETUP_MEMORY_TAGS  	1
+#define CONFIG_INITRD_TAG	  		1	/* Required for ramdisk support */
+#define CONFIG_BOOTDELAY			3	/* set to negative value for no autoboot */
+#define CONFIG_CMD_AUTOTEST	/* for autotest */
 /* By default, 2nd stage will have MMC, NAND, SPI and I2C support */
-# define CONFIG_MMC			1
-# define CONFIG_NAND		1
-# define CONFIG_SPI			1
-# define CONFIG_I2C			1
-# define CONFIG_EXTRA_ENV_SETTINGS \
+#define CONFIG_MMC					1
+#define CONFIG_NAND					1
+#define CONFIG_SPI					1
+#define CONFIG_I2C					1
+#define CONFIG_EXTRA_ENV_SETTINGS \
 	"verify=yes\0" \
 	"bootfile=uImage\0" \
 	"ramdisk_file=ramdisk.gz\0" \
@@ -232,29 +230,29 @@
 	"mpfsfile="D4_MPFS_FILE_NAME"\0" \
 	""
 
-# define CONFIG_BOOTARGS \
-	"console=ttyO0,115200n8 rootwait=1 rw ubi.mtd=${mtd_idx},2048 rootfstype=ubifs root=ubi0:rootfs init=/init mem=120M vram=4M notifyk.vpssm3_sva=0xBFD00000 eth=${ethaddr} cmemk.phys_start=0x87800000 cmemk.phys_end=0x8cc00000 cmemk.allowOverlap=1 earlyprintk"
+#define CONFIG_BOOTARGS \
+	"console=ttyO0,115200n8 rootwait=1 r0 ubi.mtd=${mtd_idx},2048 rootfstype=ubifs root=ubi0:rootfs init=/init mem=120M vram=4M notifyk.vpssm3_sva=0xBFD00000 eth=${ethaddr} cmemk.phys_start=0x87800000 cmemk.phys_end=0x8cc00000 cmemk.allowOverlap=1 earlyprintk"
 	//"console=ttyO0,115200n8 rootwait=1 rw ubi.mtd=${mtd_idx},2048 rootfstype=ubifs root=ubi0:rootfs init=/init mem=80M vram=4M notifyk.vpssm3_sva=0xBFD00000 ip=dhcp eth=${ethaddr} cmemk.phys_start=0x85000000 cmemk.phys_end=0x89000000 cmemk.allowOverlap=1 earlyprintk"
 
-# define CONFIG_BOOTCOMMAND \
+#define CONFIG_BOOTCOMMAND \
 	"ipnc_ff_init 1;nboot ${loadaddr} 0 ${kernelflash}; bootm"
 
-# define CONFIG_MPBOOTCOMMAND \
+#define CONFIG_MPBOOTCOMMAND \
 	"ipnc_ff_init 1;nboot ${loadaddr} 0 ${mpkernelflash}; bootm"
 
-#define BACKDOOR_TIMEOUT		3 /* MMmoxaie backdoor timeout sec. */
-#define CONFIG_PREBOOT		"moxamm"
+#define BACKDOOR_TIMEOUT			3 /* MMmoxaie backdoor timeout sec. */
+#define CONFIG_PREBOOT				"moxamm"
 #define CONFIG_CMD_MOXAMM
 #define CONFIG_AUTO_COMPLETE		/* add autocompletion support	*/
 #endif
 
 #define CONFIG_SYS_GBL_DATA_SIZE	128	/* size in bytes reserved for initial data */
 
-#define CONFIG_MISC_INIT_R		1
+#define CONFIG_MISC_INIT_R			1
 #ifndef CONFIG_TI814X_MIN_CONFIG
-# define CONFIG_TI814X_ASCIIART		1	/* The centaur */
+#define CONFIG_TI814X_ASCIIART		1	/* The centaur */
 #endif
-#define CONFIG_SYS_AUTOLOAD		"yes"
+#define CONFIG_SYS_AUTOLOAD			"yes"
 #ifndef CONFIG_TI814X_OPTI_CONFIG
 #define CONFIG_CMD_CACHE
 #define CONFIG_CMD_ECHO
@@ -296,18 +294,18 @@
 #define CONFIG_NETMASK 				255.255.255.0
 #define CFG_CONSOLE_IS_IN_ENV		1 /* stdin/stdout/stderr are in environment */
 #define CONFIG_DUT_ID 				0.0.0.0.0.0
-#define CONFIG_HW_VER 				0.0.0
-#define CONFIG_FW_VER 				0.0.0
-#define CONFIG_MP_VER 				0.0.0
+#define CONFIG_HW_VER 				0.0
+#define CONFIG_FW_VER 				0.0
+#define CONFIG_MP_VER 				0.0
 #if defined(_VPORT56)
-#define CONFIG_UBL_VER 				1.4.0
-#define CONFIG_UBOOT_VER 			1.4.0
+#define CONFIG_UBL_VER 				1.4
+#define CONFIG_UBOOT_VER 			1.4
 #elif defined(_VPORT66)
-#define CONFIG_UBL_VER 				1.0.0
-#define CONFIG_UBOOT_VER 			1.0.0
+#define CONFIG_UBL_VER 				1.0
+#define CONFIG_UBOOT_VER 			1.0
 #else
-#define CONFIG_UBL_VER 				1.0.0
-#define CONFIG_UBOOT_VER 			1.0.0
+#define CONFIG_UBL_VER 				1.0
+#define CONFIG_UBOOT_VER 			1.0
 #endif
 #define CFG_CBSIZE					CONFIG_SYS_CBSIZE
 #define CONFIG_MTD_IDX 				4
@@ -317,6 +315,12 @@
 #define CONFIG_KERNEL2_IDX 			2	// index of boot kernel 2
 #define CONFIG_FW_BOOTUP_COUNTER	0
 #define MAX_FW_BOOTUP_COUNTER		2
+
+/* For Debug */
+//#define TEST_SYS_HALT
+//#define TEST_SYS_HALT_MP
+//#define TEST_NO_SWITCH_KERNEL_IDX
+/* For Debug (end) */
 
 #define CONFIG_DUT_MODEL 			"VPort"
 #define CONFIG_DUT_MODEL_L 			"vport"
@@ -356,16 +360,16 @@
 #define WDT_TIMEOUT_BASE			0x00008000	/* ~1 sec. */
 
 /* Light Sensor Configuration */
-#define LIGHT_SENSOR_ADDR		0x39
+#define LIGHT_SENSOR_ADDR			0x39
 
 /* Thermal Sensor Configuration */
-#define THERMAL_SENSOR_ADDR		0x48
-#define CONFIG_PI_ON_TEMP		0xe7	/* PI Heater ON temperature (-25C) */
-#define CONFIG_PI_OFF_TEMP		0x1e	/* PI Heater OFF temperature (30C) */
-#define CONFIG_SYS_ON_TEMP		0x0a	/* System ON temperature (10C) */
-#define CONFIG_PI_OFF_OFFS		7		/* PI Heater OFF temperature offset (+7C) */
-#define CONFIG_SYS_ON_OFFS		6		/* System ON temperature offset (+6C) */
-#define CONFIG_SYS_ON_TIMEOUT	300		/* System ON time out (300 sec) */
+#define THERMAL_SENSOR_ADDR			0x48
+#define CONFIG_PI_ON_TEMP			0xe7	/* PI Heater ON temperature (-25C) */
+#define CONFIG_PI_OFF_TEMP			0x1e	/* PI Heater OFF temperature (30C) */
+#define CONFIG_SYS_ON_TEMP			0x0a	/* System ON temperature (10C) */
+#define CONFIG_PI_OFF_OFFS			7		/* PI Heater OFF temperature offset (+7C) */
+#define CONFIG_SYS_ON_OFFS			6		/* System ON temperature offset (+6C) */
+#define CONFIG_SYS_ON_TIMEOUT		300		/* System ON time out (300 sec) */
 
 /**
  * Physical Memory Map
@@ -400,7 +404,7 @@
 /*
  * NS16550 Configuration
  */
-#define CONFIG_SERIAL_MULTI	1
+#define CONFIG_SERIAL_MULTI			1
 #define CONFIG_SYS_NS16550
 #define CONFIG_SYS_NS16550_SERIAL
 #define CONFIG_SYS_NS16550_REG_SIZE	(-4)
@@ -410,40 +414,40 @@
 #define CONFIG_SYS_NS16550_COM3		0x481A6000	//UART3
 #define CONFIG_SYS_NS16550_COM4		0x481A8000	//UART4
 
-#define CONFIG_BAUDRATE		115200
+#define CONFIG_BAUDRATE				115200
 #define CONFIG_SYS_BAUDRATE_TABLE	{ 110, 300, 600, 1200, 2400, \
 4800, 9600, 14400, 19200, 28800, 38400, 56000, 57600, 115200 }
 
 #if defined(CONFIG_SERIAL_MULTI)
-#define CONFIG_BAUDRATE_0		CONFIG_BAUDRATE
-#define CONFIG_BAUDRATE_1		CONFIG_BAUDRATE
+#define CONFIG_BAUDRATE_0			CONFIG_BAUDRATE
+#define CONFIG_BAUDRATE_1			CONFIG_BAUDRATE
 #if defined(_VPORT66)
-#define CONFIG_BAUDRATE_2		19200	// for MCU (PT ctrl)
-#define CONFIG_BAUDRATE_3		38400	// for Zoom camera module (MH322/MN330)
+#define CONFIG_BAUDRATE_2			19200	// for MCU (PT ctrl)
+#define CONFIG_BAUDRATE_3			38400	// for Zoom camera module (MH322/MN330)
 #else
-#define CONFIG_BAUDRATE_2		38400	// for Zoom camera module (MH310)
-#define CONFIG_BAUDRATE_3		CONFIG_BAUDRATE
+#define CONFIG_BAUDRATE_2			38400	// for Zoom camera module (MH310)
+#define CONFIG_BAUDRATE_3			CONFIG_BAUDRATE
 #endif
-#define CONFIG_BAUDRATE_0_ITEM	"baudrate0"
-#define CONFIG_BAUDRATE_1_ITEM	"baudrate1"
-#define CONFIG_BAUDRATE_2_ITEM	"baudrate2"
-#define CONFIG_BAUDRATE_3_ITEM	"baudrate3"
+#define CONFIG_BAUDRATE_0_ITEM		"baudrate0"
+#define CONFIG_BAUDRATE_1_ITEM		"baudrate1"
+#define CONFIG_BAUDRATE_2_ITEM		"baudrate2"
+#define CONFIG_BAUDRATE_3_ITEM		"baudrate3"
 #endif
 
 /*
  * select serial console configuration
  */
-#define CONFIG_SERIAL1			1
-#define CONFIG_CONS_INDEX		1
+#define CONFIG_SERIAL1				1
+#define CONFIG_CONS_INDEX			1
 #define CONFIG_SYS_CONSOLE_INFO_QUIET
 
-#define DEFAULT_NAME	"serial"
-#define RS485_NAME		"eserial1"
+#define DEFAULT_NAME				"serial"
+#define RS485_NAME					"eserial1"
 #if defined(_VPORT66)
-#define PTCTRL_NAME		"eserial2"
-#define CAMERA_NAME		"eserial3"
+#define PTCTRL_NAME					"eserial2"
+#define CAMERA_NAME					"eserial3"
 #else
-#define CAMERA_NAME		"eserial2"
+#define CAMERA_NAME					"eserial2"
 #endif
 
 #define CONFIG_CMD_TERMINAL	/* built-in Serial Terminal */
@@ -467,13 +471,13 @@
 #define CONFIG_BOOTP_SEND_HOSTNAME
 #define CONFIG_BOOTP_GATEWAY
 #define CONFIG_BOOTP_SUBNETMASK
-#define CONFIG_NET_RETRY_COUNT 	10
+#define CONFIG_NET_RETRY_COUNT			10
 #define CONFIG_NET_MULTI
 #if defined(_VPORT66)
 #define CONFIG_PHY_GIGE
 #endif
 /* increase network receive packet buffer count for reliable TFTP */
-# define CONFIG_SYS_RX_ETH_BUFFER      16
+# define CONFIG_SYS_RX_ETH_BUFFER		16
 #endif
 
 #if defined(CONFIG_SYS_NO_FLASH)
@@ -486,43 +490,45 @@
 #define CONFIG_NAND_TI81XX
 //#define GPMC_NAND_ECC_LP_x8_LAYOUT 	1
 #define GPMC_NAND_ECC_LP_x16_LAYOUT 	1
-#define NAND_BASE			(0x08000000)
-#define CONFIG_SYS_NAND_ADDR		NAND_BASE	/* physical address */
+#define NAND_BASE						(0x08000000)
+#define CONFIG_SYS_NAND_ADDR			NAND_BASE	/* physical address */
 							/* to access nand */
-#define CONFIG_SYS_NAND_BASE		NAND_BASE	/* physical address */
+#define CONFIG_SYS_NAND_BASE			NAND_BASE	/* physical address */
 							/* to access nand at */
 							/* CS0 */
-#define CONFIG_SYS_MAX_NAND_DEVICE	1		/* Max number of NAND */
+#define CONFIG_SYS_MAX_NAND_DEVICE		1		/* Max number of NAND */
 
 #define ISP_NAND
-#define FLASH_TEST_SIZE SZ_128K
+#define FLASH_TEST_SIZE 				SZ_128K
 
 // locations in NAND flash
-#define UBL_FLASH      0x00000000
-#define UBOOT_FLASH    0x00020000
-#define ENV_FLASH      0x00260000
-#define KERNEL_FLASH   0x00280000
-#define ROOTFS_FLASH   0x006C0000
-#define KERNEL2_FLASH  0x03B40000
-#define ROOTFS2_FLASH  0x03F80000
-#define DATA1_FLASH    0x07400000
-#define MPKERNEL_FLASH 0x07BC0000
-#define MPROOTFS_FLASH 0x08000000
-#define DATA2_FLASH    0x0B480000
-#define FREE_FLASH     0x0C080000
+#define UBL_FLASH						0x00000000
+#define UBOOT_FLASH						0x00020000
+#define ENV2_FLASH						0x00240000
+#define ENV_FLASH						0x00260000
+#define KERNEL_FLASH					0x00280000
+#define ROOTFS_FLASH					0x006C0000
+#define KERNEL2_FLASH					0x03B40000
+#define ROOTFS2_FLASH					0x03F80000
+#define DATA1_FLASH						0x07400000
+#define MPKERNEL_FLASH					0x07BC0000
+#define MPROOTFS_FLASH					0x08000000
+#define DATA2_FLASH						0x0B480000
+#define RESERVE_FLASH					0x0C080000
 // max. sizes
-#define UBL_SIZE       1 * SZ_128K
-#define UBOOT_SIZE     18 * SZ_128K
-#define ENV_SIZE       1 * SZ_128K
-#define KERNEL_SIZE    34 * SZ_128K
-#define ROOTFS_SIZE    420 * SZ_128K
-#define KERNEL2_SIZE   34 * SZ_128K
-#define ROOTFS2_SIZE   420 * SZ_128K
-#define DATA1_SIZE     62 * SZ_128K
-#define MPKERNEL_SIZE  34 * SZ_128K
-#define MPROOTFS_SIZE  420 * SZ_128K
-#define DATA2_SIZE     96 * SZ_128K
-#define FREE_SIZE      508 * SZ_128K
+#define UBL_SIZE						(1 * SZ_128K)
+#define UBOOT_SIZE						(17 * SZ_128K)
+#define ENV2_SIZE						(1 * SZ_128K)
+#define ENV_SIZE						(1 * SZ_128K)
+#define KERNEL_SIZE						(34 * SZ_128K)
+#define ROOTFS_SIZE						(420 * SZ_128K)
+#define KERNEL2_SIZE					(34 * SZ_128K)
+#define ROOTFS2_SIZE					(420 * SZ_128K)
+#define DATA1_SIZE						(62 * SZ_128K)
+#define MPKERNEL_SIZE					(34 * SZ_128K)
+#define MPROOTFS_SIZE					(420 * SZ_128K)
+#define DATA2_SIZE						(96 * SZ_128K)
+#define RESERVE_SIZE					(508 * SZ_128K)
 
 /* Kernel setting ************************************************
 	{
@@ -534,8 +540,13 @@
 	{
 		.name		= "U-Boot",
 		.offset 	= 0x00020000, 
-		.size		= 18 * SZ_128K,		//0x00240000
+		.size		= 17 * SZ_128K,		//0x00220000
 		.mask_flags	= MTD_WRITEABLE,	// force read-only
+	},
+	{
+		.name		= "U-Boot Env 2",
+		.offset 	= 0x00240000, 
+		.size		= 1 * SZ_128K,		//0x00020000
 	},
 	{
 		.name		= "U-Boot Env",
@@ -589,7 +600,8 @@
 	},
 
 	0x00000000-0x00020000 : "U-Boot-min"
-	0x00020000-0x00260000 : "U-Boot"
+	0x00020000-0x00240000 : "U-Boot"
+	0x00240000-0x00260000 : "U-Boot Env 2"
 	0x00260000-0x00280000 : "U-Boot Env"
 	0x00280000-0x006C0000 : "Kernel"
 	0x006C0000-0x03B40000 : "File System"
@@ -606,19 +618,20 @@
 
 /* ENV in NAND */
 #if defined(CONFIG_NAND_ENV)
-# undef CONFIG_ENV_IS_NOWHERE
-# define CONFIG_ENV_IS_IN_NAND		1
-# ifdef CONFIG_ENV_IS_IN_NAND
-#  define CONFIG_SYS_MAX_FLASH_SECT	520		/* max number of sectors in a chip */
-#  define CONFIG_SYS_MAX_FLASH_BANKS	2		/* max number of flash banks */
-#  define CONFIG_SYS_MONITOR_LEN	(256 << 10)	/* Reserve 2 sectors */
-#  define CONFIG_SYS_FLASH_BASE		boot_flash_base
-#  define CONFIG_SYS_MONITOR_BASE	CONFIG_SYS_FLASH_BASE
-#  define MNAND_ENV_OFFSET		ENV_FLASH	/* environment starts here */
-#  define CONFIG_SYS_ENV_SECT_SIZE	boot_flash_sec
-#  define CONFIG_ENV_OFFSET		boot_flash_off
-#  define CONFIG_ENV_ADDR		MNAND_ENV_OFFSET
-# endif
+#undef CONFIG_ENV_IS_NOWHERE
+#define CONFIG_ENV_IS_IN_NAND			1
+#ifdef CONFIG_ENV_IS_IN_NAND
+#define CONFIG_SYS_MAX_FLASH_SECT		520		/* max number of sectors in a chip */
+#define CONFIG_SYS_MAX_FLASH_BANKS		2		/* max number of flash banks */
+#define CONFIG_SYS_MONITOR_LEN			(256 << 10)	/* Reserve 2 sectors */
+#define CONFIG_SYS_FLASH_BASE			boot_flash_base
+#define CONFIG_SYS_MONITOR_BASE			CONFIG_SYS_FLASH_BASE
+#define MNAND_ENV_OFFSET				ENV_FLASH	/* environment starts here */
+#define CONFIG_SYS_ENV_SECT_SIZE		boot_flash_sec
+#define CONFIG_ENV_OFFSET				boot_flash_off
+//#define CONFIG_ENV_OFFSET_REDUND		ENV2_FLASH
+#define CONFIG_ENV_ADDR					MNAND_ENV_OFFSET
+#endif
 
 #define CONFIG_CMD_UBIFS           
 #define CONFIG_CMD_UBI         
@@ -630,7 +643,8 @@
 #define MTDIDS_DEFAULT "nand0=nand0"
 #define MTDPARTS_DEFAULT "mtdparts=nand0:"\
 	"0x00020000@0x00000000(ubl),"\
-	"0x00240000@0x00020000(u-boot),"\
+	"0x00220000@0x00020000(u-boot),"\
+	"0x00020000@0x00240000(env2),"\
 	"0x00020000@0x00260000(env),"\
 	"0x00440000@0x00280000(kernel),"\
 	"0x03480000@0x006C0000(rootfs),"\
@@ -642,13 +656,13 @@
 	"0x00C00000@0x0B480000(mpdata),"\
 	"-(reserved)"
 
-# ifndef __ASSEMBLY__
+#ifndef __ASSEMBLY__
 extern unsigned int boot_flash_base;
 extern volatile unsigned int boot_flash_env_addr;
 extern unsigned int boot_flash_off;
 extern unsigned int boot_flash_sec;
 extern unsigned int boot_flash_type;
-# endif
+#endif
 #endif /* NAND support */
 
 #ifndef CONFIG_TI814X_OPTI_CONFIG
@@ -659,105 +673,105 @@ extern unsigned int boot_flash_type;
 #define CONFIG_SPI_FLASH
 #define CONFIG_SPI_FLASH_WINBOND
 #define CONFIG_CMD_SF
-#define CONFIG_SF_DEFAULT_SPEED	(75000000)
-#define CONFIG_CODEC_AIC26	1
+#define CONFIG_SF_DEFAULT_SPEED			(75000000)
+#define CONFIG_CODEC_AIC26				1
 #define CONFIG_CMD_SPI
 #endif
 
 /* ENV in SPI */
 #if defined(CONFIG_SPI_ENV)
-# undef CONFIG_ENV_IS_NOWHERE
-# define CONFIG_ENV_IS_IN_SPI_FLASH	1
-# ifdef CONFIG_ENV_IS_IN_SPI_FLASH
-#  define CONFIG_SYS_FLASH_BASE		(0)
-#  define SPI_FLASH_ERASE_SIZE		(4 * 1024) /* sector size of SPI flash */
-#  define CONFIG_SYS_ENV_SECT_SIZE	(2 * SPI_FLASH_ERASE_SIZE) /* env size */
-#  define CONFIG_ENV_SECT_SIZE		(CONFIG_SYS_ENV_SECT_SIZE)
-#  define CONFIG_ENV_OFFSET		(96 * SPI_FLASH_ERASE_SIZE)
-#  define CONFIG_ENV_ADDR		(CONFIG_ENV_OFFSET)
-#  define CONFIG_SYS_MAX_FLASH_SECT	(1024) /* no of sectors in SPI flash */
-#  define CONFIG_SYS_MAX_FLASH_BANKS	(1)
-# endif
+#undef CONFIG_ENV_IS_NOWHERE
+#define CONFIG_ENV_IS_IN_SPI_FLASH		1
+#ifdef CONFIG_ENV_IS_IN_SPI_FLASH
+#define CONFIG_SYS_FLASH_BASE			(0)
+#define SPI_FLASH_ERASE_SIZE			(4 * 1024) /* sector size of SPI flash */
+#define CONFIG_SYS_ENV_SECT_SIZE		(2 * SPI_FLASH_ERASE_SIZE) /* env size */
+#define CONFIG_ENV_SECT_SIZE			(CONFIG_SYS_ENV_SECT_SIZE)
+#define CONFIG_ENV_OFFSET				(96 * SPI_FLASH_ERASE_SIZE)
+#define CONFIG_ENV_ADDR					(CONFIG_ENV_OFFSET)
+#define CONFIG_SYS_MAX_FLASH_SECT		(1024) /* no of sectors in SPI flash */
+#define CONFIG_SYS_MAX_FLASH_BANKS		(1)
+#endif
 #endif /* SPI support */
 
 /* ENV in MMC */
 #if defined(CONFIG_MMC_ENV)
 #undef CONFIG_ENV_IS_NOWHERE
-#define CONFIG_ENV_IS_IN_MMC		1
-#define CONFIG_SYS_MMC_ENV_DEV		0
+#define CONFIG_ENV_IS_IN_MMC			1
+#define CONFIG_SYS_MMC_ENV_DEV			0
 #undef CONFIG_ENV_SIZE
 #undef CONFIG_ENV_OFFSET
-#define CONFIG_ENV_OFFSET		(6 * 64 * 1024)
-#define CONFIG_ENV_SIZE			(8 * 1024)
+#define CONFIG_ENV_OFFSET				(6 * 64 * 1024)
+#define CONFIG_ENV_SIZE					(8 * 1024)
 #endif /* MMC support */
 
 /* NOR support */
 #if defined(CONFIG_NOR)
-# undef CONFIG_CMD_NAND			/* Remove NAND support */
-# undef CONFIG_NAND_TI81XX
-# undef CONFIG_SKIP_LOWLEVEL_INIT
-# define CONFIG_TI814X_CONFIG_DDR
-# define CONFIG_SETUP_PLL
-# define CONFIG_TI814X_EVM_DDR3
-# undef CONFIG_ENV_IS_NOWHERE
-# ifdef CONFIG_SYS_MALLOC_LEN
-#  undef CONFIG_SYS_MALLOC_LEN
-# endif
-# define CONFIG_SYS_FLASH_USE_BUFFER_WRITE 1
-# define CONFIG_SYS_MALLOC_LEN		(0x100000)
-# define CONFIG_SYS_FLASH_CFI
-# define CONFIG_FLASH_CFI_DRIVER
-# define CONFIG_FLASH_CFI_MTD
-# define CONFIG_SYS_MAX_FLASH_SECT	512
-# define CONFIG_SYS_MAX_FLASH_BANKS	1
-# define CONFIG_SYS_FLASH_BASE		(0x08000000)
-# define CONFIG_SYS_MONITOR_BASE	CONFIG_SYS_FLASH_BASE
-# define CONFIG_ENV_IS_IN_FLASH	1
-# define NOR_SECT_SIZE			(128 * 1024)
-# define CONFIG_SYS_ENV_SECT_SIZE	(NOR_SECT_SIZE)
-# define CONFIG_ENV_SECT_SIZE		(NOR_SECT_SIZE)
-# define CONFIG_ENV_OFFSET		(2 * NOR_SECT_SIZE)
-# define CONFIG_ENV_ADDR		(CONFIG_SYS_FLASH_BASE + CONFIG_ENV_OFFSET)
-# define CONFIG_MTD_DEVICE
+#undef CONFIG_CMD_NAND			/* Remove NAND support */
+#undef CONFIG_NAND_TI81XX
+#undef CONFIG_SKIP_LOWLEVEL_INIT
+#define CONFIG_TI814X_CONFIG_DDR
+#define CONFIG_SETUP_PLL
+#define CONFIG_TI814X_EVM_DDR3
+#undef CONFIG_ENV_IS_NOWHERE
+#ifdef CONFIG_SYS_MALLOC_LEN
+#undef CONFIG_SYS_MALLOC_LEN
+#endif
+#define CONFIG_SYS_FLASH_USE_BUFFER_WRITE 1
+#define CONFIG_SYS_MALLOC_LEN			(0x100000)
+#define CONFIG_SYS_FLASH_CFI
+#define CONFIG_FLASH_CFI_DRIVER
+#define CONFIG_FLASH_CFI_MTD
+#define CONFIG_SYS_MAX_FLASH_SECT		512
+#define CONFIG_SYS_MAX_FLASH_BANKS		1
+#define CONFIG_SYS_FLASH_BASE			(0x08000000)
+#define CONFIG_SYS_MONITOR_BASE			CONFIG_SYS_FLASH_BASE
+#define CONFIG_ENV_IS_IN_FLASH			1
+#define NOR_SECT_SIZE					(128 * 1024)
+#define CONFIG_SYS_ENV_SECT_SIZE		(NOR_SECT_SIZE)
+#define CONFIG_ENV_SECT_SIZE			(NOR_SECT_SIZE)
+#define CONFIG_ENV_OFFSET				(2 * NOR_SECT_SIZE)
+#define CONFIG_ENV_ADDR					(CONFIG_SYS_FLASH_BASE + CONFIG_ENV_OFFSET)
+#define CONFIG_MTD_DEVICE
 #endif	/* NOR support */
 
 
 /* No I2C support in 1st stage */
 #ifdef CONFIG_I2C
 
-# define CONFIG_CMD_I2C
-# define CONFIG_CMD_DATE
-# define CONFIG_I2C_MULTI_BUS
-# define CONFIG_SYS_RTC_BUS_NUM		0
-# define CONFIG_TPS65911_I2C		1
-//# define CONFIG_RTC_TPS65911		1
-# define CONFIG_CODEC_AIC3104		1
-# define CONFIG_SENSOR_MT9J003		1
-# define CONFIG_HARD_I2C			1
-# define CONFIG_SYS_I2C_SPEED		100000
-# define CONFIG_SYS_I2C_SLAVE		1
-# define CONFIG_SYS_I2C_BUS		0
-# define CONFIG_SYS_I2C_BUS_SELECT	1
-# define CONFIG_DRIVER_TI81XX_I2C	1
+#define CONFIG_CMD_I2C
+#define CONFIG_CMD_DATE
+#define CONFIG_I2C_MULTI_BUS
+#define CONFIG_SYS_RTC_BUS_NUM			0
+#define CONFIG_TPS65911_I2C				1
+//# define CONFIG_RTC_TPS65911			1
+#define CONFIG_CODEC_AIC3104			1
+#define CONFIG_SENSOR_MT9J003			1
+#define CONFIG_HARD_I2C					1
+#define CONFIG_SYS_I2C_SPEED			100000
+#define CONFIG_SYS_I2C_SLAVE			1
+#define CONFIG_SYS_I2C_BUS				0
+#define CONFIG_SYS_I2C_BUS_SELECT		1
+#define CONFIG_DRIVER_TI81XX_I2C		1
 
-#define CONFIG_RTC_ISL1208		1
-#define CONFIG_SYS_I2C_RTC_ADDR	0x6f
+#define CONFIG_RTC_ISL1208				1
+#define CONFIG_SYS_I2C_RTC_ADDR			0x6f
 
 /* EEPROM definitions */
-# define CONFIG_SYS_I2C_EEPROM_ADDR_LEN		3
-# define CONFIG_SYS_I2C_EEPROM_ADDR		0x50
-# define CONFIG_SYS_EEPROM_PAGE_WRITE_BITS	6
-# define CONFIG_SYS_EEPROM_PAGE_WRITE_DELAY_MS	20
+#define CONFIG_SYS_I2C_EEPROM_ADDR_LEN			3
+#define CONFIG_SYS_I2C_EEPROM_ADDR				0x50
+#define CONFIG_SYS_EEPROM_PAGE_WRITE_BITS		6
+#define CONFIG_SYS_EEPROM_PAGE_WRITE_DELAY_MS	20
 
 #endif
 
 /* HSMMC support */
 #ifdef CONFIG_MMC
-# define CONFIG_CMD_MMC		1
+#define CONFIG_CMD_MMC			1
 #define CONFIG_GENERIC_MMC
 #define CONFIG_OMAP_HSMMC
-# define CONFIG_DOS_PARTITION	1
-# define CONFIG_CMD_FAT		1
+#define CONFIG_DOS_PARTITION	1
+#define CONFIG_CMD_FAT			1
 #endif
 #endif	/* CONFIG_TI814X_OPTI_CONFIG */
 /* U-boot Version */

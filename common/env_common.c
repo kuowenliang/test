@@ -252,7 +252,7 @@ unsigned char default_environment[] = {
 #ifdef  CONFIG_EXTRA_ENV_SETTINGS
 	CONFIG_EXTRA_ENV_SETTINGS
 #endif
-	"\0"
+	"\0"		/* Termimate struct environment data with 2 NULs */
 };
 
 void env_crc_update (void)
@@ -768,6 +768,7 @@ int env_set_kernel_idx(int idx)
 		if(setenv("kernelflash", MK_STR(KERNEL2_FLASH))) return -1;
 		if(setenv("mtd_idx", MK_STR(CONFIG_MTD2_IDX))) return -1;
 	}
+	if(setenv("fwboot_ctr", MK_STR(CONFIG_FW_BOOTUP_COUNTER))) return -1;
 	if(saveenv()) return -1;
 	return 0;
 }
