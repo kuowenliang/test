@@ -455,7 +455,7 @@ int sdcard_En_state(void)
 
 void Heater_Cam_ON(void)
 {
-#ifdef _VPORT66
+#ifdef VPORT66
 	GPIO_Output(0, 26, 1);	//GP0_26 output high
 #else
 	GPIO_Output(2, 29, 1);	//GP2_29 output high
@@ -464,7 +464,7 @@ void Heater_Cam_ON(void)
 
 void Heater_Cam_OFF(void)
 {
-#ifdef _VPORT66
+#ifdef VPORT66
 	GPIO_Output(0, 26, 0);	//GP0_26 output low
 #else
 	GPIO_Output(2, 29, 0);	//GP2_29 output low
@@ -493,7 +493,7 @@ int Heatersys_int_state(void)
 
 void Camera_Power_ON(void)
 {
-#ifdef _VPORT66
+#ifdef VPORT66
 	GPIO_Output(2, 25, 1);	//GP2_25 output high
 #else
 	GPIO_Output(2, 30, 1);	//GP2_30 output high
@@ -502,7 +502,7 @@ void Camera_Power_ON(void)
 
 void Camera_Power_OFF(void)
 {
-#ifdef _VPORT66
+#ifdef VPORT66
 	GPIO_Output(2, 25, 0);	//GP2_25 output low
 #else
 	GPIO_Output(2, 30, 0);	//GP2_30 output low
@@ -549,7 +549,7 @@ int board_init(void)
 	__raw_writel(0x4, RMII_REFCLK_SRC);
 
 	if (PG2_1 <= get_cpu_rev()) {
-#ifndef _VPORT66
+#ifndef VPORT66
 		/*program GMII_SEL register for G/MII mode */
 		__raw_writel(0x00,GMII_SEL);
 #else
@@ -1426,7 +1426,7 @@ static void cpsw_pad_config()
 {
 	volatile u32 val = 0;
 
-#ifndef _VPORT66
+#ifndef VPORT66
 	/*configure pin mux for rmii_refclk,mdio_clk,mdio_d */
 	val = PAD232_CNTRL;
 	PAD232_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
@@ -1659,7 +1659,7 @@ void gpio_init(void)
 	add=(GPIO1_BASE + GPIO_OE);			//GPIO_OE Output Enable Register
 	val = __raw_readl(add);
 	val &=~(1<<0); 						//GP1_0-FLASH_WP output
-#ifdef _VPORT66
+#ifdef VPORT66
 	val |= (1<<4);						//GP1_4-Heatercam_int input
 #endif
 	val &=~(1<<7); 						//GP1_7-Fan_int output
@@ -2007,7 +2007,7 @@ int board_eth_init(bd_t *bis)
 		printf("Caution:using static MACID!! Set <ethaddr> variable\n");
 	}
 
-#ifdef _VPORT66
+#ifdef VPORT66
 	if (PG1_0 != get_cpu_rev()) {
 		cpsw_slaves[0].phy_id = 0;
 		cpsw_slaves[1].phy_id = 1;

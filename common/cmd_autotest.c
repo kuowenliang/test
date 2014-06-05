@@ -2173,6 +2173,7 @@ void LED_test(void)
 	}
 }
 
+#ifdef RS485_NAME
 void RS485_Read_Test(void)
 {
 	char ch;
@@ -2218,6 +2219,12 @@ void RS485_Test(void)
 		}
 	}
 }
+#else
+void RS485_Test(void)
+{
+	printf("\nNOT IMPLEMENTED!!\n");
+}
+#endif
 
 void MiscTest(void)
 {

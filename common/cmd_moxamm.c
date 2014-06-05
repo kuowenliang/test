@@ -201,9 +201,6 @@ static char str_number_hex[] = "0123456789abcdefABCDEF";
 static char str_mac[] = "0123456789abcdefABCDEF:";
 static char str_ip[] = "0123456789.";
 static char str_menu_operate[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-//static int ubl_majorVer = 0;
-//static int ubl_minorVer = 0;
-//static int ubl_cvVer = 0;
 #ifdef CONFIG_UBOOT_IDX
 static int ubl_ubootIdx = 0;
 #endif
@@ -398,24 +395,6 @@ int do_memtest (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	return mem_test(len, pattern, address);
 }
 
-int SD_init(void)
-{
-	struct mmc *mmc;
-	sdcard_enable();
-	mmc = find_mmc_device(0);
-	if (mmc) {
-		if (mmc_init(mmc) == 0){
-			return 0;
-		}
-		else
-			puts("No MMC/SD card found\n");
-	}
-	else
-		puts("MMC Device not found\n");
-	
-	return -1;
-}
-
 U_BOOT_CMD(
 	memtest, 4, 0,	do_memtest,
 	"Memory test\n\
@@ -436,6 +415,24 @@ U_BOOT_CMD(
 	"Init environment",
 	NULL
 );
+
+int SD_init(void)
+{
+	struct mmc *mmc;
+	sdcard_enable();
+	mmc = find_mmc_device(0);
+	if (mmc) {
+		if (mmc_init(mmc) == 0){
+			return 0;
+		}
+		else
+			puts("No MMC/SD card found\n");
+	}
+	else
+		puts("MMC Device not found\n");
+	
+	return -1;
+}
 
 long load_image(cmd_tbl_t *cmdtp, int flag, char* mode, char* file, ulong buff_addr)
 {
@@ -560,6 +557,20 @@ U_BOOT_CMD(
 );
 #endif
 
+#ifdef ENV2_FLASH
+int do_eraseenv2 (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+{
+	if(_erase_flash(cmdtp, flag, ENV2_FLASH, ENV2_SIZE)) return -1;
+	return 0;
+}
+
+U_BOOT_CMD(
+	eraseenv2, 1, 0,	do_eraseenv2,
+	"Erase environment 2",
+	NULL
+);
+#endif
+
 #ifdef DATA1_FLASH
 int do_erasedata1 (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
@@ -588,6 +599,20 @@ U_BOOT_CMD(
 );
 #endif
 
+#ifdef MPDATA_FLASH
+int do_erasempdata (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+{
+	if(_erase_flash(cmdtp, flag, MPDATA_FLASH, MPDATA_SIZE)) return -1;
+	return 0;
+}
+
+U_BOOT_CMD(
+	erasempda, 1, 0,	do_erasempdata,
+	"Erase MP data",
+	NULL
+);
+#endif
+
 #ifdef RESERVE_FLASH
 int do_eraserese (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
@@ -598,6 +623,34 @@ int do_eraserese (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 U_BOOT_CMD(
 	eraseres, 1, 0,	do_eraserese,
 	"Erase reserve",
+	NULL
+);
+#endif
+
+#ifdef DSP1_FLASH
+int do_erasedsp1 (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+{
+	if(_erase_flash(cmdtp, flag, DSP1_FLASH, DSP1_SIZE)) return -1;
+	return 0;
+}
+
+U_BOOT_CMD(
+	erasedsp1, 1, 0,	do_erasedsp1,
+	"Erase DSP 1",
+	NULL
+);
+#endif
+
+#ifdef DSP2_FLASH
+int do_erasedsp2 (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+{
+	if(_erase_flash(cmdtp, flag, DSP2_FLASH, DSP2_SIZE)) return -1;
+	return 0;
+}
+
+U_BOOT_CMD(
+	erasedsp2, 1, 0,	do_erasedsp2,
+	"Erase DSP 2",
 	NULL
 );
 #endif
@@ -955,6 +1008,15 @@ int do_loadfw (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 			if(erase_write_flash(cmdtp, flag, data_addr, nand_base, erase_size, write_size, 0x00)) goto NEXT_FILE;
 		}else
 #endif
+#ifdef MPDATA_FLASH
+		if(strcmp(curr->fileheader.fis_info.name, "mpdata") == 0){
+			data_addr = (ulong)(&FileBuffer[FileBuffer_ptr]);
+			nand_base = MPDATA_FLASH;
+			erase_size = MPDATA_SIZE;
+			write_size = curr->fileheader.fis_info.data_length;
+			if(erase_write_flash(cmdtp, flag, data_addr, nand_base, erase_size, write_size, 0x00)) goto NEXT_FILE;
+		}else
+#endif
 		{
 			printf("Unsupported file %s, do nothing.\n", curr->fileheader.fis_info.name);
 			goto NEXT_FILE;
@@ -1099,6 +1161,18 @@ U_BOOT_CMD(
 	NULL
 );
 #endif
+#ifdef MPDATA_FLASH
+int do_loadmpdata (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+{
+	return general_load(cmdtp, flag, argc, argv, MPDATA_FLASH, MPDATA_SIZE);
+}
+U_BOOT_CMD(
+	loadmpda, 3, 0,	do_loadmpdata,
+	"Load MP data\n\
+	[kermit/xymodem/tftp/mmc(dev[:part])][filename]",
+	NULL
+);
+#endif
 #ifdef RESERVE_FLASH
 int do_loadreserve (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
@@ -1107,6 +1181,30 @@ int do_loadreserve (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 U_BOOT_CMD(
 	loadrese, 3, 0,	do_loadreserve,
 	"Load reserve\n\
+	[kermit/xymodem/tftp/mmc(dev[:part])][filename]",
+	NULL
+);
+#endif
+#ifdef DSP1_FLASH
+int do_loaddsp1 (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+{
+	return general_load(cmdtp, flag, argc, argv, DSP1_FLASH, DSP1_SIZE);
+}
+U_BOOT_CMD(
+	loaddsp1, 3, 0,	do_loaddsp1,
+	"Load DSP 1\n\
+	[kermit/xymodem/tftp/mmc(dev[:part])][filename]",
+	NULL
+);
+#endif
+#ifdef DSP2_FLASH
+int do_loaddsp2 (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+{
+	return general_load(cmdtp, flag, argc, argv, DSP2_FLASH, DSP2_SIZE);
+}
+U_BOOT_CMD(
+	loaddsp2, 3, 0,	do_loaddsp2,
+	"Load DSP 2\n\
 	[kermit/xymodem/tftp/mmc(dev[:part])][filename]",
 	NULL
 );
@@ -1179,6 +1277,7 @@ int do_ispnand (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 	sys_led_RG_OFF();
 
+#ifdef UBL_FLASH
 	args[0] = "loadubl";
 	ptr = getenv("ublfile");
 	args[2] = ((ptr != NULL) ? ptr : D4_UBL_FILE_NAME);
@@ -1187,6 +1286,8 @@ int do_ispnand (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		sys_led_R_ON();
 		return -1;
 	}
+#endif
+#ifdef UBOOT_FLASH
 	args[0] = "loadubt";
 	ptr = getenv("ubtfile");
 	args[2] = ((ptr != NULL) ? ptr : D4_UBOOT_FILE_NAME);
@@ -1195,6 +1296,8 @@ int do_ispnand (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		sys_led_R_ON();
 		return -1;
 	}
+#endif
+#ifdef KERNEL_FLASH
 	args[0] = "loadkl";
 	ptr = getenv("kernelfile");
 	args[2] = ((ptr != NULL) ? ptr : D4_KERNEL_FILE_NAME);
@@ -1203,6 +1306,8 @@ int do_ispnand (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		sys_led_R_ON();
 		return -1;
 	}
+#endif
+#ifdef KERNEL2_FLASH
 	args[0] = "loadkl2";
 	ptr = getenv("kernelfile");
 	args[2] = ((ptr != NULL) ? ptr : D4_KERNEL_FILE_NAME);
@@ -1211,6 +1316,8 @@ int do_ispnand (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		sys_led_R_ON();
 		return -1;
 	}
+#endif
+#ifdef MPKERNEL_FLASH
 	args[0] = "loadmpkl";
 	ptr = getenv("mpkernelfile");
 	args[2] = ((ptr != NULL) ? ptr : D4_MPKERNEL_FILE_NAME);
@@ -1219,6 +1326,8 @@ int do_ispnand (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		sys_led_R_ON();
 		return -1;
 	}
+#endif
+#ifdef ROOTFS_FLASH
 	args[0] = "loadfs";
 	ptr = getenv("fsfile");
 	args[2] = ((ptr != NULL) ? ptr : D4_FS_FILE_NAME);
@@ -1227,6 +1336,8 @@ int do_ispnand (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		sys_led_R_ON();
 		return -1;
 	}
+#endif
+#ifdef ROOTFS2_FLASH
 	args[0] = "loadfs2";
 	ptr = getenv("fsfile");
 	args[2] = ((ptr != NULL) ? ptr : D4_FS_FILE_NAME);
@@ -1235,6 +1346,8 @@ int do_ispnand (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		sys_led_R_ON();
 		return -1;
 	}
+#endif
+#ifdef MPROOTFS_FLASH
 	args[0] = "loadmpfs";
 	ptr = getenv("mpfsfile");
 	args[2] = ((ptr != NULL) ? ptr : D4_MPFS_FILE_NAME);
@@ -1243,21 +1356,42 @@ int do_ispnand (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		sys_led_R_ON();
 		return -1;
 	}
+#endif
+#ifdef ENV_FLASH
 	if(_erase_flash(cmdtp, flag, ENV_FLASH, ENV_SIZE)){
 		printf("Error!! Erase nand flash at 0x%08X size:0x%08X\n", ENV_FLASH, ENV_SIZE);
 		sys_led_R_ON();
 		return -1;
 	}
+#endif
+#ifdef ENV2_FLASH
+	if(_erase_flash(cmdtp, flag, ENV2_FLASH, ENV2_SIZE)){
+		printf("Error!! Erase nand flash at 0x%08X size:0x%08X\n", ENV2_FLASH, ENV2_SIZE);
+		sys_led_R_ON();
+		return -1;
+	}
+#endif
+#ifdef DATA1_FLASH
 	if(_erase_flash(cmdtp, flag, DATA1_FLASH, DATA1_SIZE)){
 		printf("Error!! Erase nand flash at 0x%08X size:0x%08X\n", DATA1_FLASH, DATA1_SIZE);
 		sys_led_R_ON();
 		return -1;
 	}
+#endif
+#ifdef DATA2_FLASH
 	if(_erase_flash(cmdtp, flag, DATA2_FLASH, DATA2_SIZE)){
 		printf("Error!! Erase nand flash at 0x%08X size:0x%08X\n", DATA2_FLASH, DATA2_SIZE);
 		sys_led_R_ON();
 		return -1;
 	}
+#endif
+#ifdef MPDATA_FLASH
+	if(_erase_flash(cmdtp, flag, MPDATA_FLASH, MPDATA_SIZE)){
+		printf("Error!! Erase nand flash at 0x%08X size:0x%08X\n", MPDATA_FLASH, MPDATA_SIZE);
+		sys_led_R_ON();
+		return -1;
+	}
+#endif
 
 	sys_led_G_ON();
 
@@ -1274,7 +1408,7 @@ int do_ispnandsd(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	if(argc > 3){
 		if(get_line("Enter mmc partition(>1):", tmp, sizeof(tmp), -1, str_number_dec, NULL, NULL) < 0) return DIAG_ERROR;
 		mmc_part = (int)simple_strtoul(tmp, NULL, 10);
-		if(get_line("File Name:", tmp, sizeof(tmp), -1, NULL, NULL, NULL) <= 0 ) return DIAG_ERROR;
+		if(get_line("File Name(isp.ini):", tmp, sizeof(tmp), -1, NULL, NULL, "isp.ini") < 0 ) return DIAG_ERROR;
 		file = tmp;
 	}else{
 		mmc_part = (int)simple_strtoul(argv[1], NULL, 10);
@@ -1410,6 +1544,7 @@ int do_ispnand_from_mmc(char* buff, int size)
 				}
 			}
 		}
+#ifdef UBL_FLASH
 		memset(tmp, 0, sizeof(tmp));
 		if(parseIniValue(tmp, buff, "mode", "ubl") > 0){
 			if(*tmp == '1'){
@@ -1442,6 +1577,8 @@ int do_ispnand_from_mmc(char* buff, int size)
 				}
 			}
 		}
+#endif
+#ifdef UBOOT_FLASH
 		memset(tmp, 0, sizeof(tmp));
 		if(parseIniValue(tmp, buff, "mode", "uboot") > 0){
 			if(*tmp == '1'){
@@ -1474,6 +1611,8 @@ int do_ispnand_from_mmc(char* buff, int size)
 				}
 			}
 		}
+#endif
+#ifdef KERNEL_FLASH
 		memset(tmp, 0, sizeof(tmp));
 		if(parseIniValue(tmp, buff, "mode", "kernel") > 0){
 			if(*tmp == '1'){
@@ -1506,6 +1645,8 @@ int do_ispnand_from_mmc(char* buff, int size)
 				}
 			}
 		}
+#endif
+#ifdef ROOTFS_FLASH
 		memset(tmp, 0, sizeof(tmp));
 		if(parseIniValue(tmp, buff, "mode", "rootfs") > 0){
 			if(*tmp == '1'){
@@ -1538,6 +1679,8 @@ int do_ispnand_from_mmc(char* buff, int size)
 				}
 			}
 		}
+#endif
+#ifdef KERNEL2_FLASH
 		memset(tmp, 0, sizeof(tmp));
 		if(parseIniValue(tmp, buff, "mode", "kernel2") > 0){
 			if(*tmp == '1'){
@@ -1570,6 +1713,8 @@ int do_ispnand_from_mmc(char* buff, int size)
 				}
 			}
 		}
+#endif
+#ifdef ROOTFS2_FLASH
 		memset(tmp, 0, sizeof(tmp));
 		if(parseIniValue(tmp, buff, "mode", "rootfs2") > 0){
 			if(*tmp == '1'){
@@ -1602,6 +1747,8 @@ int do_ispnand_from_mmc(char* buff, int size)
 				}
 			}
 		}
+#endif
+#ifdef MPKERNEL_FLASH
 		memset(tmp, 0, sizeof(tmp));
 		if(parseIniValue(tmp, buff, "mode", "mpkernel") > 0){
 			if(*tmp == '1'){
@@ -1634,6 +1781,8 @@ int do_ispnand_from_mmc(char* buff, int size)
 				}
 			}
 		}
+#endif
+#ifdef MPROOTFS_FLASH
 		memset(tmp, 0, sizeof(tmp));
 		if(parseIniValue(tmp, buff, "mode", "mprootfs") > 0){
 			if(*tmp == '1'){
@@ -1666,6 +1815,8 @@ int do_ispnand_from_mmc(char* buff, int size)
 				}
 			}
 		}
+#endif
+#ifdef ENV_FLASH
 		memset(tmp, 0, sizeof(tmp));
 		if(parseIniValue(tmp, buff, "mode", "env") > 0){
 			if(*tmp == '3'){
@@ -1677,6 +1828,21 @@ int do_ispnand_from_mmc(char* buff, int size)
 				}
 			}
 		}
+#endif
+#ifdef ENV2_FLASH
+		memset(tmp, 0, sizeof(tmp));
+		if(parseIniValue(tmp, buff, "mode", "env2") > 0){
+			if(*tmp == '3'){
+				printf("Erase environment2\n");
+				if(_erase_flash(&cmd_tmp, 0, ENV2_FLASH, ENV2_SIZE)){
+					printf("Error!! Erase nand flash at 0x%08X size:0x%08X\n", ENV2_FLASH, ENV2_SIZE);
+					sys_led_R_ON();
+					return -1;
+				}
+			}
+		}
+#endif
+#ifdef DATA1_FLASH
 		memset(tmp, 0, sizeof(tmp));
 		if(parseIniValue(tmp, buff, "mode", "data1") > 0){
 			if(*tmp == '3'){
@@ -1688,6 +1854,8 @@ int do_ispnand_from_mmc(char* buff, int size)
 				}
 			}
 		}
+#endif
+#ifdef DATA2_FLASH
 		memset(tmp, 0, sizeof(tmp));
 		if(parseIniValue(tmp, buff, "mode", "data2") > 0){
 			if(*tmp == '3'){
@@ -1699,6 +1867,20 @@ int do_ispnand_from_mmc(char* buff, int size)
 				}
 			}
 		}
+#endif
+#ifdef MPDATA_FLASH
+		memset(tmp, 0, sizeof(tmp));
+		if(parseIniValue(tmp, buff, "mode", "mpdata") > 0){
+			if(*tmp == '3'){
+				printf("Erase MP data\n");
+				if(_erase_flash(&cmd_tmp, 0, MPDATA_FLASH, MPDATA_SIZE)){
+					printf("Error!! Erase nand flash at 0x%08X size:0x%08X\n", MPDATA_FLASH, MPDATA_SIZE);
+					sys_led_R_ON();
+					return -1;
+				}
+			}
+		}
+#endif
 		if(do_saveenv) saveenv();
 	}
 	sys_led_G_ON();
@@ -3087,12 +3269,42 @@ static int diag_erase_Data2(int parameter)
 }
 #endif
 
+#ifdef MPDATA_FLASH
+static int diag_erase_MPData(int parameter)
+{
+	cmd_tbl_t cmd_tmp;
+	memset(&cmd_tmp, 0, sizeof(cmd_tbl_t));
+	if(do_erasempdata(&cmd_tmp, 0, 0, NULL)) return DIAG_ERROR;
+	else return DIAG_OK;
+}
+#endif
+
 #ifdef RESERVE_FLASH
 static int diag_erase_Reserve(int parameter)
 {
 	cmd_tbl_t cmd_tmp;
 	memset(&cmd_tmp, 0, sizeof(cmd_tbl_t));
 	if(do_eraserese(&cmd_tmp, 0, 0, NULL)) return DIAG_ERROR;
+	else return DIAG_OK;
+}
+#endif
+
+#ifdef DSP1_FLASH
+static int diag_erase_Dsp1(int parameter)
+{
+	cmd_tbl_t cmd_tmp;
+	memset(&cmd_tmp, 0, sizeof(cmd_tbl_t));
+	if(do_erasedsp1(&cmd_tmp, 0, 0, NULL)) return DIAG_ERROR;
+	else return DIAG_OK;
+}
+#endif
+
+#ifdef DSP2_FLASH
+static int diag_erase_Dsp2(int parameter)
+{
+	cmd_tbl_t cmd_tmp;
+	memset(&cmd_tmp, 0, sizeof(cmd_tbl_t));
+	if(do_erasedsp2(&cmd_tmp, 0, 0, NULL)) return DIAG_ERROR;
 	else return DIAG_OK;
 }
 #endif
@@ -4786,83 +4998,135 @@ int flash_check_badblock(nand_info_t *nand)
 	ulong off = 0;
 	for (off = 0; off < nand->size; off += nand->erasesize){
 		isBad = nand_block_isbad(nand, off);
+#ifdef UBL_FLASH
 		if(off == UBL_FLASH){
 			if(isBad){
 				printf("Bad Block:0x%08lX (at the first block of UBL.)\n", off);
 				return -1;
 			}else count = 0;
 		}else 
+#endif
+#ifdef ENV_FLASH
 		if(off == ENV_FLASH){
 			if(isBad){
 				printf("Bad Block:0x%08lX (at the first block of ENV.)\n", off);
 				return -1;
 			}else count = 0;
 		}else 
+#endif
+#ifdef ENV2_FLASH
+		if(off == ENV2_FLASH){
+			if(isBad){
+				printf("Bad Block:0x%08lX (at the first block of ENV2.)\n", off);
+				return -1;
+			}else count = 0;
+		}else 
+#endif
+#ifdef UBL_FLASH
 		if((off > UBL_FLASH) && (off < (UBL_FLASH + UBL_SIZE))){
 			if(isBad){
 				count++;
 				printf("Bad Block:0x%08lX (in UBL), count=%d\n", off, count);
 			}
 		}else 
+#endif
+#ifdef UBOOT_FLASH
 		if((off >= UBOOT_FLASH) && (off < (UBOOT_FLASH + UBOOT_SIZE))){
 			if(isBad){
 				count++;
 				printf("Bad Block:0x%08lX (in UBOOT), count=%d\n", off, count);
 			}
 		}else 
+#endif
+#ifdef ENV_FLASH
 		if((off >= ENV_FLASH) && (off < (ENV_FLASH + ENV_SIZE))){
 			if(isBad){
 				count++;
 				printf("Bad Block:0x%08lX (in ENV), count=%d\n", off, count);
 			}
 		}else 
+#endif
+#ifdef ENV2_FLASH
+		if((off >= ENV2_FLASH) && (off < (ENV2_FLASH + ENV2_SIZE))){
+			if(isBad){
+				count++;
+				printf("Bad Block:0x%08lX (in ENV2), count=%d\n", off, count);
+			}
+		}else 
+#endif
+#ifdef KERNEL_FLASH
 		if((off >= KERNEL_FLASH) && (off < (KERNEL_FLASH + KERNEL_SIZE))){
 			if(isBad){
 				count++;
 				printf("Bad Block:0x%08lX (in KERNEL), count=%d\n", off, count);
 			}
 		}else 
+#endif
+#ifdef ROOTFS_FLASH
 		if((off >= ROOTFS_FLASH) && (off < (ROOTFS_FLASH + ROOTFS_SIZE))){
 			if(isBad){
 				count++;
 				printf("Bad Block:0x%08lX (in ROOTFS), count=%d\n", off, count);
 			}
 		}else 
+#endif
+#ifdef KERNEL2_FLASH
 		if((off >= KERNEL2_FLASH) && (off < (KERNEL2_FLASH + KERNEL2_SIZE))){
 			if(isBad){
 				count++;
 				printf("Bad Block:0x%08lX (in KERNEL2), count=%d\n", off, count);
 			}
 		}else 
+#endif
+#ifdef ROOTFS2_FLASH
 		if((off >= ROOTFS2_FLASH) && (off < (ROOTFS2_FLASH + ROOTFS2_SIZE))){
 			if(isBad){
 				count++;
 				printf("Bad Block:0x%08lX (in ROOTFS2), count=%d\n", off, count);
 			}
 		}else 
+#endif
+#ifdef DATA1_FLASH
 		if((off >= DATA1_FLASH) && (off < (DATA1_FLASH + DATA1_SIZE))){
 			if(isBad){
 				count++;
 				printf("Bad Block:0x%08lX (in DATA1), count=%d\n", off, count);
 			}
 		}else 
+#endif
+#ifdef MPKERNEL_FLASH
 		if((off >= MPKERNEL_FLASH) && (off < (MPKERNEL_FLASH + MPKERNEL_SIZE))){
 			if(isBad){
 				count++;
 				printf("Bad Block:0x%08lX (in MPKERNEL), count=%d\n", off, count);
 			}
 		}else 
+#endif
+#ifdef MPROOTFS_FLASH
 		if((off >= MPROOTFS_FLASH) && (off < (MPROOTFS_FLASH + MPROOTFS_SIZE))){
 			if(isBad){
 				count++;
 				printf("Bad Block:0x%08lX (in MPROOTFS), count=%d\n", off, count);
 			}
 		}else 
+#endif
+#ifdef DATA2_FLASH
 		if((off >= DATA2_FLASH) && (off < (DATA2_FLASH + DATA2_SIZE))){
 			if(isBad){
 				count++;
 				printf("Bad Block:0x%08lX (in DATA2), count=%d\n", off, count);
 			}
+		}else 
+#endif
+#ifdef MPDATA_FLASH
+		if((off >= MPDATA_FLASH) && (off < (MPDATA_FLASH + MPDATA_SIZE))){
+			if(isBad){
+				count++;
+				printf("Bad Block:0x%08lX (in MPDATA), count=%d\n", off, count);
+			}
+		}else 
+#endif
+		{
 		}
 	}
 	return ret;
@@ -4969,8 +5233,8 @@ static int flash_test_func(int parameter)
 		printf("ERROR: NAND Device has unacceptable Bad Block.\n");
 		return DIAG_ERROR;
 	}
-	loff_t start_addr = RESERVE_FLASH;
-	size_t test_length = RESERVE_SIZE;
+	loff_t start_addr = TEST_FLASH;
+	size_t test_length = TEST_FLASH_SIZE;
 
 	printf("\nStart address(0x%08llX):0x", start_addr);
 	ret = get_line(NULL, tmp, sizeof(tmp), -1, str_number_hex, NULL, NULL);
@@ -5665,7 +5929,7 @@ static int LED_Set_Fault_Blink(int parameter)
 static int check_fw_bootup_counter()
 {
 	unsigned int val = 0;
-	int idx = 0;
+	int idx = 0, en = 0;
 	if(env_get_fw_bootup_counter(&val)){
 		printf("Get FW Bootup Counter Failed!!\n");
 		if(env_set_fw_bootup_counter(CONFIG_FW_BOOTUP_COUNTER)){
@@ -5674,48 +5938,41 @@ static int check_fw_bootup_counter()
 		}
 		return DIAG_ERROR;
 	}else{
-#ifdef TEST_SYS_HALT
-		if(val > 0){
-			printf("\n");
-			printf(" !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-			printf("\n System Halt.\n\n");
-			printf(" !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-			printf("\n");
-			sys_led_R_ON();
-			sys_led_G_OFF();
-			while(1) Sleep(1);
-#else
-		if(val > MAX_FW_BOOTUP_COUNTER){
-			printf("\n");
-			printf(" !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-			printf("\n  Boot times(%u) exceeds the default(%d), switch to the backup system.\n\n", val, MAX_FW_BOOTUP_COUNTER);
-			printf(" !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-			printf("\n");
-  #ifndef TEST_NO_SWITCH_KERNEL_IDX
-			if(env_get_kernel_idx(&idx)){
-				printf("Get Kernel index Failed\n");
-				idx = CONFIG_KERNEL_IDX;
+#ifdef CONFIG_KERNELX_REDUND
+		if(env_get_kernel_redund(&en)){
+			printf("Get Kernel redund Failed\n");
+			en = CONFIG_KERNELX_REDUND;
+		}
+		if(en){
+			if(val > MAX_FW_BOOTUP_COUNTER){
+				printf("\n");
+				printf(" !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+				printf("\n  Boot times(%u) exceeds the default(%d), switch to the backup system.\n\n", val, MAX_FW_BOOTUP_COUNTER);
+				printf(" !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+				printf("\n");
+				if(env_get_kernel_idx(&idx)){
+					printf("Get Kernel index Failed\n");
+					idx = CONFIG_KERNEL_IDX;
+				}
+				if(idx == CONFIG_KERNEL_IDX) idx = CONFIG_KERNEL2_IDX;
+				else idx = CONFIG_KERNEL_IDX;
+				if(env_set_kernel_idx(idx) < 0){
+					printf("Set Kernel index(%d) Failed\n", idx);
+					return DIAG_ERROR;
+				}
+				val = 0;
+				if(env_set_fw_bootup_counter(val)){
+					printf("Set Bootup Counter(%u) Failed!!\n", val);
+					return DIAG_ERROR;
+				}
 			}
-			if(idx == CONFIG_KERNEL_IDX) idx = CONFIG_KERNEL2_IDX;
-			else idx = CONFIG_KERNEL_IDX;
-			if(env_set_kernel_idx(idx) < 0){
-				printf("Set Kernel index(%d) Failed\n", idx);
-				return DIAG_ERROR;
-			}
-			val = 0;
-			if(env_set_fw_bootup_counter(val)){
-				printf("Set Bootup Counter(%u) Failed!!\n", val);
-				return DIAG_ERROR;
-			}
-  #endif
+		}
 #endif
-		}else{
-			printf("FW Bootup Counter: %u\n", val);
-			val++;
-			if(env_set_fw_bootup_counter(val)){
-				printf("Set Bootup Counter(%u) Failed!!\n", val);
-				return DIAG_ERROR;
-			}
+		printf("FW Bootup Counter: %u\n", val);
+		val++;
+		if(env_set_fw_bootup_counter(val)){
+			printf("Set Bootup Counter(%u) Failed!!\n", val);
+			return DIAG_ERROR;
 		}
 		return DIAG_OK;
 	}
@@ -5812,6 +6069,38 @@ static int BootPreProcessor(int parameter)
 		hw_watchdog_op(HWWD_TRIGGER_SKIP);
 	}
 #endif
+#ifdef TEST_SWITCH_MPFLAG
+	switch(rs){
+		case CONFIG_MP_FLAG_T0_BIOS: 
+			Set_MP_Flag(CONFIG_MP_FLAG_T1_BIOS);
+			break;
+		case CONFIG_MP_FLAG_T1_BIOS: 
+			Set_MP_Flag(CONFIG_MP_FLAG_T1_MP);
+			break;
+		case CONFIG_MP_FLAG_T1_MP: 
+			Set_MP_Flag(CONFIG_MP_FLAG_T2_MP);
+			break;
+		case CONFIG_MP_FLAG_T2_MP: 
+			Set_MP_Flag(CONFIG_MP_FLAG_T2_MP_ERR);
+			break;
+		case CONFIG_MP_FLAG_T2_MP_ERR: 
+			Set_MP_Flag(CONFIG_MP_FLAG_T2_T_MP);
+			break;
+		case CONFIG_MP_FLAG_T2_T_MP: 
+			Set_MP_Flag(CONFIG_MP_FLAG_T2_T_MP_ERR);
+			break;
+		case CONFIG_MP_FLAG_T2_T_MP_ERR: 
+			Set_MP_Flag(CONFIG_MP_FLAG_T3_BIOS);
+			break;
+		case CONFIG_MP_FLAG_T3_BIOS: 
+			Set_MP_Flag(CONFIG_MP_FLAG_FIRMWARE);
+			break;
+		case CONFIG_MP_FLAG_FIRMWARE: 
+			Set_MP_Flag(CONFIG_MP_FLAG_T0_BIOS);
+			break;
+	}
+#endif
+
 	switch(rs){
 		case CONFIG_MP_FLAG_T0_BIOS: 
 		case CONFIG_MP_FLAG_T1_BIOS: 
@@ -5821,9 +6110,6 @@ static int BootPreProcessor(int parameter)
 		case CONFIG_MP_FLAG_T2_T_MP: 
 		case CONFIG_MP_FLAG_T2_T_MP_ERR: 
 		case CONFIG_MP_FLAG_T3_BIOS: 
-#ifdef TEST_SYS_HALT_MP
-			check_fw_bootup_counter();  //Bobby-20140512-test
-#endif
 			setenv("mtd_idx", MK_STR(CONFIG_MTD_IDX_MP));
 			s = getenv("mpbootcmd");
 			if(s){
@@ -6174,6 +6460,24 @@ static int diag_set_mtd_index(int parameter)
 }
 #endif
 
+#ifdef CONFIG_KERNELX_REDUND
+static int diag_set_kernel_redund(int parameter)
+{
+	int en;
+	char tmp[4];
+	env_get_kernel_redund(&en);
+	printf("Kernel redund(0:Off/1:On)(%d):", en);
+	if(get_line(NULL, tmp, sizeof(tmp), -1, "01", NULL, NULL) > 0 ){
+		en = (int)simple_strtoul(tmp, NULL, 10);
+	}
+	if(env_set_kernel_redund(en) < 0){
+		printf("Set Kernel redund Fail\n");
+		return DIAG_ERROR;
+	}
+	return DIAG_OK;
+}
+#endif
+
 #ifdef CONFIG_KERNEL_IDX
 static int diag_set_kernel_index(int parameter)
 {
@@ -6255,6 +6559,9 @@ static DiagMenuTableStruct DownloadKernelMenuTable[] = {
 #ifdef MPKERNEL_FLASH
 	{ '2',	"Kernel(MP)",				0,	diag_download_MPKernel, 		NULL},
 #endif
+#ifdef CONFIG_KERNELX_REDUND
+	{ 'e',	"On/Off Kernel redund",		0,	diag_set_kernel_redund,			NULL},
+#endif
 #ifdef CONFIG_KERNEL_IDX
 	{ 'i',	"Set Kernel index",			0,	diag_set_kernel_index,			NULL},
 #endif
@@ -6298,8 +6605,17 @@ static DiagMenuTableStruct NewDownloadMenuTable[] = {
 #ifdef ISP_NAND
 	{ 'f',	"ISP Nand Flash(SD)",	0,	diag_ispnand_from_mmc,		NULL},
 #endif
+#ifdef MPDATA_FLASH
+	{ 'g',	"Erase MP Data",		0,	diag_erase_MPData,			NULL},
+#endif
 #ifdef RESERVE_FLASH
-	{ 'g',	"Erase Reserve Flash",	0,	diag_erase_Reserve,			NULL},
+	{ 'h',	"Erase Reserve Flash",	0,	diag_erase_Reserve,			NULL},
+#endif
+#ifdef DSP1_FLASH
+	{ 'i',	"Erase DSP 1",			0,	diag_erase_Dsp1,			NULL},
+#endif
+#ifdef DSP2_FLASH
+	{ 'j',	"Erase DSP 2",			0,	diag_erase_Dsp2,			NULL},
 #endif
 };
 static DiagMenuStruct NewDownloadMenu = {

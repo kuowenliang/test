@@ -231,8 +231,8 @@
 	""
 
 #define CONFIG_BOOTARGS \
-	"console=ttyO0,115200n8 rootwait=1 r0 ubi.mtd=${mtd_idx},2048 rootfstype=ubifs root=ubi0:rootfs init=/init mem=120M vram=4M notifyk.vpssm3_sva=0xBFD00000 eth=${ethaddr} cmemk.phys_start=0x87800000 cmemk.phys_end=0x8cc00000 cmemk.allowOverlap=1 earlyprintk"
-	//"console=ttyO0,115200n8 rootwait=1 rw ubi.mtd=${mtd_idx},2048 rootfstype=ubifs root=ubi0:rootfs init=/init mem=80M vram=4M notifyk.vpssm3_sva=0xBFD00000 ip=dhcp eth=${ethaddr} cmemk.phys_start=0x85000000 cmemk.phys_end=0x89000000 cmemk.allowOverlap=1 earlyprintk"
+	"console=ttyO0,115200n8 rootwait=1 ro ubi.mtd=${mtd_idx},2048 rootfstype=ubifs root=ubi0:rootfs init=/init mem=120M vram=4M notifyk.vpssm3_sva=0xBFD00000 eth=${ethaddr} cmemk.phys_start=0x87800000 cmemk.phys_end=0x8cc00000 cmemk.allowOverlap=1 earlyprintk"
+	//"console=ttyO0,115200n8 rootwait=1 ro ubi.mtd=${mtd_idx},2048 rootfstype=ubifs root=ubi0:rootfs init=/init mem=80M vram=4M notifyk.vpssm3_sva=0xBFD00000 ip=dhcp eth=${ethaddr} cmemk.phys_start=0x85000000 cmemk.phys_end=0x89000000 cmemk.allowOverlap=1 earlyprintk"
 
 #define CONFIG_BOOTCOMMAND \
 	"ipnc_ff_init 1;nboot ${loadaddr} 0 ${kernelflash}; bootm"
@@ -257,6 +257,11 @@
 #define CONFIG_CMD_CACHE
 #define CONFIG_CMD_ECHO
 #endif
+
+/*
+ * For test or debug
+ */
+//#define TEST_SWITCH_MPFLAG
 
 /*
  * Miscellaneous configurable options
@@ -297,30 +302,17 @@
 #define CONFIG_HW_VER 				0.0
 #define CONFIG_FW_VER 				0.0
 #define CONFIG_MP_VER 				0.0
-#if defined(_VPORT56)
-#define CONFIG_UBL_VER 				1.4
-#define CONFIG_UBOOT_VER 			1.4
-#elif defined(_VPORT66)
-#define CONFIG_UBL_VER 				1.0
-#define CONFIG_UBOOT_VER 			1.0
-#else
-#define CONFIG_UBL_VER 				1.0
-#define CONFIG_UBOOT_VER 			1.0
-#endif
+#define CONFIG_UBL_VER 				CONFIG_BIOS_VER
+#define CONFIG_UBOOT_VER 			CONFIG_BIOS_VER
 #define CFG_CBSIZE					CONFIG_SYS_CBSIZE
 #define CONFIG_MTD_IDX 				4
 #define CONFIG_MTD2_IDX 			6
 #define CONFIG_MTD_IDX_MP 			9
+#define CONFIG_KERNELX_REDUND		1	// 0:Off, 1:On
 #define CONFIG_KERNEL_IDX 			1	// index of boot kernel
 #define CONFIG_KERNEL2_IDX 			2	// index of boot kernel 2
 #define CONFIG_FW_BOOTUP_COUNTER	0
 #define MAX_FW_BOOTUP_COUNTER		2
-
-/* For Debug */
-//#define TEST_SYS_HALT
-//#define TEST_SYS_HALT_MP
-//#define TEST_NO_SWITCH_KERNEL_IDX
-/* For Debug (end) */
 
 #define CONFIG_DUT_MODEL 			"VPort"
 #define CONFIG_DUT_MODEL_L 			"vport"
@@ -421,7 +413,7 @@
 #if defined(CONFIG_SERIAL_MULTI)
 #define CONFIG_BAUDRATE_0			CONFIG_BAUDRATE
 #define CONFIG_BAUDRATE_1			CONFIG_BAUDRATE
-#if defined(_VPORT66)
+#if defined(VPORT66)
 #define CONFIG_BAUDRATE_2			19200	// for MCU (PT ctrl)
 #define CONFIG_BAUDRATE_3			38400	// for Zoom camera module (MH322/MN330)
 #else
@@ -443,7 +435,7 @@
 
 #define DEFAULT_NAME				"serial"
 #define RS485_NAME					"eserial1"
-#if defined(_VPORT66)
+#if defined(VPORT66)
 #define PTCTRL_NAME					"eserial2"
 #define CAMERA_NAME					"eserial3"
 #else
@@ -473,7 +465,7 @@
 #define CONFIG_BOOTP_SUBNETMASK
 #define CONFIG_NET_RETRY_COUNT			10
 #define CONFIG_NET_MULTI
-#if defined(_VPORT66)
+#if defined(VPORT66)
 #define CONFIG_PHY_GIGE
 #endif
 /* increase network receive packet buffer count for reliable TFTP */
@@ -501,6 +493,44 @@
 #define ISP_NAND
 #define FLASH_TEST_SIZE 				SZ_128K
 
+#if defined(VPORT56_HIPOWER)
+// locations in NAND flash
+#define UBL_FLASH						0x00000000
+#define UBOOT_FLASH						0x00020000
+#define ENV2_FLASH						0x00240000
+#define ENV_FLASH						0x00260000
+#define KERNEL_FLASH					0x00280000
+#define ROOTFS_FLASH					0x006C0000
+#define KERNEL2_FLASH					0x029C0000
+#define ROOTFS2_FLASH					0x02E00000
+#define DATA1_FLASH						0x05100000 
+#define DATA2_FLASH						0x054E0000
+#define MPKERNEL_FLASH					0x058C0000
+#define MPROOTFS_FLASH					0x05D00000
+#define MPDATA_FLASH					0x09180000
+#define DSP1_FLASH						0x09D80000
+#define DSP2_FLASH						0x0CA80000
+
+// max. sizes
+#define UBL_SIZE						(1 * SZ_128K)       
+#define UBOOT_SIZE						(17 * SZ_128K) 
+#define ENV2_SIZE						(1 * SZ_128K)
+#define ENV_SIZE						(1 * SZ_128K)       
+#define KERNEL_SIZE						(34 * SZ_128K)  
+#define ROOTFS_SIZE						(280 * SZ_128K) 
+#define KERNEL2_SIZE					(34 * SZ_128K)           
+#define ROOTFS2_SIZE					(280 * SZ_128K)          
+#define DATA1_SIZE						(31 * SZ_128K) 
+#define DATA2_SIZE						(31 * SZ_128K) 
+#define MPKERNEL_SIZE					(34 * SZ_128K)     
+#define MPROOTFS_SIZE					(420 * SZ_128K)    
+#define MPDATA_SIZE						(96 * SZ_128K)   
+#define DSP1_SIZE						(360 * SZ_128K)      
+#define DSP2_SIZE						(428 * SZ_128K)   
+
+#define TEST_FLASH						DSP2_FLASH
+#define TEST_FLASH_SIZE					DSP2_SIZE
+#else
 // locations in NAND flash
 #define UBL_FLASH						0x00000000
 #define UBOOT_FLASH						0x00020000
@@ -513,8 +543,9 @@
 #define DATA1_FLASH						0x07400000
 #define MPKERNEL_FLASH					0x07BC0000
 #define MPROOTFS_FLASH					0x08000000
-#define DATA2_FLASH						0x0B480000
+#define MPDATA_FLASH					0x0B480000
 #define RESERVE_FLASH					0x0C080000
+
 // max. sizes
 #define UBL_SIZE						(1 * SZ_128K)
 #define UBOOT_SIZE						(17 * SZ_128K)
@@ -527,91 +558,127 @@
 #define DATA1_SIZE						(62 * SZ_128K)
 #define MPKERNEL_SIZE					(34 * SZ_128K)
 #define MPROOTFS_SIZE					(420 * SZ_128K)
-#define DATA2_SIZE						(96 * SZ_128K)
+#define MPDATA_SIZE						(96 * SZ_128K)
 #define RESERVE_SIZE					(508 * SZ_128K)
 
+#define TEST_FLASH						RESERVE_FLASH
+#define TEST_FLASH_SIZE					RESERVE_SIZE
+#endif
 /* Kernel setting ************************************************
+#ifdef UBL_FLASH
 	{
 		.name		= "U-Boot-min",
-		.offset 	= 0x00000000, 
-		.size		= 1 * SZ_128K,		// 0x00020000
+		.offset 	= UBL_FLASH, 
+		.size		= UBL_SIZE,
 		.mask_flags	= MTD_WRITEABLE,	// force read-only
 	},
+#endif
+#ifdef UBOOT_FLASH
 	{
 		.name		= "U-Boot",
-		.offset 	= 0x00020000, 
-		.size		= 17 * SZ_128K,		//0x00220000
+		.offset 	= UBOOT_FLASH, 
+		.size		= UBOOT_SIZE,
 		.mask_flags	= MTD_WRITEABLE,	// force read-only
 	},
+#endif
+#ifdef ENV2_FLASH
 	{
 		.name		= "U-Boot Env 2",
-		.offset 	= 0x00240000, 
-		.size		= 1 * SZ_128K,		//0x00020000
+		.offset 	= ENV2_FLASH, 
+		.size		= ENV2_SIZE,
 	},
+#endif
+#ifdef ENV_FLASH
 	{
 		.name		= "U-Boot Env",
-		.offset 	= 0x00260000, 
-		.size		= 1 * SZ_128K,		//0x00020000
+		.offset 	= ENV_FLASH, 
+		.size		= ENV_SIZE,
 	},
+#endif
+#ifdef KERNEL_FLASH
 	{
 		.name		= "Kernel",
-		.offset 	= 0x00280000, 
-		.size		= 34 * SZ_128K,		//0x00440000
+		.offset 	= KERNEL_FLASH, 
+		.size		= KERNEL_SIZE,
 	},
+#endif
+#ifdef ROOTFS_FLASH
 	{
 		.name		= "File System",
-		.offset 	= 0x006C0000, 
-		.size		= 420 * SZ_128K,	//0x03480000
+		.offset 	= ROOTFS_FLASH, 
+		.size		= ROOTFS_SIZE,
 	},
+#endif
+#ifdef KERNEL2_FLASH
 	{
 		.name		= "Kernel 2",
-		.offset 	= 0x03B40000, 
-		.size		= 34 * SZ_128K,		//0x00440000
+		.offset 	= KERNEL2_FLASH, 
+		.size		= KERNEL2_SIZE,
 	},
+#endif
+#ifdef ROOTFS2_FLASH
 	{
 		.name		= "File System 2",
-		.offset 	= 0x03F80000, 
-		.size		= 420 * SZ_128K,	//0x03480000
+		.offset 	= ROOTFS2_FLASH, 
+		.size		= ROOTFS2_SIZE,
 	},
+#endif
+#ifdef DATA1_FLASH
 	{
 		.name		= "Data",
-		.offset 	= 0x07400000, 
-		.size		= 62 * SZ_128K,		//0x007C0000
+		.offset 	= DATA1_FLASH, 
+		.size		= DATA1_SIZE,
 	},
+#endif
+#ifdef DATA2_FLASH
+	{
+		.name		= "Data 2",
+		.offset 	= DATA2_FLASH, 
+		.size		= DATA2_SIZE,
+	},
+#endif
+#ifdef MPKERNEL_FLASH
 	{
 		.name		= "MP Kernel",
-		.offset 	= 0x07BC0000, 
-		.size		= 34 * SZ_128K,		//0x00440000
+		.offset 	= MPKERNEL_FLASH, 
+		.size		= MPKERNEL_SIZE,
 	},
+#endif
+#ifdef MPROOTFS_FLASH
 	{
 		.name		= "MP File System",
-		.offset 	= 0x08000000, 
-		.size		= 420 * SZ_128K,	//0x03480000
+		.offset 	= MPROOTFS_FLASH, 
+		.size		= MPROOTFS_SIZE,
 	},
+#endif
+#ifdef MPDATA_FLASH
 	{
 		.name		= "MP Data",
-		.offset 	= 0x0B480000, 
-		.size		= 96 * SZ_128K,		//0x00C00000
+		.offset 	= MPDATA_FLASH, 
+		.size		= MPDATA_SIZE,
 	},
+#endif
+#ifdef DSP1_FLASH
+	{
+		.name		= "Dsp",
+		.offset 	= DSP1_FLASH, 
+		.size		= DSP1_SIZE,
+	},
+#endif
+#ifdef DSP2_FLASH
+	{
+		.name		= "Dsp 2",
+		.offset 	= DSP2_FLASH, 
+		.size		= DSP2_SIZE,
+	},
+#endif
+#ifdef RESERVE_FLASH
 	{
 		.name		= "Reserved",
-		.offset 	= 0x0C080000, 
+		.offset 	= RESERVE_FLASH, 
 		.size		= MTDPART_SIZ_FULL,
 	},
-
-	0x00000000-0x00020000 : "U-Boot-min"
-	0x00020000-0x00240000 : "U-Boot"
-	0x00240000-0x00260000 : "U-Boot Env 2"
-	0x00260000-0x00280000 : "U-Boot Env"
-	0x00280000-0x006C0000 : "Kernel"
-	0x006C0000-0x03B40000 : "File System"
-	0x03B40000-0x03F80000 : "Kernel 2"
-	0x03F80000-0x07400000 : "File System 2"
-	0x07400000-0x07BC0000 : "Data"
-	0x07BC0000-0x08000000 : "MP Kernel"
-	0x08000000-0x0B480000 : "MP File System"
-	0x0B480000-0x0C080000 : "MP Data"
-	0x0C080000-0x10000000 : "Reserved"
+#endif
 
 *************************************************/
 #endif							/* devices */

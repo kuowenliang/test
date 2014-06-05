@@ -205,6 +205,23 @@
 		"echo Please set bootargs and bootcmd before booting the kernel; " \
 		"echo If that has already been done please ignore this message; "\
 	"fi"
+
+/* Default boot arguments
+ * - Don't show messages on the console
+ * - Set loops per jiffy
+ * - Set default console
+ * - Set memory size
+ * - Location of root filesystem
+ */
+#define CONFIG_BOOTARGS			\
+	"quiet "			\
+	"lpj=2998272 "			\
+	"console=ttyO0,115200n8 "	\
+	"mem=128M " 		\
+	"noinitrd " 		\
+	"root=/dev/mmcblk0p2 rw "	\
+		"rootfstype=ext3 rootwait"
+
 #endif
 
 #define CONFIG_SYS_GBL_DATA_SIZE	128

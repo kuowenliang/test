@@ -201,6 +201,9 @@ unsigned char default_environment[] = {
 #ifdef CONFIG_UBOOT_IDX
 	"uboot_idx=" MK_STR(CONFIG_UBOOT_IDX)		"\0"
 #endif
+#ifdef CONFIG_KERNELX_REDUND
+	"kernel_redund=" MK_STR(CONFIG_KERNELX_REDUND) 	"\0"
+#endif
 #ifdef CONFIG_KERNEL_IDX
 	"kernel_idx=" MK_STR(CONFIG_KERNEL_IDX)		"\0"
 #endif
@@ -222,7 +225,7 @@ unsigned char default_environment[] = {
 #ifdef CONFIG_FW_RECOVERY
 	"fw_rcvr=" MK_STR(CONFIG_FW_RECOVERY)		"\0"
 #endif
-#if !(defined(CONFIG_FW_RECOVERY_FIX) && defined(CONFIG_FW_RECOVERY_FILE))
+#if (defined(CONFIG_FW_RECOVERY_FIX) && defined(CONFIG_FW_RECOVERY_FILE))
 	"fw_rcvrfile=" CONFIG_FW_RECOVERY_FILE		"\0"
 #endif
 #ifdef CONFIG_T2_BOOTUP_COUNTER
@@ -744,6 +747,25 @@ int env_set_uboot_idx(int idx)
 	return 0;
 }
 #endif
+#ifdef CONFIG_KERNELX_REDUND
+int env_get_kernel_redund(int *en)
+{
+	char* tmp = NULL;
+	if((tmp = getenv("kernel_redund")) == NULL){
+		if(env_set_kernel_redund(CONFIG_KERNELX_REDUND)) return -1;
+		*en = CONFIG_KERNELX_REDUND;
+	}else{
+		*en = (int)simple_strtoul(tmp, NULL, 10) == 1 ? 1 : 0;
+	}
+	return 0;
+}
+int env_set_kernel_redund(int en)
+{
+	if(setenv("kernel_redund", en == 1 ? "1" : "0")) return -1;
+	if(saveenv()) return -1;
+	return 0;
+}
+#endif
 #ifdef CONFIG_KERNEL_IDX
 int env_get_kernel_idx(int *idx)
 {
@@ -873,7 +895,7 @@ int env_set_fw_recovery(unsigned int rcv)
 	return 0;
 }
 #endif
-#if !(defined(CONFIG_FW_RECOVERY_FIX) && defined(CONFIG_FW_RECOVERY_FILE))
+#if (defined(CONFIG_FW_RECOVERY_FIX) && defined(CONFIG_FW_RECOVERY_FILE))
 int env_get_fw_recovery_file(char **file)
 {
 	if((*file = getenv("fw_rcvrfile")) == NULL){

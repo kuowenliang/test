@@ -88,7 +88,7 @@
 			BIT(0), /* 73-UART0_RTS */
 			BIT(0), /* 74-UART0_DCD */
 			BIT(0), /* 75-UART0_DSR */ 
-#ifdef _VPORT66
+#ifdef VPORT66
 			BIT(7), /* 76-Heatercam_int (GP1_4, I) */
 			BIT(0), /* 77 */
 #else
