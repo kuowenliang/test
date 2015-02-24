@@ -115,7 +115,7 @@
 #if 1	/* feel free to disable for development */
 #define CONFIG_AUTOBOOT_KEYED		/* Enable password protection	*/
 #define CONFIG_AUTOBOOT_PROMPT		">"
-#define CONFIG_AUTOBOOT_DELAY_STR	"."	/* 1st "password"	*/
+#define CONFIG_AUTOBOOT_DELAY_STR	"mmmoxa"	/* 1st "password"	*/
 #endif
 
 #elif defined(CONFIG_TI814X_OPTI_CONFIG)		/* Optimized code */
@@ -189,7 +189,7 @@
 	"bootfile=uImage\0" \
 	"loadaddr=0x81000000\0" \
 	"bootargs=console=ttyO0,115200n8 mem=256M  notifyk.vpssm3_sva=0xBF900000 vram=50M ubi.mtd=4 root=ubi0:rootfs rootfstype=ubifs rw rootwait=1 rw lpj=4997120 ip=${ipaddr}:${serverip}:${gateway}:${subnet}::eth0:off ethaddr=${ethaddr}\0 "\
- 
+
  #define CONFIG_BOOTCOMMAND \
          "nboot 80007FC0 0 0x280000;bootm 80007FC0"
 
@@ -356,12 +356,14 @@
 
 /* Thermal Sensor Configuration */
 #define THERMAL_SENSOR_ADDR			0x48
+#if defined(VPORT56) || defined(VPORT56_HIPOWER)
 #define CONFIG_PI_ON_TEMP			0xe7	/* PI Heater ON temperature (-25C) */
 #define CONFIG_PI_OFF_TEMP			0x1e	/* PI Heater OFF temperature (30C) */
 #define CONFIG_SYS_ON_TEMP			0x0a	/* System ON temperature (10C) */
 #define CONFIG_PI_OFF_OFFS			7		/* PI Heater OFF temperature offset (+7C) */
 #define CONFIG_SYS_ON_OFFS			6		/* System ON temperature offset (+6C) */
 #define CONFIG_SYS_ON_TIMEOUT		300		/* System ON time out (300 sec) */
+#endif
 
 /**
  * Physical Memory Map
@@ -413,13 +415,8 @@
 #if defined(CONFIG_SERIAL_MULTI)
 #define CONFIG_BAUDRATE_0			CONFIG_BAUDRATE
 #define CONFIG_BAUDRATE_1			CONFIG_BAUDRATE
-#if defined(VPORT66)
-#define CONFIG_BAUDRATE_2			19200	// for MCU (PT ctrl)
-#define CONFIG_BAUDRATE_3			38400	// for Zoom camera module (MH322/MN330)
-#else
-#define CONFIG_BAUDRATE_2			38400	// for Zoom camera module (MH310)
+#define CONFIG_BAUDRATE_2			CONFIG_BAUDRATE
 #define CONFIG_BAUDRATE_3			CONFIG_BAUDRATE
-#endif
 #define CONFIG_BAUDRATE_0_ITEM		"baudrate0"
 #define CONFIG_BAUDRATE_1_ITEM		"baudrate1"
 #define CONFIG_BAUDRATE_2_ITEM		"baudrate2"
@@ -433,13 +430,22 @@
 #define CONFIG_CONS_INDEX			1
 #define CONFIG_SYS_CONSOLE_INFO_QUIET
 
+
 #define DEFAULT_NAME				"serial"
-#define RS485_NAME					"eserial1"
 #if defined(VPORT66)
-#define PTCTRL_NAME					"eserial2"
-#define CAMERA_NAME					"eserial3"
-#else
 #define CAMERA_NAME					"eserial2"
+#define CAMERA_BAUDRATE_ITEM		CONFIG_BAUDRATE_2_ITEM
+#define CAMERA_BAUDRATE				38400	// for Zoom camera module (MH310/MH322/MH326/MN330)
+#define PTCTRL_NAME					"eserial2"
+#define PTCTRL_BAUDRATE_ITEM		CONFIG_BAUDRATE_2_ITEM
+#define PTCTRL_BAUDRATE				19200	// for MCU (PT ctrl)
+#else
+#define RS485_NAME					"eserial1"
+#define RS485_BAUDRATE_ITEM			CONFIG_BAUDRATE_1_ITEM
+#define RS485_BAUDRATE				CONFIG_BAUDRATE
+#define CAMERA_NAME					"eserial2"
+#define CAMERA_BAUDRATE_ITEM		CONFIG_BAUDRATE_2_ITEM
+#define CAMERA_BAUDRATE				38400	// for Zoom camera module (MH310/MH322/MH326/MN330)
 #endif
 
 #define CONFIG_CMD_TERMINAL	/* built-in Serial Terminal */
@@ -465,11 +471,13 @@
 #define CONFIG_BOOTP_SUBNETMASK
 #define CONFIG_NET_RETRY_COUNT			10
 #define CONFIG_NET_MULTI
+#define CONFIG_PHY_GMII_MODE
 #if defined(VPORT66)
 #define CONFIG_PHY_GIGE
+#undef CONFIG_PHY_GMII_MODE
 #endif
 /* increase network receive packet buffer count for reliable TFTP */
-# define CONFIG_SYS_RX_ETH_BUFFER		16
+#define CONFIG_SYS_RX_ETH_BUFFER		16
 #endif
 
 #if defined(CONFIG_SYS_NO_FLASH)
@@ -494,6 +502,7 @@
 #define FLASH_TEST_SIZE 				SZ_128K
 
 #if defined(VPORT56_HIPOWER)
+
 // locations in NAND flash
 #define UBL_FLASH						0x00000000
 #define UBOOT_FLASH						0x00020000
@@ -503,7 +512,7 @@
 #define ROOTFS_FLASH					0x006C0000
 #define KERNEL2_FLASH					0x029C0000
 #define ROOTFS2_FLASH					0x02E00000
-#define DATA1_FLASH						0x05100000 
+#define DATA1_FLASH						0x05100000
 #define DATA2_FLASH						0x054E0000
 #define MPKERNEL_FLASH					0x058C0000
 #define MPROOTFS_FLASH					0x05D00000
@@ -512,25 +521,27 @@
 #define DSP2_FLASH						0x0CA80000
 
 // max. sizes
-#define UBL_SIZE						(1 * SZ_128K)       
-#define UBOOT_SIZE						(17 * SZ_128K) 
+#define UBL_SIZE						(1 * SZ_128K)
+#define UBOOT_SIZE						(17 * SZ_128K)
 #define ENV2_SIZE						(1 * SZ_128K)
-#define ENV_SIZE						(1 * SZ_128K)       
-#define KERNEL_SIZE						(34 * SZ_128K)  
-#define ROOTFS_SIZE						(280 * SZ_128K) 
-#define KERNEL2_SIZE					(34 * SZ_128K)           
-#define ROOTFS2_SIZE					(280 * SZ_128K)          
-#define DATA1_SIZE						(31 * SZ_128K) 
-#define DATA2_SIZE						(31 * SZ_128K) 
-#define MPKERNEL_SIZE					(34 * SZ_128K)     
-#define MPROOTFS_SIZE					(420 * SZ_128K)    
-#define MPDATA_SIZE						(96 * SZ_128K)   
-#define DSP1_SIZE						(360 * SZ_128K)      
-#define DSP2_SIZE						(428 * SZ_128K)   
+#define ENV_SIZE						(1 * SZ_128K)
+#define KERNEL_SIZE						(34 * SZ_128K)
+#define ROOTFS_SIZE						(280 * SZ_128K)
+#define KERNEL2_SIZE					(34 * SZ_128K)
+#define ROOTFS2_SIZE					(280 * SZ_128K)
+#define DATA1_SIZE						(31 * SZ_128K)
+#define DATA2_SIZE						(31 * SZ_128K)
+#define MPKERNEL_SIZE					(34 * SZ_128K)
+#define MPROOTFS_SIZE					(420 * SZ_128K)
+#define MPDATA_SIZE						(96 * SZ_128K)
+#define DSP1_SIZE						(360 * SZ_128K)
+#define DSP2_SIZE						(428 * SZ_128K)
 
 #define TEST_FLASH						DSP2_FLASH
 #define TEST_FLASH_SIZE					DSP2_SIZE
+
 #else
+
 // locations in NAND flash
 #define UBL_FLASH						0x00000000
 #define UBOOT_FLASH						0x00020000
@@ -563,12 +574,14 @@
 
 #define TEST_FLASH						RESERVE_FLASH
 #define TEST_FLASH_SIZE					RESERVE_SIZE
+
 #endif
+
 /* Kernel setting ************************************************
 #ifdef UBL_FLASH
 	{
 		.name		= "U-Boot-min",
-		.offset 	= UBL_FLASH, 
+		.offset 	= UBL_FLASH,
 		.size		= UBL_SIZE,
 		.mask_flags	= MTD_WRITEABLE,	// force read-only
 	},
@@ -576,106 +589,106 @@
 #ifdef UBOOT_FLASH
 	{
 		.name		= "U-Boot",
-		.offset 	= UBOOT_FLASH, 
+		.offset 	= UBOOT_FLASH,
 		.size		= UBOOT_SIZE,
 		.mask_flags	= MTD_WRITEABLE,	// force read-only
-	},
-#endif
-#ifdef ENV2_FLASH
-	{
-		.name		= "U-Boot Env 2",
-		.offset 	= ENV2_FLASH, 
-		.size		= ENV2_SIZE,
 	},
 #endif
 #ifdef ENV_FLASH
 	{
 		.name		= "U-Boot Env",
-		.offset 	= ENV_FLASH, 
+		.offset 	= ENV_FLASH,
 		.size		= ENV_SIZE,
 	},
 #endif
 #ifdef KERNEL_FLASH
 	{
 		.name		= "Kernel",
-		.offset 	= KERNEL_FLASH, 
+		.offset 	= KERNEL_FLASH,
 		.size		= KERNEL_SIZE,
 	},
 #endif
 #ifdef ROOTFS_FLASH
 	{
 		.name		= "File System",
-		.offset 	= ROOTFS_FLASH, 
+		.offset 	= ROOTFS_FLASH,
 		.size		= ROOTFS_SIZE,
 	},
 #endif
 #ifdef KERNEL2_FLASH
 	{
 		.name		= "Kernel 2",
-		.offset 	= KERNEL2_FLASH, 
+		.offset 	= KERNEL2_FLASH,
 		.size		= KERNEL2_SIZE,
 	},
 #endif
 #ifdef ROOTFS2_FLASH
 	{
 		.name		= "File System 2",
-		.offset 	= ROOTFS2_FLASH, 
+		.offset 	= ROOTFS2_FLASH,
 		.size		= ROOTFS2_SIZE,
 	},
 #endif
 #ifdef DATA1_FLASH
 	{
 		.name		= "Data",
-		.offset 	= DATA1_FLASH, 
+		.offset 	= DATA1_FLASH,
 		.size		= DATA1_SIZE,
 	},
 #endif
 #ifdef DATA2_FLASH
 	{
 		.name		= "Data 2",
-		.offset 	= DATA2_FLASH, 
+		.offset 	= DATA2_FLASH,
 		.size		= DATA2_SIZE,
 	},
 #endif
 #ifdef MPKERNEL_FLASH
 	{
 		.name		= "MP Kernel",
-		.offset 	= MPKERNEL_FLASH, 
+		.offset 	= MPKERNEL_FLASH,
 		.size		= MPKERNEL_SIZE,
 	},
 #endif
 #ifdef MPROOTFS_FLASH
 	{
 		.name		= "MP File System",
-		.offset 	= MPROOTFS_FLASH, 
+		.offset 	= MPROOTFS_FLASH,
 		.size		= MPROOTFS_SIZE,
 	},
 #endif
 #ifdef MPDATA_FLASH
 	{
 		.name		= "MP Data",
-		.offset 	= MPDATA_FLASH, 
+		.offset 	= MPDATA_FLASH,
 		.size		= MPDATA_SIZE,
+	},
+#endif
+#ifdef ENV2_FLASH
+	{
+		.name		= "U-Boot Env 2",
+		.offset 	= ENV2_FLASH,
+		.size		= ENV2_SIZE,
 	},
 #endif
 #ifdef DSP1_FLASH
 	{
 		.name		= "Dsp",
-		.offset 	= DSP1_FLASH, 
+		.offset 	= DSP1_FLASH,
 		.size		= DSP1_SIZE,
 	},
 #endif
 #ifdef DSP2_FLASH
 	{
 		.name		= "Dsp 2",
-		.offset 	= DSP2_FLASH, 
+		.offset 	= DSP2_FLASH,
 		.size		= DSP2_SIZE,
 	},
 #endif
 #ifdef RESERVE_FLASH
 	{
 		.name		= "Reserved",
-		.offset 	= RESERVE_FLASH, 
+		.offset 	= RESERVE_FLASH,
 		.size		= MTDPART_SIZ_FULL,
 	},
 #endif
@@ -696,17 +709,19 @@
 #define MNAND_ENV_OFFSET				ENV_FLASH	/* environment starts here */
 #define CONFIG_SYS_ENV_SECT_SIZE		boot_flash_sec
 #define CONFIG_ENV_OFFSET				boot_flash_off
-//#define CONFIG_ENV_OFFSET_REDUND		ENV2_FLASH
 #define CONFIG_ENV_ADDR					MNAND_ENV_OFFSET
+//#define CONFIG_SYS_REDUNDAND_ENVIRONMENT
+//#define CONFIG_ENV_OFFSET_REDUND		ENV2_FLASH
+//#define CONFIG_ENV_SIZE_REDUND			(CONFIG_ENV_SIZE)
 #endif
 
-#define CONFIG_CMD_UBIFS           
-#define CONFIG_CMD_UBI         
+#define CONFIG_CMD_UBIFS
+#define CONFIG_CMD_UBI
 #define CONFIG_CMD_MTDPARTS
 #define CONFIG_MTD_DEVICE
 #define CONFIG_MTD_PARTITIONS
 #define CONFIG_RBTREE
-#define CONFIG_LZO 
+#define CONFIG_LZO
 #define MTDIDS_DEFAULT "nand0=nand0"
 #define MTDPARTS_DEFAULT "mtdparts=nand0:"\
 	"0x00020000@0x00000000(ubl),"\
@@ -732,6 +747,95 @@ extern unsigned int boot_flash_type;
 #endif
 #endif /* NAND support */
 
+/* GPIO setting */
+#if defined(VPORT66)
+#define GPIO_AIC_RSTn		((0*32) + 8)	//GP0[8] (OUT) AIC_RSTn
+#define GPIO_FAN_CON		((0*32) + 14)	//GP0[14] (OUT) Fan_con
+#define GPIO_HEATERSYS_INT	((0*32) + 17)	//GP0[17] (IN) Heatersys_int
+#define GPIO_HEATER_SYS		((0*32) + 22)	//GP0[22] (OUT) Heater_sys
+#define GPIO_HEATER_CAM		((0*32) + 26)	//GP0[26] (OUT) Heater_cam
+#define GPIO_SD_WP			((0*32) + 29)	//GP0[29) (IN) SD1_WPn
+#define GPIO_SD_CD			((0*32) + 30)	//GP0[30) (IN) SD1_CDn
+#define GPIO_SD_EN			((0*32) + 31)	//GP0[31) (OUT) SD1_EN
+#define GPIO_FLASH_WP		((1*32) + 0)	//GP1[0] (OUT) FLASH_WP
+#define GPIO_HEATERCAM_INT	((1*32) + 4)	//GP1[4] (IN) Heatercam_int
+#define GPIO_SPI_CSC		((1*32) + 6)	//GP1[6] (OUT) SPI_CSC
+#define GPIO_FAN_INT		((1*32) + 7)	//GP1[7] (IN) Fan_int
+#define GPIO_MCU_RST		((2*32) + 0)	//GP2[0] (OUT) MCU_RST
+#define GPIO_RE_SETING		((2*32) + 21)	//GP2[21] (IN) Reset button
+#define GPIO_PHY_RESET		((2*32) + 22)	//GP2[22] (OUT) ENET_RSTn
+#define GPIO_PHY_LINKSTAT	((2*32) + 23)	//GP2[23] (IN) E_LINKSTS
+#define GPIO_CAM_RST		((2*32) + 25)	//GP2[25] (OUT) CAM_REST
+#define GPIO_RTC_INTn		((2*32) + 26)	//GP2[26] (IN) RTC_INTn
+#define GPIO_CAM_RST		((2*32) + 30)	//GP2[30] (OUT) CAM_REST
+#define GPIO_THERMAL_SOUT	((2*32) + 31)	//GP2[31] (IN) THERMAL_SOUT
+#define GPIO_ARN_IN			((3*32) + 7)	//GP3[7] (IN) DI
+#define GPIO_ARN_OUT		((3*32) + 8)	//GP3[8] (OUT) DO
+#define GPIO_LED_STATE		((3*32) + 12)	//GP3[12] (OUT) LED_G
+#define GPIO_LED_SYS		((3*32) + 13)	//GP3[13] (OUT) LED_R
+#elif defined(VPORT56)
+#define GPIO_AIC_RSTn		((0*32) + 8)	//GP0[8] (OUT) AIC_RSTn
+#define GPIO_SD_WP			((0*32) + 29)	//GP0[29) (IN) SD1_WPn
+#define GPIO_SD_CD			((0*32) + 30)	//GP0[30) (IN) SD1_CDn
+#define GPIO_SD_EN			((0*32) + 31)	//GP0[31) (OUT) SD1_EN
+#define GPIO_FLASH_WP		((1*32) + 0)	//GP1[0] (OUT) FLASH_WP
+#define GPIO_RS485_4W		((1*32) + 17)	//GP1[17] (OUT) RS485_4W
+#define GPIO_RS485_ENT		((1*32) + 18)	//GP1[18] (OUT) RS485_ENT
+#define GPIO_RS485_ENRn		((1*32) + 26)	//GP1[26] (OUT) RS485_ENRn
+#define GPIO_RE_SETING		((2*32) + 21)	//GP2[21] (IN) Reset button
+#define GPIO_PHY_RESET		((2*32) + 22)	//GP2[22] (OUT) ENET_RSTn
+#define GPIO_PHY_LINKSTAT	((2*32) + 23)	//GP2[23] (IN) E_LINKSTS
+#define GPIO_RTC_INTn		((2*32) + 26)	//GP2[26] (IN) RTC_INTn
+#define GPIO_HEATER_CAM		((2*32) + 29)	//GP2[29] (OUT) Heater_cam
+#define GPIO_CAM_RST		((2*32) + 30)	//GP2[30] (OUT) CAM_REST
+#define GPIO_THERMAL_SOUT	((2*32) + 31)	//GP2[31] (IN) THERMAL_SOUT
+#define GPIO_ARN_IN			((3*32) + 7)	//GP3[7] (IN) DI
+#define GPIO_ARN_OUT		((3*32) + 8)	//GP3[8] (OUT) DO
+#define GPIO_LED_STATE		((3*32) + 12)	//GP3[12] (OUT) LED_G
+#define GPIO_LED_SYS		((3*32) + 13)	//GP3[13] (OUT) LED_R
+#elif defined(VPORT36_2MP)
+#define GPIO_AIC_RSTn		((0*32) + 8)	//GP0[8] (OUT) AIC_RSTn
+#define GPIO_SD_WP			((0*32) + 29)	//GP0[29) (IN) SD1_WPn
+#define GPIO_SD_CD			((0*32) + 30)	//GP0[30) (IN) SD1_CDn
+#define GPIO_SD_EN			((0*32) + 31)	//GP0[31) (OUT) SD1_EN
+#define GPIO_FLASH_WP		((1*32) + 0)	//GP1[0] (OUT) FLASH_WP
+#define GPIO_SPI_NCS1		((1*32) + 7)	//GP1[7] (OUT) SPI_nCS1 to Motor Drive
+#define GPIO_SPI_NCS0		((1*32) + 16)	//GP1[16] (OUT) SPI_nCS0 to MN34041
+#define GPIO_MD_ADIN7B		((2*32) + 2)	//GP2[2] (OUT) MD_ADIN7B
+#define GPIO_MD_ADIN7A		((2*32) + 4)	//GP2[4] (OUT) MD_ADIN7A
+#define GPIO_RE_SETING		((2*32) + 21)	//GP2[21] (IN) Reset button
+#define GPIO_PHY_RESET		((2*32) + 22)	//GP2[22] (OUT) ENET_RSTn
+#define GPIO_PHY_LINKSTAT	((2*32) + 23)	//GP2[23] (IN) E_LINKSTS
+#define GPIO_MD_RESET		((2*32) + 24)	//GP2[24] (OUT) MD_RESET Motor Driver Reset
+#define GPIO_CAM_RST		((2*32) + 25)	//GP2[25] (OUT) CAM_REST
+#define GPIO_RTC_INTn		((2*32) + 26)	//GP2[26] (IN) RTC_INTn
+#define GPIO_MD_BUSY		((2*32) + 27)	//GP2[27] (IN) MD_BUSY/MON Motor Driver(Transfer Busy)
+#define GPIO_MD_POWER		((2*32) + 28)	//GP2[28] (OUT) MD_POWER
+#define GPIO_RS485_4W		((2*32) + 29)	//GP2[29] (OUT) RS485_4W
+#define GPIO_RS485_ENRn		((2*32) + 30)	//GP2[30] (OUT) RS485_ENRn
+#define GPIO_RS485_ENT		((2*32) + 31)	//GP2[31] (OUT) RS485_ENT
+#define GPIO_ARN_IN			((3*32) + 7)	//GP3[7] (IN) DI
+#define GPIO_ARN_OUT		((3*32) + 8)	//GP3[8] (OUT) DO
+#define GPIO_LED_STATE		((3*32) + 12)	//GP3[12] (OUT) LED_G
+#define GPIO_LED_SYS		((3*32) + 13)	//GP3[13] (OUT) LED_R
+#endif
+
+#define GPIO_SYSBUTTON		GPIO_RE_SETING
+#define GPIO_DI				GPIO_ARN_IN
+#define GPIO_DO				GPIO_ARN_OUT
+#define GPIO_SYSLED_GREEN	GPIO_LED_STATE
+#define GPIO_SYSLED_RED		GPIO_LED_SYS
+#define GPIO_SYSLED_CONTROL	GPIO_LED_CONTROL
+
+#define GPIO_LED_ON			0
+#define GPIO_LED_OFF		1
+
+#define GPIO_LOW			0
+#define GPIO_HIGH			1
+
+#define GPIO_INPUT			0
+#define GPIO_OUTPUT			1
+
 #ifndef CONFIG_TI814X_OPTI_CONFIG
 /* SPI support */
 #ifdef CONFIG_SPI
@@ -743,6 +847,7 @@ extern unsigned int boot_flash_type;
 #define CONFIG_SF_DEFAULT_SPEED			(75000000)
 #define CONFIG_CODEC_AIC26				1
 #define CONFIG_CMD_SPI
+#define CONFIG_DEFAULT_SPI_BUS			1
 #endif
 
 /* ENV in SPI */

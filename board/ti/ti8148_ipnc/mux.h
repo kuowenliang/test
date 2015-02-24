@@ -19,7 +19,7 @@
 			BIT(0), /* 4-SD1_DAT[1]_SDIRQ */
 			BIT(0), /* 5-SD1_DAT[2]_SDRW */
 			BIT(0), /* 6-SD1_DAT[3] */
-			BIT(0), /* 7-TP62 (GP1_7, O) */
+			BIT(7), /* 7-Fan_int (GP1_7, I) */
 			BIT(0), /* 8 */
 			BIT(0), /* 9 */
 			BIT(0), /* 10 */
@@ -55,7 +55,7 @@
 			BIT(0), /* 40 */
 			BIT(0), /* 41 */
 			BIT(0), /* 42 */
-			BIT(7), /* 43-TP65 (GP0_14, O) */
+			BIT(7), /* 43-Fan_con (GP0_14, O) */
 			BIT(0), /* 44 */
 			BIT(0), /* 45 */
 			BIT(7), /* 46-Heatersys_int (GP0_17, I) */
@@ -73,11 +73,11 @@
 			BIT(0), /* 58 */
 			BIT(7), /* 59-SD1_WPn (GP0_29, I) */
 			BIT(7), /* 60-SD1_CDn (GP0_30, I) */
-			BIT(7), /*61-SD1_EN (GP0_31, O)  */
-			BIT(0), /* 62-(GP1_7) (x) */
-			BIT(0), /* 63-(GP1_8) (x) */
-			BIT(7), /* 64-Fan_int (GP1_9, I) */
-			BIT(7), /* 65-Fan_con (GP1_10, O) */
+			BIT(7), /* 61-SD1_EN (GP0_31, O)  */
+			BIT(0), /* 62 */
+			BIT(0), /* 63-(GP1_8) */
+			BIT(7), /* 64-(GP1_9) */
+			BIT(7), /* 65-(GP1_10) */
 			BIT(0), /* 66-Reserved. Do Not Program this Register. */
 			BIT(0), /* 67-Reserved. Do Not Program this Register. */
 			BIT(7), /* 68-FLASH_WP (GP1_0, O) */
@@ -124,7 +124,7 @@
 			BIT(0), BIT(0), BIT(0), BIT(0), /* 125-128 */
 			BIT(0), BIT(0), BIT(0), BIT(0), /* 129-132 */
 			BIT(0), /* 133 */
-			BIT(5), /* 134- CLKOUT0 */
+			BIT(5), /* 134-CLKOUT0 */
 			BIT(7), /* 135-MCU_RST (GP2_0, O) */
 			BIT(7), /* 136 */
 			BIT(0), /* 137 */

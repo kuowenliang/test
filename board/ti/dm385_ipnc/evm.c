@@ -32,6 +32,17 @@
 #ifdef CONFIG_TPS65911_I2C
 #include <tps65911.h>
 #endif
+#ifdef CONFIG_GENERIC_MMC
+#include <asm/arch/mmc_host_def.h>
+#endif
+#ifdef CONFIG_HW_WATCHDOG
+#include <watchdog.h>
+#endif
+
+typedef enum{
+	RS485_IN_DIR,
+	RS485_OUT_DIR
+}RS485_dir_t;
 
 #define CLKCTRL 				0x4
 #define TENABLE 				0x8
@@ -142,6 +153,155 @@ static void show_time(void);
 int Audio_HW_Reset(void);
 #endif
 
+//// GPIO function ////
+u32 GPIO_BaseAddr(int bank)
+{
+	switch(bank){
+		case 0: return GPIO0_BASE; break;
+		case 1: return GPIO1_BASE; break;
+		case 2: return GPIO2_BASE; break;
+		case 3: return GPIO3_BASE; break;
+		default: return 0; break;
+	}
+	return 0;
+}
+
+u32 GPIO_SetClrAddr(int set)
+{
+	if(set) return GPIO_SETDATAOUT;
+	else return GPIO_CLEARDATAOUT;
+}
+
+void GPIO_OutEn(int bank, int pin, int en) //GPIO Output Enable
+{
+	u32  add, val;
+	add = (GPIO_BaseAddr(bank) + GPIO_OE);
+	val = __raw_readl(add);
+	if(!en) val |= (1<<pin);
+	else val &=~(1<<pin);
+	__raw_writel(val, add);
+}
+
+int GPIO_Input(int bank, int pin)
+{
+	return (__raw_readl((GPIO_BaseAddr(bank) + GPIO_DATAIN)) & (1<<pin)) ? 1 : 0;
+}
+
+void GPIO_Output(int bank, int pin, int set)
+{
+	__raw_writel((1<<pin), (GPIO_BaseAddr(bank) + GPIO_SetClrAddr(set)));
+}
+
+void GPIO_Output_High(int bank, int pin)
+{
+	__raw_writel((1<<pin), (GPIO_BaseAddr(bank) + GPIO_SETDATAOUT));
+}
+
+void GPIO_Output_Low(int bank, int pin)
+{
+	__raw_writel((1<<pin), (GPIO_BaseAddr(bank) + GPIO_CLEARDATAOUT));
+}
+
+int GPIO_In(int gpio_num)
+{
+	int bank = gpio_num / 32;
+	int pin = gpio_num % 32;
+	GPIO_OutEn(bank, pin, 0);
+	return (__raw_readl((GPIO_BaseAddr(bank) + GPIO_DATAIN)) & (1<<pin)) ? 1 : 0;
+}
+
+void GPIO_Out(int gpio_num, int value)
+{
+	int bank = gpio_num / 32;
+	int pin = gpio_num % 32;
+	GPIO_OutEn(bank, pin, 1);
+	__raw_writel((1<<pin), (GPIO_BaseAddr(bank) + GPIO_SetClrAddr(value)));
+}
+
+void GPIO_Dir(int gpio_num, int out) //GPIO direction
+{
+	u32  add, val;
+	int bank = gpio_num / 32;
+	int pin = gpio_num % 32;
+	add = (GPIO_BaseAddr(bank) + GPIO_OE);
+	val = __raw_readl(add);
+	if(!out) val |= (1<<pin);
+	else val &=~(1<<pin);
+	__raw_writel(val, add);
+}
+
+void sys_led_R_ON(void)
+{
+	GPIO_Output(0, 2, 0); //GP0_2 output low
+}
+
+void sys_led_R_OFF(void)
+{
+	GPIO_Output(0, 2, 1); //GP0_2 output high
+}
+
+void sys_led_R_reverse(void)
+{
+	if(GPIO_Input(0, 2)) sys_led_R_ON();
+	else sys_led_R_OFF();
+}
+
+void sys_led_G_ON(void)
+{
+	GPIO_Output(0, 1, 0); //GP0_1 output low
+}
+
+void sys_led_G_OFF(void)
+{
+	GPIO_Output(0, 1, 1); //GP0_1 output high
+}
+
+void sys_led_G_reverse(void)
+{
+	if(GPIO_Input(0, 1)) sys_led_G_ON();
+	else sys_led_G_OFF();
+}
+
+void sys_led_RG_ON(void)
+{
+	sys_led_R_ON();
+	sys_led_G_ON();
+}
+
+void sys_led_RG_OFF(void)
+{
+	sys_led_R_OFF();
+	sys_led_G_OFF();
+}
+
+void sys_led_RG_reverse(void)
+{
+	sys_led_R_reverse();
+	sys_led_G_reverse();
+}
+#if 0
+void RS485_SetTx(void)
+{
+	GPIO_Output(1, 18, 1);	//GP1_18-RS485_ENT output high
+	GPIO_Output(1, 26, 1);	//GP1_26-RS485_ENRn output high
+}
+
+void RS485_SetRx(void)
+{
+	GPIO_Output(1, 18, 0);	//GP1_18-RS485_ENT output low
+	GPIO_Output(1, 26, 0);	//GP1_26-RS485_ENRn output low
+}
+#endif
+void sdcard_enable(void)
+{
+	GPIO_Output(1, 21, 1);	//GP1_21 output high
+}
+
+void sdcard_disable(void)
+{
+	GPIO_Output(1, 21, 0);	//GP1_21 output low
+}
+
 /*
  * spinning delay to use before udelay works
  */
@@ -166,8 +326,13 @@ int board_init(void)
 	/* setup RMII_REFCLK to be sourced from audio_pll */
 	__raw_writel(0x4, RMII_REFCLK_SRC);
 
-	/*program GMII_SEL register for RGMII mode */
-	__raw_writel(0x30a, GMII_SEL);
+#ifdef CONFIG_PHY_GMII_MODE
+		/*program GMII_SEL register for G/MII mode */
+		__raw_writel(0x00,GMII_SEL);
+#else
+		/*program GMII_SEL register for RGMII mode */
+		__raw_writel(0x30a,GMII_SEL);
+#endif
 
 	gpio_init();
 	/* Get Timer and UART out of reset */
@@ -204,7 +369,8 @@ int board_init(void)
 	 * Also, even for other boot modes user is expected to
 	 * on/off the BW pin on the EVM.
 	 */
-	gpmc_set_cs_buswidth(0, get_sysboot_ipnc_bw());
+	//gpmc_set_cs_buswidth(0, get_sysboot_ipnc_bw());
+	gpmc_set_cs_buswidth(0, get_sysboot_bw());
 #endif
 	return 0;
 }
@@ -249,7 +415,7 @@ u32 get_board_rev(void)
 
 int misc_init_r(void)
 {
-	#ifdef CONFIG_DM385_MIN_CONFIG
+#ifdef CONFIG_DM385_MIN_CONFIG
 	printf("The 2nd stage U-Boot will now be auto-loaded\n");
 	printf("Please do not interrupt the countdown till "
 		"DM385_IPNC prompt if 2nd stage is already flashed\n");
@@ -259,32 +425,38 @@ int misc_init_r(void)
 #ifdef CONFIG_DM385_ASCIIART
 	int i = 0, j = 0;
 
-	char dm385[22][67] = {
-"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",
-"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",
-"@@                                                               @@",
-"@@                                                               @@",
-"@@                                                               @@",
-"@@                                                               @@",
-"@@      @@@        @.   @.         @@@@    @@@@  G@@@@@@         @@",
-"@@      @@@@@     L@@  @@@        @@@@@@  @@@@@i @@@@@@          @@",
-"@@      @@ @@@.   @@@  @@@            @@  @,  @@ :@@             @@",
-"@@      @@   @@   @@@  @@@          @@@@  @@;@@: C@@@@@.         @@",
-"@@      @@    @@  @@@.l@L@         G@@@   ,@@@@  @@@  @@         @@",
-"@@      @@    @@ l@ @@@@ @.          l@@  @@ L@@  @   G@         @@",
-"@@      @@    @@ @@ @@@@ @@           @@ C@   @@      @@         @@",
-"@@      @@   ,@C @@ @@@  @@       @i  @@ C@   @@ @@   @@         @@",
-"@@      @@@@@@@  @@  @@  @@       @@@@@l  @@@@@@ L@@@@@          @@",
-"@@       @@@@@   @   @    @        L@@     @@@,   ,@@G           @@",
-"@@                                                               @@",
-"@@                                                               @@",
-"@@                                                               @@",
-"@@                                                               @@",
-"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",
-"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",};
+	char dm385[28][54] = {
+"                                                      ",
+"                                                      ",
+"                                                      ",
+"                                                      ",
+"   @@@     @@@     @@@@     @@     @@     @@@         ",
+"   @@@     @@@   @@@@@@@@   @@@   @@@     @@@         ",
+"   @@@@   @@@@   @@    @@    @@   @@     @@ @@        ",
+"   @@@@   @@@@  @@      @@    @@ @@      @@ @@        ",
+"   @@ @   @ @@  @@      @@    @@@@@      @@ @@        ",
+"   @@ @@ @@ @@  @@      @@     @@@      @@   @@       ",
+"   @@ @@ @@ @@  @@      @@     @@@      @@   @@       ",
+"   @@ @@ @@ @@  @@      @@    @@@@@     @@@@@@@       ",
+"   @@  @@@  @@  @@      @@    @@ @@    @@@@@@@@@      ",
+"   @@  @@@  @@   @@    @@    @@   @@   @@     @@      ",
+"   @@  @@@  @@   @@@@@@@@   @@@   @@@  @@     @@      ",
+"   @@   @   @@     @@@@     @@     @@ @@       @@     ",
+"                                                      ",
+"   #####                            ##  #             ",
+"  ##   ##                              ##             ",
+"  ##       ####   ####  ##  ## #### ########   ##     ",
+"  ####    ##  ## ##  ## ##  ## ##   ## ## ##   ##     ",
+"   #####  ##  ## ##     ##  ## ##   ## ##  ## ##      ",
+"     #### ###### ##     ##  ## ##   ## ##  ## ##      ",
+"       ## ##     ##     ##  ## ##   ## ##  ## ##      ",
+"  ##   ## ##  ## ##  ## ## ### ##   ## ##   ###       ",
+"   #####   ####   ####   ## ## ##   ##  ##  ###       ",
+"                                            ##        ",
+"                                          ###         "};
 
-	for (i = 0; i < 22; i++) {
-		for (j = 0; j < 67; j++)
+	for (i = 0; i < 28; i++) {
+		for (j = 0; j < 54; j++)
 			printf("%c", dm385[i][j]);
 			printf("\n");
 	}
@@ -293,34 +465,38 @@ int misc_init_r(void)
 #ifdef CONFIG_DM388_ASCIIART
 	int i = 0, j = 0;
 
-	char dm388[22][67] = {
-"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",
-"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",
-"@@                                                               @@",
-"@@                                                               @@",
-"@@                                                               @@",
-"@@                                                               @@",
-"@@       _______   __       __   ______    ______    ______      @@",
-"@@      /       \\ /  \\     /  | /      \\  /      \\  /      \\     @@",
-"@@      $$$$$$$  |$$  \\   /$$ |/$$$$$$  |/$$$$$$  |/$$$$$$  |    @@",
-"@@      $$ |  $$ |$$$  \\ /$$$ |$$ ___$$ |$$ \\__$$ |$$ \\__$$ |    @@",
-"@@      $$ |  $$ |$$$$  /$$$$ |  /   $$< $$    $$< $$    $$<     @@",
-"@@      $$ |  $$ |$$ $$ $$/$$ | _$$$$$  | $$$$$$  | $$$$$$  |    @@",
-"@@      $$ |__$$ |$$ |$$$/ $$ |/  \\__$$ |$$ \\__$$ |$$ \\__$$ |    @@",
-"@@      $$    $$/ $$ | $/  $$ |$$    $$/ $$    $$/ $$    $$/     @@",
-"@@      $$$$$$$/  $$/      $$/  $$$$$$/   $$$$$$/   $$$$$$/      @@",
-"@@                                                               @@",
-"@@                                                               @@",
-"@@                                                               @@",
-"@@                                                               @@",
-"@@                                                               @@",
-"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",
-"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",};
+	char dm388[28][54] = {
+"                                                      ",
+"                                                      ",
+"                                                      ",
+"                                                      ",
+"   @@@     @@@     @@@@     @@     @@     @@@         ",
+"   @@@     @@@   @@@@@@@@   @@@   @@@     @@@         ",
+"   @@@@   @@@@   @@    @@    @@   @@     @@ @@        ",
+"   @@@@   @@@@  @@      @@    @@ @@      @@ @@        ",
+"   @@ @   @ @@  @@      @@    @@@@@      @@ @@        ",
+"   @@ @@ @@ @@  @@      @@     @@@      @@   @@       ",
+"   @@ @@ @@ @@  @@      @@     @@@      @@   @@       ",
+"   @@ @@ @@ @@  @@      @@    @@@@@     @@@@@@@       ",
+"   @@  @@@  @@  @@      @@    @@ @@    @@@@@@@@@      ",
+"   @@  @@@  @@   @@    @@    @@   @@   @@     @@      ",
+"   @@  @@@  @@   @@@@@@@@   @@@   @@@  @@     @@      ",
+"   @@   @   @@     @@@@     @@     @@ @@       @@     ",
+"                                                      ",
+"   #####                            ##  #             ",
+"  ##   ##                              ##             ",
+"  ##       ####   ####  ##  ## #### ########   ##     ",
+"  ####    ##  ## ##  ## ##  ## ##   ## ## ##   ##     ",
+"   #####  ##  ## ##     ##  ## ##   ## ##  ## ##      ",
+"     #### ###### ##     ##  ## ##   ## ##  ## ##      ",
+"       ## ##     ##     ##  ## ##   ## ##  ## ##      ",
+"  ##   ## ##  ## ##  ## ## ### ##   ## ##   ###       ",
+"   #####   ####   ####   ## ## ##   ##  ##  ###       ",
+"                                            ##        ",
+"                                          ###         "};
 
-
-
-	for (i = 0; i < 22; i++) {
-		for (j = 0; j < 67; j++)
+	for (i = 0; i < 28; i++) {
+		for (j = 0; j < 54; j++)
 			printf("%c", dm388[i][j]);
 			printf("\n");
 	}
@@ -747,6 +923,17 @@ void per_clocks_enable(void)
 	__raw_writel(0x2, CM_ALWON_UART_2_CLKCTRL);
 	while(__raw_readl(CM_ALWON_UART_2_CLKCTRL) != 0x2);
 
+	__raw_writel(0x2, CM_ALWON_UART_3_CLKCTRL);
+	while(__raw_readl(CM_ALWON_UART_3_CLKCTRL) != 0x2);
+
+	/* Selects UART3_CLK_SOURCE & UART4_CLK_SOURCE to SYSCLK10 */
+	temp = __raw_readl(McBSP_UART_CLKSRC);
+	temp &= ~(0x3 << 3);	//UART3_CLK_SOURCE
+	temp |= (0x1 << 3);		//set to SYSCLK10
+	temp &= ~(0x3 << 5);	//UART4_CLK_SOURCE
+	temp |= (0x1 << 5);		//set to SYSCLK10
+	__raw_writel(temp, McBSP_UART_CLKSRC);
+
 	while((__raw_readl(CM_ALWON_L3_SLOW_CLKSTCTRL) & 0x2100) != 0x2100);
 
 	/* GPIO0 */
@@ -948,6 +1135,49 @@ static void cpsw_pad_config()
 {
 	volatile u32 val = 0;
 
+#ifdef CONFIG_PHY_GMII_MODE
+	/*configure pin mux for rmii_refclk,mdio_clk,mdio_d */
+	val = PAD232_CNTRL;
+	PAD232_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+	val = PAD233_CNTRL; /*mdio_clk*/
+	PAD233_CNTRL = (volatile unsigned int) (BIT(19) | BIT(18) | BIT(17) | BIT(0));
+	val = PAD234_CNTRL; /*mdio_d*/
+	PAD234_CNTRL = (volatile unsigned int) (BIT(19) | BIT(18) | BIT(17) | BIT(0));
+
+	/*For VPort56 we only support MII Mode, setup mii0 pins here*/
+		val = PAD235_CNTRL; /*mii0_tclk*/
+		PAD235_CNTRL = (volatile unsigned int) (BIT(19) | BIT(18) | BIT(0));
+		val = PAD236_CNTRL; /*mii0_col*/
+		PAD236_CNTRL = (volatile unsigned int) (BIT(19) | BIT(18) | BIT(0));
+		val = PAD237_CNTRL; /*mii0_crs*/
+		PAD237_CNTRL = (volatile unsigned int) (BIT(19) | BIT(18) | BIT(0));
+		val = PAD238_CNTRL; /*mii0_rxer*/
+		PAD238_CNTRL = (volatile unsigned int) (BIT(19) | BIT(18) | BIT(0));
+		val = PAD239_CNTRL; /*mii0_rclk*/
+		PAD239_CNTRL = (volatile unsigned int) (BIT(19) | BIT(18) | BIT(0));
+		val = PAD240_CNTRL; /*mii0_rxd[0]*/
+		PAD240_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+		val = PAD241_CNTRL; /*mii0_rxd[1]*/
+		PAD241_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+		val = PAD242_CNTRL; /*mii0_rxd[2]*/
+		PAD242_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+		val = PAD243_CNTRL; /*mii1_rxd[3]*/
+		PAD243_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+		val = PAD248_CNTRL; /*mii1_rxdv*/
+		PAD248_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+		val = PAD249_CNTRL; /*no use*/
+		PAD249_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+		val = PAD250_CNTRL; /*mii0_txd[0]*/
+		PAD250_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+		val = PAD251_CNTRL; /*mii0_txd[1]*/
+		PAD251_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+		val = PAD252_CNTRL; /*mii0_txd[2]*/
+		PAD252_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+		val = PAD253_CNTRL; /*mii0_txd[3]*/
+		PAD253_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+		val = PAD258_CNTRL; /*mii0_txen*/
+		PAD258_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
+#else
 	/*configure pin mux for rmii_refclk,mdio_clk,mdio_d */
 	val = PAD232_CNTRL;
 	PAD232_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
@@ -986,6 +1216,7 @@ static void cpsw_pad_config()
 	PAD246_CNTRL = (volatile unsigned int) BIT(0);
 	val = PAD247_CNTRL; /*rgmii0_txd[1]*/
 	PAD247_CNTRL = (volatile unsigned int) BIT(0);
+#endif
 #if 0 /* switch off second RGMII as we dont need it */
 	val = PAD248_CNTRL; /*rgmii1_rxd[1]*/
 	PAD248_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
@@ -1102,7 +1333,7 @@ void set_muxconf_regs(void)
 		__raw_writel(val, add);
 	}
 	/* MMC/SD pull-down enable */
-	__raw_writel(0x000C0040, 0x48140928);
+//	__raw_writel(0x000C0040, 0x48140928);
 }
 
 /*
@@ -1119,66 +1350,59 @@ void gpio_init(void)
 	*/
 
 	//GPIO0[] group
-	add=0x48032134;						//GPIO_OE Output Enable Register
+	add=(GPIO0_BASE + GPIO_OE);			//GPIO_OE Output Enable Register
 	val = __raw_readl(add);
-	val &=~(1<<12);						//RS485_RDE GP0_12-output
-	val &=~(1<<13);						//ARM_OUT GP0_13-output
+	val &=~(1<<1);						//GP0[1]-GPIO_LED_STATE (Green) output
+	val &=~(1<<2);						//GP0[2]-GPIO_LED_SYS (RED) output
+	val &=~(1<<3);						//GP0[3]-GPIO_LED_CONTROL output
+	val |= (1<<4);						//GP0[4]-GPIO_RE_SETING input
+	val |= (1<<5);						//GP0[5]-GPIO_PHY_INTB input
+	val |= (1<<6);						//GP0[6]-GPIO_MIC_SEL input
+	val &=~(1<<9);						//GP0[9]-GPIO_AIC_RSTn output
+	val &=~(1<<13);						//GP0[13]-GPIO_CAM_PWDN output
 	__raw_writel(val, add);
+	__raw_writel((1<<13), (GPIO0_BASE + GPIO_CLEARDATAOUT));	//GP0[13]-GPIO_CAM_PWDN output low
 
 	//GPIO1[] group
-	add=0x4804c134;						//GPIO_OE Output Enable Register
+	add=(GPIO1_BASE + GPIO_OE);			//GPIO_OE Output Enable Register
 	val = __raw_readl(add);
-	val &=~(1<<16);   					//GP1_16-output  FPGA
-	val &=~(1<<20); 					//GP1_20-ENET_RSTn output
+	val |= (1<<0);   					//GP1[0]-GPIO_GS_INTn input
+	val |= (1<<6);   					//GP1[6]-GPIO_SD_CD input
+	val |= (1<<10);   					//GP1[10]GPIO_PHY_LINKSTAT-input
+	val &=~(1<<19);   					//GP1[19]GPIO_FLASH_WP-output
+	val &=~(1<<20); 					//GP1[20]-GPIO_PHY_RESET output
+	val &=~(1<<21); 					//GP1[21]-GPIO_SD_EN output
+	val |= (1<<22); 					//GP1[22]-GPIO_RTC_INTn input
 	__raw_writel(val, add);
-	/* reset FPGA */
-	__raw_writel((1<<16), 0x4804c190);  //output low
-	delay(1000);
-	__raw_writel((1<<16), 0x4804c194);  //output high
 	/* reset ethernet */
-	__raw_writel((1<<20), 0x4804c194); //output GP1_20-ENET_RSTn high
+	__raw_writel((1<<20), (GPIO1_BASE + GPIO_CLEARDATAOUT));	//GP1[20]-ENET_RSTn output low
 	delay(40000);
-	__raw_writel((1<<20), 0x4804c190);	//output GP1_20-ENET_RSTn low
+	__raw_writel((1<<20), (GPIO1_BASE + GPIO_SETDATAOUT)); //GP1[20]-ENET_RSTn output high
+	__raw_writel((1<<21), (GPIO1_BASE + GPIO_SETDATAOUT)); //GP1[21]-GPIO_SD_EN output high
 
 	//GPIO2[] group
-	add=0x481ac134;						//GPIO_OE Output Enable Register
+	add=(GPIO2_BASE + GPIO_OE);			//GPIO_OE Output Enable Register
 	val = __raw_readl(add);
-	val &=~(1<<18);   					//GP2_18-CAM_RST output
-	val &=~(1<<22);						//GP2_22-WLAN_EN output
-	val |= (1<<24);						//GP2_24-WLAN_IRQ input
-	//val &=~(1<<26);					//GP2_22-BT_EN output
+	val &=~(1<<18);   					//GP2[18]-GPIO_CAM_RST output
 	__raw_writel(val, add);
 	/* reset sensor */
-	__raw_writel((1<<18), 0x481ac190);  //output low
+	__raw_writel((1<<18), (GPIO2_BASE + GPIO_CLEARDATAOUT));  //GP2[18]-GPIO_CAM_RST output low
 	delay(1000);
-	__raw_writel((1<<18), 0x481ac194);  //output high
-	/* WLAN power-on sequence */
-	__raw_writel((1<<22), 0x481ac194);
-	delay(30000);
-	__raw_writel((1<<22), 0x481ac190);
-	delay(5*30000);
-	__raw_writel((1<<22), 0x481ac194);
-	delay(30000);
+	__raw_writel((1<<18), (GPIO2_BASE + GPIO_SETDATAOUT));  //GP2[18]-GPIO_CAM_RST output high
 
 	// GPIO3[] group
-	add=0x481AE134;  			  	//GPIO_OE Output Enable Register
+	add=(GPIO3_BASE + GPIO_OE);	  		//GPIO_OE Output Enable Register
 	val = __raw_readl(add);
-    val &= ~(1<<12);    			//P3_12-LED1_ON output mode
-    val |= (1<<7);    				//P3_7-ARM_IN input mode
-
-    val |= (1<<9);    				//P3_9-ARM_RST input mode
+    val |= (1<<7);    				//GP3[7]-GPIO_ARN_IN input mode
 	__raw_writel(val, add);
 	while(__raw_readl(add) != val);
+	sys_led_R_ON();
+	sys_led_G_OFF();
 
 #if defined(CONFIG_CODEC_AIC26) || defined(CONFIG_CODEC_AIC3104)
 	Audio_HW_Reset();
 #endif
 
-	#ifdef CONFIG_DM385_MIN_CONFIG
-	__raw_writel(1<<12, 0x481ae13c);  	//output mode GP3_12-LED1_ON --Hi
-	#else
-	__raw_writel(1<<12, 0x481ae190);  	//output mode GP3_12-LED1_ON --low
-	#endif
 }
 
 #if defined(CONFIG_CODEC_AIC26) || defined(CONFIG_CODEC_AIC3104)
@@ -1187,13 +1411,13 @@ int Audio_HW_Reset(void)
 	u32  add, val;
 	/* Hardware reset */
 	/* GP0[9] */
-	add=0x48032134;						//GPIO_OE Output Enable Register
+	add=(GPIO0_BASE + GPIO_OE);			//GPIO_OE Output Enable Register
 	val = __raw_readl(add);
 	val &=~(1<<9);   					//GP0_9-AIC_RSTn output
 	__raw_writel(val, add);
-	__raw_writel((1<<9), 0x48032190);  //output low
+	__raw_writel((1<<9), (GPIO0_BASE + GPIO_CLEARDATAOUT));  //output low
 	delay(1000);
-	__raw_writel((1<<9), 0x48032194);  //output high
+	__raw_writel((1<<9), (GPIO0_BASE + GPIO_SETDATAOUT));  //output high
 	return 0;
 }
 #endif
@@ -1217,9 +1441,33 @@ static void power_control(void)
 	vdd2_val 	= (iva_freq>306)? VDD_1D35:((iva_freq>266)?VDD_1D2:VDD_1D1);
 	vddctrl_val = ((iss_freq>400)||(ddr_freq>400))?VDD_1D35:VDD_1D2;
 
+	tps65911_config(VDDCRTL_OP_REG	, vddctrl_val);
+	delay(10000);
 	tps65911_config(VDD1_OP_REG   	, vdd1_val);
 	tps65911_config(VDD2_OP_REG   	, vdd2_val);
-	tps65911_config(VDDCRTL_OP_REG	, vddctrl_val);
+
+	//tps65911_config(VIO_REG   		, 0x0d);
+	/*
+		<VIO_REG>
+		7:6 ILMAX Select maximum load current: RW 0x0
+			when 00: 0.6 A
+			when 01: 1.0 A
+			when 10: 1.5 A
+			when 11: > 1.5 A
+
+		3:2 SEL Output voltage selection (EEPROM bits): RW 0x1
+			SEL[1:0] = 00: 1.5 V
+			SEL[1:0] = 01: 1.8 V
+			SEL[1:0] = 10: 2.5 V
+			SEL[1:0] = 11: 3.3 V
+
+		1:0 ST Supply state (EEPROM bits): RW 0x1
+			ST[1:0] = 00: Off
+			ST[1:0] = 01: On high power (ACTIVE)
+			ST[1:0] = 10: Off
+			ST[1:0] = 11: On low power (SLEEP)
+	*/
+
 	tps65911_config(BBCH_REG      	, BBCHEN | BBSEL_3D15V);
 }
 
@@ -1298,13 +1546,12 @@ static void phy_init(char *name, int addr)
 	/* reset ethernet */
 	__raw_writel((1<<20), 0x4804c194); //output GP1_20-ENET_RSTn high
 	delay(20000);
-	__raw_writel((1<<20), 0x4804c190);	//output GP1_20-ENET_RSTn low
-	delay(20000);
 
 	miiphy_reset(name, addr);
 
 	udelay(100000);
 
+#if 0
 	miiphy_write(name, addr, 0x1d, 0x1f);
 	miiphy_read(name, addr, 0x1e, &val);
 	printf("phy info reg 0x1e addr %x val %x\n",addr,val);
@@ -1312,7 +1559,7 @@ static void phy_init(char *name, int addr)
 	miiphy_write(name, addr, 0x1e, val);
 	miiphy_read(name, addr, 0x1e, &val);
 	printf("phy info reg 0x1e addr %x val %x\n",addr,val);
-
+#endif
 	/* Enable Autonegotiation */
 	if (miiphy_read(name, addr, PHY_BMCR, &val) != 0) {
 		printf("failed to read bmcr\n");
@@ -1376,35 +1623,35 @@ static void cpsw_control(int enabled)
 
 static struct cpsw_slave_data cpsw_slaves[] = {
 	{
-		.slave_reg_ofs	= 0x50,
-		.sliver_reg_ofs	= 0x700,
-		.phy_id		= 0,
+		.slave_reg_ofs  = 0x50,
+		.sliver_reg_ofs = 0x700,
+		.phy_id         = 1,
 	},
 	{
-		.slave_reg_ofs	= 0x90,
-		.sliver_reg_ofs	= 0x740,
-		.phy_id		= 1,
+		.slave_reg_ofs  = 0x90,
+		.sliver_reg_ofs = 0x740,
+		.phy_id         = 0,
 	},
 };
 
 static struct cpsw_platform_data cpsw_data = {
-	.mdio_base		= TI814X_CPSW_MDIO_BASE,
-	.cpsw_base		= TI814X_CPSW_BASE,
-	.mdio_div		= 0xff,
-	.channels		= 8,
-	.cpdma_reg_ofs		= 0x100,
-	.cpdma_sram_ofs		= 0x200,
-	.slaves			= 1,
-	.slave_data		= cpsw_slaves,
-	.ale_reg_ofs		= 0x600,
-	.ale_entries		= 1024,
-	.host_port_reg_ofs	= 0x28,
-	.hw_stats_reg_ofs	= 0x400,
-	.mac_control		= (1 << 5) /* MIIEN      */,
-	.control		= cpsw_control,
-	.phy_init		= phy_init,
-	.host_port_num		= 0,
-	.bd_ram_ofs		= 0x2000,
+	.mdio_base              = TI814X_CPSW_MDIO_BASE,
+	.cpsw_base              = TI814X_CPSW_BASE,
+	.mdio_div               = 0xff,
+	.channels               = 8,
+	.cpdma_reg_ofs          = 0x100,
+	.cpdma_sram_ofs         = 0x200,
+	.slaves                 = 1,
+	.slave_data             = cpsw_slaves,
+	.ale_reg_ofs            = 0x600,
+	.ale_entries            = 1024,
+	.host_port_reg_ofs      = 0x28,
+	.hw_stats_reg_ofs       = 0x400,
+	.mac_control            = (1 << 5) /* MIIEN      */,
+	.control                = cpsw_control,
+	.phy_init               = phy_init,
+	.host_port_num          = 0,
+	.bd_ram_ofs             = 0x2000,
 };
 
 extern void cpsw_eth_set_mac_addr (const u_int8_t *addr);
@@ -1419,10 +1666,9 @@ int board_eth_init(bd_t *bis)
 	cpsw_pad_config();
 #endif
 
+#ifdef ETHERNET_SATA_1_CLOCK_SRC
 	eth_clock_config = __raw_readl(SMA1);
 	printf("Ethernet clocking: 0x%x\n", eth_clock_config);
-
-#ifdef ETHERNET_SATA_1_CLOCK_SRC
 	eth_clock_config &= SMA1_CPSW_CLOCK_MASK;
 	/* By default sata0 is selected in SMA1 REG
 	Changing it to Sata 1 for power optimization */
@@ -1451,9 +1697,9 @@ int board_eth_init(bd_t *bis)
 	}
 
 	if(is_valid_ether_addr(mac_addr)) {
-		printf("Detected MACID:%x:%x:%x:%x:%x:%x\n",mac_addr[0],
-			mac_addr[1], mac_addr[2], mac_addr[3],
-			mac_addr[4], mac_addr[5]);
+		printf("Detected MACID:%02x:%02x:%02x:%02x:%02x:%02x\n",
+			mac_addr[0], mac_addr[1], mac_addr[2],
+			mac_addr[3], mac_addr[4], mac_addr[5]);
 		cpsw_eth_set_mac_addr(mac_addr);
 	} else {
 		printf("Caution:using static MACID!! Set <ethaddr> variable\n");
@@ -1506,8 +1752,73 @@ U_BOOT_CMD(
 #ifdef CONFIG_GENERIC_MMC
 int board_mmc_init(bd_t *bis)
 {
+	sdcard_enable();
 	omap_mmc_init(0);
-	omap_mmc_init(1);
+	//omap_mmc_init(1);
+	return 0;
+}
+#endif
+
+#ifdef CONFIG_HW_WATCHDOG
+static int trigger_skip = 0;
+void hw_watchdog_reset(void)
+{
+	if(trigger_skip) return;
+	__raw_writel(__raw_readl(WDT_WTGR) + 1, WDT_WTGR);
+}
+
+int hw_watchdog_op(hwwd_op_t op)
+{
+	switch(op){
+		case HWWD_INIT:
+			hw_watchdog_op(HWWD_OFF);
+			delay(1000);
+			__raw_writel(0x00000003, WDT_WIRQENSET); //Enable delay/overflow interrupt
+			delay(10000);
+			__raw_writel(0x00000010, WDT_WCLR); //Clock Divider = 1
+			delay(10000);
+			__raw_writel((0xFFFFFFFF - (WDT_TIMEOUT_BASE * WDT_TIMEOUT_SEC)), WDT_WLDR);
+			delay(10000);
+			__raw_writel(0xFFFFFFFF, WDT_WDLY);
+			delay(10000);
+			__raw_writel((0xFFFFFFFF - (WDT_TIMEOUT_BASE * WDT_TIMEOUT_SEC)), WDT_WCRR);
+			break;
+		case HWWD_OFF:
+			__raw_writel(0xAAAA, WDT_WSPR);
+			while (__raw_readl(WDT_WWPS) != 0x0);
+			__raw_writel(0x5555, WDT_WSPR);
+			while (__raw_readl(WDT_WWPS) != 0x0);
+			break;
+		case HWWD_ON:
+			__raw_writel(0xBBBB, WDT_WSPR);
+			while (__raw_readl(WDT_WWPS) != 0x0);
+			__raw_writel(0x4444, WDT_WSPR);
+			while (__raw_readl(WDT_WWPS) != 0x0);
+			break;
+		case HWWD_RST:
+			__raw_writel(__raw_readl(WDT_WTGR) + 1, WDT_WTGR);
+			break;
+		case HWWD_SOFT_RST:
+			__raw_writel(0x00000002, WDT_WDSC); //Execute software reset.
+			while (( (__raw_readl(WDT_WDSC)) & 0x00000002) != 0x00000000); //Wait until reset release?
+			break;
+		case HWWD_FORCE_RST:
+			hw_watchdog_op(HWWD_OFF);
+			delay(1000);
+			__raw_writel(0xFFFFFFFF, WDT_WLDR);
+			delay(1000);
+			__raw_writel(__raw_readl(WDT_WTGR) + 1, WDT_WTGR);
+			delay(1000);
+			__raw_writel(__raw_readl(WDT_WTGR) + 1, WDT_WTGR);
+			delay(1000);
+			__raw_writel(__raw_readl(WDT_WTGR) + 1, WDT_WTGR);
+			delay(1000);
+			__raw_writel(__raw_readl(WDT_WTGR) + 1, WDT_WTGR);
+			break;
+		case HWWD_TRIGGER_SKIP:
+			trigger_skip = 1;
+			break;
+	}
 	return 0;
 }
 #endif

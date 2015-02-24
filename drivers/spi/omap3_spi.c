@@ -82,7 +82,7 @@ struct spi_slave *spi_setup_slave(unsigned int bus, unsigned int cs,
 	case 0:
 		ds->regs = (struct mcspi *)OMAP3_MCSPI1_BASE;
 		break;
-#ifndef CONFIG_TI81XX
+//#ifndef CONFIG_TI81XX
 	case 1:
 		ds->regs = (struct mcspi *)OMAP3_MCSPI2_BASE;
 		break;
@@ -92,21 +92,21 @@ struct spi_slave *spi_setup_slave(unsigned int bus, unsigned int cs,
 	case 3:
 		ds->regs = (struct mcspi *)OMAP3_MCSPI4_BASE;
 		break;
-#endif
+//#endif
 	default:
 		printf("SPI error: unsupported bus %i. Supported busses 0 - 3\n", bus);
 		return NULL;
 	}
 	ds->slave.bus = bus;
 
-#ifdef CONFIG_TI81XX
-	if ((bus == 0) && (cs > 3)) {
-#else
+//#ifdef CONFIG_TI81XX
+//	if ((bus == 0) && (cs > 3)) {
+//#else
 	if (((bus == 0) && (cs > 3)) ||
 	    ((bus == 1) && (cs > 1)) ||
 	    ((bus == 2) && (cs > 1)) ||
 	    ((bus == 3) && (cs > 0))) {
-#endif
+//#endif
 		printf("SPI error: unsupported chip select %i on bus %i\n", cs, bus);
 		return NULL;
 	}

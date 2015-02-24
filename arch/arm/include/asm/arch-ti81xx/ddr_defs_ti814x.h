@@ -280,6 +280,7 @@
 
 /* DM385 DDR3 EMIF CFG Registers values 533MHz */
 #if defined(CONFIG_DM385_DDR3_533)
+/*
 #define DDR3_EMIF_READ_LATENCY     	0x00170209 // 0x0017320A		//RD_ODT=0x2, IDLE_ODT=0x0, Dynamic power_down enabled
 #define DDR3_EMIF_TIM1          	0x0CCF46B3 // 0x110F783B
 #define DDR3_EMIF_TIM2          	0x20047FDA // 0x238581E6
@@ -287,9 +288,52 @@
 #define DDR3_EMIF_REF_CTRL      	0x0000103D
 #define DDR3_EMIF_SDRAM_CONFIG      0x61C11AB2 //0x61C21AB2 // 0x61C119B2 // 0x61C121B2
 #define DDR3_EMIF_SDRAM_ZQCR        0x50074BE2 // 0x50074BE1
+*/
+
+/*******************************************************/
+#if defined(CONFIG_DM388_DDR3_4Gb)
+/* Gary - DM388 DDR3(4Gb) 533 MHz */
+#define DDR3_EMIF_READ_LATENCY		0x00170209 // 0x0017320A
+#define DDR3_EMIF_TIM1				0x0CCF36A3
+#define DDR3_EMIF_TIM2				0x308F7FDA
+#define DDR3_EMIF_TIM3				0x507F88AF
+#define DDR3_EMIF_REF_CTRL			0x0000081E
+#ifdef CONFIG_DM388_DDR3_4GB_SINGLE
+#define DDR3_EMIF_SDRAM_CONFIG		0x61C15A32 //Bobby-20140707: Set Data Bus Width to 16bit
+#else
+#define DDR3_EMIF_SDRAM_CONFIG		0x61C11A32
 #endif
+#define DDR3_EMIF_SDRAM_ZQCR		0x500797CF
+#elif defined(CONFIG_DM388_DDR3_2Gb)
+/* Gary - DM388 DDR3(2Gb) 533 MHz */
+#define DDR3_EMIF_READ_LATENCY		0x00170209 // 0x0017320A
+#define DDR3_EMIF_TIM1				0x0CCF36A3
+#define DDR3_EMIF_TIM2				0x305A7FDA
+#define DDR3_EMIF_TIM3				0x507F855F
+#define DDR3_EMIF_REF_CTRL			0x0000081E
+#define DDR3_EMIF_SDRAM_CONFIG		0x61C11A32
+#define DDR3_EMIF_SDRAM_ZQCR		0x500797CF
+#else
+/* Gary - DM388 DDR3(1Gb) 533 MHz */
+#define DDR3_EMIF_READ_LATENCY		0x00170209 // 0x0017320A
+#define DDR3_EMIF_TIM1				0x0CCF36A3
+#define DDR3_EMIF_TIM2				0x303F7FDA
+#define DDR3_EMIF_TIM3				0x507F83AF
+#define DDR3_EMIF_REF_CTRL			0x0000081E
+#ifdef CONFIG_DM388_DDR3_4GB_SINGLE
+#define DDR3_EMIF_SDRAM_CONFIG		0x61C15A32 //Bobby-20140707: Set Data Bus Width to 16bit
+#else
+#define DDR3_EMIF_SDRAM_CONFIG		0x61C11A32
+#endif
+#define DDR3_EMIF_SDRAM_ZQCR		0x500797CF
+#endif
+/*******************************************************/
+
+#endif
+
 /* DM385 DDR3 EMIF CFG Registers values 400MHz */
 #if defined(CONFIG_DM385_DDR3_400)
+/*
 #define DDR3_EMIF_READ_LATENCY		0x00170208		//RD_ODT=0x2, IDLE_ODT=0x0, Dynamic power_down enabled
 #define DDR3_EMIF_TIM1				0x132BB953
 #define DDR3_EMIF_TIM2				0x20437FDA
@@ -297,6 +341,38 @@
 #define DDR3_EMIF_REF_CTRL			0x00000C30
 #define DDR3_EMIF_SDRAM_CONFIG		0x61C11B32
 #define DDR3_EMIF_SDRAM_ZQCR		0x50074BE1
+*/
+
+/*******************************************************/
+#if defined(CONFIG_DM388_DDR3_4Gb)
+/* Gary - DM388 DDR3(4Gb) 400 MHz */
+#define DDR3_EMIF_READ_LATENCY		0x00170209 // 0x0017320A
+#define DDR3_EMIF_TIM1				0x0AAAE51B
+#define DDR3_EMIF_TIM2				0x206B7FDA
+#define DDR3_EMIF_TIM3				0x507F867F
+#define DDR3_EMIF_REF_CTRL			0x00000618
+#define DDR3_EMIF_SDRAM_CONFIG		0x61C11A32
+#define DDR3_EMIF_SDRAM_ZQCR		0x500797C2
+#elif defined(CONFIG_DM388_DDR3_2Gb)
+/* Gary - DM388 DDR3(2Gb) 400 MHz */
+#define DDR3_EMIF_READ_LATENCY		0x00170209 // 0x0017320A
+#define DDR3_EMIF_TIM1				0x0AAAE51B
+#define DDR3_EMIF_TIM2				0x20437FDA
+#define DDR3_EMIF_TIM3				0x507F83FF
+#define DDR3_EMIF_REF_CTRL			0x00000618
+#define DDR3_EMIF_SDRAM_CONFIG		0x61C11A32
+#define DDR3_EMIF_SDRAM_ZQCR		0x500797C2
+#else
+/* Gary - DM388 DDR3(1Gb) 400 MHz */
+#define DDR3_EMIF_READ_LATENCY		0x00170209 // 0x0017320A
+#define DDR3_EMIF_TIM1				0x0AAAE51B
+#define DDR3_EMIF_TIM2				0x202F7FDA
+#define DDR3_EMIF_TIM3				0x507F82BF
+#define DDR3_EMIF_REF_CTRL			0x00000618
+#define DDR3_EMIF_SDRAM_CONFIG		0x61C11A32
+#define DDR3_EMIF_SDRAM_ZQCR		0x500797C2
+#endif
+/*******************************************************/
 #endif
 
 #elif defined(CONFIG_TI811X)
@@ -362,7 +438,11 @@
 #define DDR3_DMM_LISA_MAP__0		0x0
 #define DDR3_DMM_LISA_MAP__1		0x0
 #define DDR3_DMM_LISA_MAP__2		0x0
-#define DDR3_DMM_LISA_MAP__3		0x80600100
+#ifdef CONFIG_DM388_DDR3_4GB_SINGLE
+#define DDR3_DMM_LISA_MAP__3		0x80500100 /* Register 3 maps 0x80000000 to 0x00000000, SDRC 0 only (not interleaved), length 512MB */
+#else
+#define DDR3_DMM_LISA_MAP__3		0x80600100 /* Register 3 maps 0x80000000 to 0x00000000, SDRC 0 only (not interleaved), length 1GB */
+#endif
 
 #endif  /* _DDR_DEFS_TI814X_H */
 

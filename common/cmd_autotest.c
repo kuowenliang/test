@@ -705,7 +705,7 @@ Bool Aic26_test(void)
 {
 	Bool retVal = E_PASS;
 	/* use rising latch to send command, but falling latch for receiving data */
-	printf("%s\n", __func__);
+	//printf("%s\n", __func__);
 	if(slave == NULL){
 		slave = (struct spi_slave *)spi_setup_slave(0, 0, (100*1000), 1);
 		if(slave == NULL)
@@ -873,29 +873,41 @@ Bool Aic3104_BypassTest(void)
 	retVal |= DRVfnAudio_AIC3104SendData(PGAR_2_RLOPM_VOL, 0x80);
 	retVal |= DRVfnAudio_AIC3104SendData(RLOPM_CTRL, 0x0b);
 #endif
-
 	if(retVal != E_PASS)
 		printf("fail\n");
 	else
 		printf("success\n");
-	printf("Register dump-------------------------------------------------\n");
+	return retVal;
+}
+
+Bool Aic3104_RegisterDump(void)
+{
+	Bool retVal = E_PASS;
+	u8 nRegReadVal, i;
+	u8 buff[AIC3X_CACHEREGNUM];
+	printf("%s ... ", __func__);
 	for(i = 0; i < AIC3X_CACHEREGNUM; i++) {
-		DRVfnAudio_AIC3104RecvData(i, &nRegReadVal, 1);
-		//printf("%2x:%5x\n", i, nRegReadVal);
+		retVal |= DRVfnAudio_AIC3104RecvData(i, &nRegReadVal, 1);
 		if(i%4 == 0) printf("-\r");
 		else if(i%4 == 1) printf("\\\r");
 		else if(i%4 == 2) printf("|\r");
 		else if(i%4 == 3) printf("/\r");
 		buff[i] = nRegReadVal;
 	}
-	print_buffer(0, buff, 1, sizeof(buff), 0);
+	printf("\n");
+	if(retVal != E_PASS)
+		printf("fail\n");
+	else{
+		printf("success\n");
+		print_buffer(0, buff, 1, sizeof(buff), 0);
+	}
 	return retVal;
 }
 
 Bool Aic3104_test(void)
 {
 	Bool retVal = E_FAIL;
-	printf("%s\n", __func__);
+	//printf("%s\n", __func__);
 	retVal = Audio_HW_Reset();
 	if(retVal == E_PASS) {
 		retVal = Aic3104_Init();
@@ -2081,10 +2093,10 @@ Bool WIFI_BOARD_test(void)
 		printf("On-board SDIO interface not found!\n");
 	return 1;
 }
-Bool SD_test(void)
+Bool SD_test(int dev_num)
 {
 	struct mmc *mmc;
-	mmc = find_mmc_device(0);
+	mmc = find_mmc_device(dev_num);
 	if (mmc) {
 		if (mmc_init(mmc) == 0){
 			printf("Device: %s\n", mmc->name);	
@@ -2235,7 +2247,7 @@ void MiscTest(void)
 		printf("\ninput = %c\n",cmd);
 		switch(cmd) {
 			case '1':
-				SD_test();
+				SD_test(0);
 				break;
 			case '2':
 				RS485_Test();

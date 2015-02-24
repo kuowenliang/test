@@ -330,13 +330,6 @@ void main_loop (void)
 	}
 #endif  /* CONFIG_MODEM_SUPPORT */
 
-#ifdef CONFIG_TI814X_MIN_CONFIG
-  #ifdef CONFIG_UBL_VER
-	char* ubl_ver = (char*)CONFIG_SYS_TEMP_ADDR;
-	sprintf(ubl_ver, "%s", MK_STR(CONFIG_UBL_VER));
-  #endif /* CONFIG_UBL_VER */
-#endif /* CONFIG_TI814X_MIN_CONFIG */
-
 #ifdef CONFIG_CMD_MOXAMM
 	init_version_env();
 #endif /* CONFIG_CMD_MOXAMM */

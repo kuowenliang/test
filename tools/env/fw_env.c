@@ -44,7 +44,7 @@
 #endif
 
 #include "fw_env.h"
-#include "../include/configs/ti8148_ipnc.h"
+#include "../include/config.h"
 
 #define	CMD_GETENV	"fw_printenv"
 #define	CMD_SETENV	"fw_setenv"
