@@ -461,6 +461,7 @@
 #endif
 
 #if defined(CONFIG_CMD_NET)
+//#define CONFIG_NETCONSOLE	/* include NetConsole support (note: caused ping function failed - bobby) */
 #define CONFIG_DRIVER_TI_CPSW
 #define CONFIG_MII
 #define CONFIG_BOOTP_DEFAULT

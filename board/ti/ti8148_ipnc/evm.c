@@ -1480,8 +1480,8 @@ void gpio_init(void)
 	val &=~(1<<31);						//GP0[31] (OUT) SD1_EN
 	__raw_writel(val, add);
 	sdcard_enable();
-	__raw_writel((1<<22), (GPIO0_BASE + GPIO_CLEARDATAOUT));	//GP0[22]-Heater_sys output low
-	__raw_writel((1<<26), (GPIO0_BASE + GPIO_CLEARDATAOUT));	//GP0[26]-Heater_cam output low
+	__raw_writel((1<<22), (GPIO0_BASE + GPIO_SETDATAOUT));	//GP0[22]-Heater_sys output high
+	__raw_writel((1<<26), (GPIO0_BASE + GPIO_SETDATAOUT));	//GP0[26]-Heater_cam output high
 
 	//GPIO1[] group
 	add=(GPIO1_BASE + GPIO_OE);			//GPIO_OE Output Enable Register

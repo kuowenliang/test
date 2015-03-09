@@ -122,28 +122,28 @@ int lightsen_state(void)
 void Heater_Sys_ON(void)
 {
 #ifdef GPIO_HEATER_SYS
-	GPIO_Out(GPIO_HEATER_SYS, GPIO_HIGH);
+	GPIO_Out(GPIO_HEATER_SYS, GPIO_LOW);
 #endif
 }
 
 void Heater_Sys_OFF(void)
 {
 #ifdef GPIO_HEATER_SYS
-	GPIO_Out(GPIO_HEATER_SYS, GPIO_LOW);
+	GPIO_Out(GPIO_HEATER_SYS, GPIO_HIGH);
 #endif
 }
 
 void Heater_Cam_ON(void)
 {
 #ifdef GPIO_HEATER_CAM
-	GPIO_Out(GPIO_HEATER_CAM, GPIO_HIGH);
+	GPIO_Out(GPIO_HEATER_CAM, GPIO_LOW);
 #endif
 }
 
 void Heater_Cam_OFF(void)
 {
 #ifdef GPIO_HEATER_CAM
-	GPIO_Out(GPIO_HEATER_CAM, GPIO_LOW);
+	GPIO_Out(GPIO_HEATER_CAM, GPIO_HIGH);
 #endif
 }
 
