@@ -290,7 +290,7 @@
 
 #define CONFIG_LOADADDR 			CONFIG_SYS_LOAD_ADDR
 #define CONFIG_CMDLINE_EDITING
-#define CONFIG_ETHADDR 				00:90:e8:81:27:01
+#define CONFIG_ETHADDR 				00:90:e8:00:00:00
 #define CONFIG_IPADDR 				192.168.127.100
 #define CONFIG_SERVERIP 			192.168.127.98
 #define CONFIG_GATEWAYIP 			192.168.127.98
@@ -475,6 +475,11 @@
 #define CONFIG_PHY_GMII_MODE
 #if defined(VPORT66)
 #define CONFIG_PHY_GIGE
+#undef CONFIG_PHY_GMII_MODE
+#endif
+#if defined(VPORT461A)
+#define CONFIG_MV88E6063_SWITCH
+#define CONFIG_PHY_RMII_MODE
 #undef CONFIG_PHY_GMII_MODE
 #endif
 /* increase network receive packet buffer count for reliable TFTP */
@@ -774,6 +779,11 @@ extern unsigned int boot_flash_type;
 #define GPIO_ARN_OUT		((3*32) + 8)	//GP3[8] (OUT) DO
 #define GPIO_LED_STATE		((3*32) + 12)	//GP3[12] (OUT) LED_G
 #define GPIO_LED_SYS		((3*32) + 13)	//GP3[13] (OUT) LED_R
+#define GPIO_SYSBUTTON		GPIO_RE_SETING
+#define GPIO_DI				GPIO_ARN_IN
+#define GPIO_DO				GPIO_ARN_OUT
+#define GPIO_SYSLED_GREEN	GPIO_LED_STATE
+#define GPIO_SYSLED_RED		GPIO_LED_SYS
 #elif defined(VPORT56)
 #define GPIO_AIC_RSTn		((0*32) + 8)	//GP0[8] (OUT) AIC_RSTn
 #define GPIO_SD_WP			((0*32) + 29)	//GP0[29) (IN) SD1_WPn
@@ -794,6 +804,11 @@ extern unsigned int boot_flash_type;
 #define GPIO_ARN_OUT		((3*32) + 8)	//GP3[8] (OUT) DO
 #define GPIO_LED_STATE		((3*32) + 12)	//GP3[12] (OUT) LED_G
 #define GPIO_LED_SYS		((3*32) + 13)	//GP3[13] (OUT) LED_R
+#define GPIO_SYSBUTTON		GPIO_RE_SETING
+#define GPIO_DI				GPIO_ARN_IN
+#define GPIO_DO				GPIO_ARN_OUT
+#define GPIO_SYSLED_GREEN	GPIO_LED_STATE
+#define GPIO_SYSLED_RED		GPIO_LED_SYS
 #elif defined(VPORT36_2MP)
 #define GPIO_AIC_RSTn		((0*32) + 8)	//GP0[8] (OUT) AIC_RSTn
 #define GPIO_SD_WP			((0*32) + 29)	//GP0[29) (IN) SD1_WPn
@@ -819,14 +834,32 @@ extern unsigned int boot_flash_type;
 #define GPIO_ARN_OUT		((3*32) + 8)	//GP3[8] (OUT) DO
 #define GPIO_LED_STATE		((3*32) + 12)	//GP3[12] (OUT) LED_G
 #define GPIO_LED_SYS		((3*32) + 13)	//GP3[13] (OUT) LED_R
-#endif
-
 #define GPIO_SYSBUTTON		GPIO_RE_SETING
 #define GPIO_DI				GPIO_ARN_IN
 #define GPIO_DO				GPIO_ARN_OUT
 #define GPIO_SYSLED_GREEN	GPIO_LED_STATE
 #define GPIO_SYSLED_RED		GPIO_LED_SYS
-#define GPIO_SYSLED_CONTROL	GPIO_LED_CONTROL
+#elif defined(VPORT461A)
+#define GPIO_AIC_RSTn		((0*32) + 8)	//GP0[8] (OUT) AIC_RSTn
+#define GPIO_SD_WP			((0*32) + 29)	//GP0[29) (IN) SD1_WPn
+#define GPIO_SD_CD			((0*32) + 30)	//GP0[30) (IN) SD1_CDn
+#define GPIO_SD_EN			((0*32) + 31)	//GP0[31) (OUT) SD1_EN
+#define GPIO_FLASH_WP		((1*32) + 0)	//GP1[0] (OUT) FLASH_WP
+#define GPIO_RE_SETING		((2*32) + 21)	//GP2[21] (IN) RE_SETING
+#define GPIO_CAM_RST		((2*32) + 25)	//GP2[25] (OUT) CAM_REST
+#define GPIO_RTC_INTn		((2*32) + 26)	//GP2[26] (IN) RTC_INTn
+#define GPIO_PHY_LINKSTAT	((3*32) + 7)	//GP3[7] (IN) E_LINKSTS
+#define GPIO_PHY_RESET		((3*32) + 8)	//GP3[8] (OUT) ENET_RSTn
+#define GPIO_LED_SD			((3*32) + 9)	//GP3[9] (OUT) SD_LEDn
+#define GPIO_LED_PTZ		((3*32) + 10)	//GP3[10] (OUT) PTZ_LEDn
+#define GPIO_LED_VIDEO		((3*32) + 11)	//GP3[11] (OUT) VIDEO_LEDn
+#define GPIO_LED_STAT_R		((3*32) + 12)	//GP3[12] (OUT) STAT_RLEDn
+#define GPIO_LED_STAT_G		((3*32) + 13)	//GP3[13] (OUT) STAT_GLEDn
+#define GPIO_LED_FAIL		((3*32) + 14)	//GP3[14] (OUT) FAIL_LEDn
+#define GPIO_SYSBUTTON		GPIO_RE_SETING
+#define GPIO_SYSLED_GREEN	GPIO_LED_STAT_G
+#define GPIO_SYSLED_RED		GPIO_LED_STAT_R
+#endif
 
 #define GPIO_LED_ON			0
 #define GPIO_LED_OFF		1

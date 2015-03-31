@@ -81,6 +81,8 @@ extern int GPIO_Input(int bank, int pin);
 extern void GPIO_Output(int bank, int pin, int set);
 extern int GPIO_In(int gpio_num);
 extern void GPIO_Out(int gpio_num, int value);
+extern int GPIO_OutStat(int gpio_num);
+#if 0
 extern void sys_led_R_ON(void);
 extern void sys_led_R_OFF(void);
 extern void sys_led_R_reverse(void);
@@ -96,7 +98,7 @@ extern void RS485_SetRx(void);
 #endif
 extern void sdcard_enable(void);
 extern void sdcard_disable(void);
-
+#endif
 int resetkey_state(void)
 {
 #ifdef GPIO_SYSBUTTON
@@ -116,6 +118,104 @@ int lightsen_state(void)
 	return GPIO_In(GPIO_LIGHT_SENSOR);
 #else
 	return 0;
+#endif
+}
+
+void sys_led_R_ON(void)
+{
+#ifdef GPIO_SYSLED_RED
+	GPIO_Out(GPIO_SYSLED_RED, GPIO_LED_ON);
+#endif
+}
+
+void sys_led_R_OFF(void)
+{
+#ifdef GPIO_SYSLED_RED
+	GPIO_Out(GPIO_SYSLED_RED, GPIO_LED_OFF);
+#endif
+}
+
+void sys_led_R_reverse(void)
+{
+#ifdef GPIO_SYSLED_RED
+	if(GPIO_OutStat(GPIO_SYSLED_RED)) sys_led_R_ON();
+	else sys_led_R_OFF();
+#endif
+}
+
+void sys_led_G_ON(void)
+{
+#ifdef GPIO_SYSLED_GREEN
+	GPIO_Out(GPIO_SYSLED_GREEN, GPIO_LED_ON);
+#endif
+}
+
+void sys_led_G_OFF(void)
+{
+#ifdef GPIO_SYSLED_GREEN
+	GPIO_Out(GPIO_SYSLED_GREEN, GPIO_LED_OFF);
+#endif
+}
+
+void sys_led_G_reverse(void)
+{
+#ifdef GPIO_SYSLED_GREEN
+	if(GPIO_OutStat(GPIO_SYSLED_GREEN)) sys_led_G_ON();
+	else sys_led_G_OFF();
+#endif
+}
+
+void sys_led_RG_ON(void)
+{
+	sys_led_R_ON();
+	sys_led_G_ON();
+}
+
+void sys_led_RG_OFF(void)
+{
+	sys_led_R_OFF();
+	sys_led_G_OFF();
+}
+
+void sys_led_RG_reverse(void)
+{
+	sys_led_R_reverse();
+	sys_led_G_reverse();
+}
+
+#ifdef RS485_NAME
+void RS485_SetTx(void)
+{
+#ifdef GPIO_RS485_ENT
+	GPIO_Out(GPIO_RS485_ENT, GPIO_HIGH);
+#endif
+#ifdef GPIO_RS485_ENRn
+	GPIO_Out(GPIO_RS485_ENRn, GPIO_HIGH);
+#endif
+}
+
+void RS485_SetRx(void)
+{
+#ifdef GPIO_RS485_ENT
+	GPIO_Out(GPIO_RS485_ENT, GPIO_LOW);
+#endif
+#ifdef GPIO_RS485_ENRn
+	GPIO_Out(GPIO_RS485_ENRn, GPIO_LOW);
+#endif
+}
+#endif
+
+void sdcard_enable(void)
+{
+#ifdef GPIO_SD_EN
+	GPIO_Out(GPIO_SD_EN, GPIO_HIGH);
+#endif
+}
+
+void sdcard_disable(void)
+{
+#ifdef GPIO_SD_EN
+	GPIO_Out(GPIO_SD_EN, GPIO_LOW);
 #endif
 }
 
@@ -4076,6 +4176,7 @@ static char gPtCmdSet_PanDeg[] = {0xE1, 0x84}; //Set Pan Degree
 static char gPtCmdSet_TiltDeg[] = {0xE1, 0x85}; //Set Tilt Degree
 #define PT_CMDSET_NOTE_TiltDeg "Set Tilt Degree (-600~9600):"
 static char gPtCmdSet_GetDeg[] = {0xE1, 0x5E, 0x34, 0x00, 0x00}; //Get Pan/Tilt Degree
+static char gPtCmdSet_GetVer[] = {0xE1, 0x5C, 0xE2, 0x01, 0x00}; //Get Firmware Version
 static char gPtCmdSet_GetPiH[] = {0xE1, 0xB0, 0x01, 0x00, 0x00}; //Get H PI Info
 static char gPtCmdSet_GetPiV[] = {0xE1, 0xB0, 0x02, 0x00, 0x00}; //Get V PI Info
 static char gPtCmdSet_Test[] = {0xE1, 0xB1, 0xE2}; //Production Test
@@ -4105,6 +4206,11 @@ void uart_Display_PTDeg(char *rx_buff)
 	short tilt_degree = (short)((rx_buff[4] << 8) + (rx_buff[5]));
 	if(tilt_degree > 0) tilt_degree-=2;
 	printf("Pan/Tilt Degree:%u/%d\n", pan_degree, tilt_degree);
+}
+
+void uart_Display_Version(char *rx_buff)
+{
+	printf("Firmware Version:%u.%u.%u.%u\n", rx_buff[2], rx_buff[3], rx_buff[4], rx_buff[5]);
 }
 
 int uart_pt_send_command(char *name, char *tx_buff, char *rx_buff, int tx_len, int rx_len, int *len, int rec_len, int timeout)
@@ -4185,6 +4291,7 @@ static int uart_test_pt_send_command(int parameter)
 		printf("  [7]Set Tilt Degree.\n");
 		printf("  [8]Get Degree.\n");
 		printf("  [9]Production Test Mode.\n");
+		printf("  [a]Get Firmware Version.\n");
 		printf("  [ESC]Exit.\n");
 		printf("->");
 		cmd = getc();
@@ -4269,6 +4376,11 @@ static int uart_test_pt_send_command(int parameter)
 					if(uart_pt_send_command(PTCTRL_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) break;
 				}
 				break;
+			case 'a':
+				len = sizeof(gPtCmdSet_GetVer); memcpy(tx_buff, gPtCmdSet_GetVer, len); rec_len = 7;
+				if(uart_pt_send_command(PTCTRL_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) break;
+				uart_Display_Version(rx_buff);
+				break;
 			case 0x1B:
 				return DIAG_OK;
 				break;
@@ -4337,6 +4449,11 @@ int do_ptctrl (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 			if(uart_pt_send_command(PTCTRL_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
 			uart_Display_PTDeg(rx_buff);
 		}else
+		if(strcmp(argv[1], "ver") == 0){
+			len = sizeof(gPtCmdSet_GetVer); memcpy(tx_buff, gPtCmdSet_GetVer, len); rec_len = 7;
+			if(uart_pt_send_command(PTCTRL_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
+			uart_Display_Version(rx_buff);
+		}else
 		if(strcmp(argv[1], "test") == 0){
 			if(argc < 3){
 				printf ("Usage:\n%s\n", cmdtp->usage);
@@ -4388,6 +4505,7 @@ U_BOOT_CMD(ptctrl, 3, 0, do_ptctrl,
 	ptctrl tiltdeg [degree] - Set Tilt degree\n\
 	ptctrl getdeg - Get Degree\n\
 	ptctrl test [all/pan/tilt] - Production Test Mode\n\
+	ptctrl ver - Get Firmware Version\n\
 	"
 );
 #endif
@@ -7705,7 +7823,11 @@ int do_moxamm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	int boot_mode = BACKDOOR_NONE;
 
 	hw_watchdog_op(HWWD_INIT);
-	sys_led_RG_OFF();
+	
+	//wensen : let sys led to be red, because sys led is red in the init state.
+	//sys_led_RG_OFF();
+	sys_led_R_ON();
+	
 	//Heater_Sys_OFF();
 	//Heater_Cam_OFF();
 	printf("\n\n%s Starting ...", CONFIG_DUT_MODEL);

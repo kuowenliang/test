@@ -59,9 +59,25 @@ int do_bootm_linux(int flag, int argc, char *argv[], bootm_headers_t *images)
 
 #ifdef CONFIG_CMDLINE_TAG
 	char *commandline = getenv ("bootargs");
+
 #ifdef CONFIG_BOOTARGS
 	char tmp[1024];
 	if (commandline == NULL) commandline = CONFIG_BOOTARGS;
+
+
+//wensen
+#ifdef CONFIG_SYS_FUNCTION
+	unsigned int uboot_flag = 0;
+	unsigned char uboot_flag_cmd[32];
+	
+	memset(uboot_flag_cmd, 0, sizeof(uboot_flag_cmd));		
+#ifdef CONFIG_SYS_REDUNDAND_ENVIRONMENT
+	uboot_flag |= CONFIG_SYS_FUNCTION_RED_ENV;
+#endif	
+	sprintf(uboot_flag_cmd, " uboot.flag=0x%08x", uboot_flag);	
+	strcat(commandline, uboot_flag_cmd);
+#endif
+	
 	process_macros(commandline, tmp);
 	commandline = tmp;
 #endif

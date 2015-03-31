@@ -150,7 +150,7 @@ static void show_time(void);
 #endif
 
 #if defined(CONFIG_CODEC_AIC26) || defined(CONFIG_CODEC_AIC3104)
-int Audio_HW_Reset(void);
+int Audio_HW_Reset(int bank, int pin);
 #endif
 
 //// GPIO function ////
@@ -210,6 +210,13 @@ int GPIO_In(int gpio_num)
 	return (__raw_readl((GPIO_BaseAddr(bank) + GPIO_DATAIN)) & (1<<pin)) ? 1 : 0;
 }
 
+int GPIO_OutStat(int gpio_num)
+{
+	int bank = gpio_num / 32;
+	int pin = gpio_num % 32;
+	return (__raw_readl((GPIO_BaseAddr(bank) + GPIO_DATAIN)) & (1<<pin)) ? 1 : 0;
+}
+
 void GPIO_Out(int gpio_num, int value)
 {
 	int bank = gpio_num / 32;
@@ -229,7 +236,7 @@ void GPIO_Dir(int gpio_num, int out) //GPIO direction
 	else val &=~(1<<pin);
 	__raw_writel(val, add);
 }
-
+#if 0
 void sys_led_R_ON(void)
 {
 	GPIO_Output(0, 2, 0); //GP0_2 output low
@@ -301,7 +308,7 @@ void sdcard_disable(void)
 {
 	GPIO_Output(1, 21, 0);	//GP1_21 output low
 }
-
+#endif
 /*
  * spinning delay to use before udelay works
  */
@@ -1361,6 +1368,9 @@ void gpio_init(void)
 	val &=~(1<<9);						//GP0[9]-GPIO_AIC_RSTn output
 	val &=~(1<<13);						//GP0[13]-GPIO_CAM_PWDN output
 	__raw_writel(val, add);
+	__raw_writel((1<<1), (GPIO0_BASE + GPIO_CLEARDATAOUT));	//GP0[1]-GPIO_LED_STATE (RED) output low
+	__raw_writel((1<<2), (GPIO0_BASE + GPIO_CLEARDATAOUT));	//GP0[2]-GPIO_LED_SYS (RED) output low
+	__raw_writel((1<<3), (GPIO0_BASE + GPIO_CLEARDATAOUT));	//GP0[3]-GPIO_LED_CONTROL output low
 	__raw_writel((1<<13), (GPIO0_BASE + GPIO_CLEARDATAOUT));	//GP0[13]-GPIO_CAM_PWDN output low
 
 	//GPIO1[] group
@@ -1396,28 +1406,31 @@ void gpio_init(void)
     val |= (1<<7);    				//GP3[7]-GPIO_ARN_IN input mode
 	__raw_writel(val, add);
 	while(__raw_readl(add) != val);
-	sys_led_R_ON();
-	sys_led_G_OFF();
 
 #if defined(CONFIG_CODEC_AIC26) || defined(CONFIG_CODEC_AIC3104)
-	Audio_HW_Reset();
+	Audio_HW_Reset(0, 9);
 #endif
 
 }
 
 #if defined(CONFIG_CODEC_AIC26) || defined(CONFIG_CODEC_AIC3104)
-int Audio_HW_Reset(void)
+int Audio_HW_Reset(int bank, int pin)
 {
-	u32  add, val;
-	/* Hardware reset */
-	/* GP0[9] */
-	add=(GPIO0_BASE + GPIO_OE);			//GPIO_OE Output Enable Register
-	val = __raw_readl(add);
-	val &=~(1<<9);   					//GP0_9-AIC_RSTn output
-	__raw_writel(val, add);
-	__raw_writel((1<<9), (GPIO0_BASE + GPIO_CLEARDATAOUT));  //output low
+	GPIO_OutEn(bank, pin, 1);	//output Enable
+	GPIO_Output(bank, pin, 0);	//output low
 	delay(1000);
-	__raw_writel((1<<9), (GPIO0_BASE + GPIO_SETDATAOUT));  //output high
+	GPIO_Output(bank, pin, 1);	//output high
+
+//	u32  add, val;
+//	/* Hardware reset */
+//	/* GP0[9] */
+//	add=(GPIO0_BASE + GPIO_OE);			//GPIO_OE Output Enable Register
+//	val = __raw_readl(add);
+//	val &=~(1<<9);   					//GP0_9-AIC_RSTn output
+//	__raw_writel(val, add);
+//	__raw_writel((1<<9), (GPIO0_BASE + GPIO_CLEARDATAOUT));  //output low
+//	delay(1000);
+//	__raw_writel((1<<9), (GPIO0_BASE + GPIO_SETDATAOUT));  //output high
 	return 0;
 }
 #endif
