@@ -102,11 +102,7 @@ extern void sdcard_disable(void);
 int resetkey_state(void)
 {
 #ifdef GPIO_SYSBUTTON
-#if defined(VPORT66)
-	return !GPIO_In(GPIO_SYSBUTTON);
-#else
-	return GPIO_In(GPIO_SYSBUTTON);
-#endif
+	return (GPIO_In(GPIO_SYSBUTTON) == GPIO_SYSBUTTON_ON) ? 1 : 0;
 #else
 	return 0;
 #endif
@@ -7823,11 +7819,11 @@ int do_moxamm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	int boot_mode = BACKDOOR_NONE;
 
 	hw_watchdog_op(HWWD_INIT);
-	
+
 	//wensen : let sys led to be red, because sys led is red in the init state.
 	//sys_led_RG_OFF();
 	sys_led_R_ON();
-	
+
 	//Heater_Sys_OFF();
 	//Heater_Cam_OFF();
 	printf("\n\n%s Starting ...", CONFIG_DUT_MODEL);

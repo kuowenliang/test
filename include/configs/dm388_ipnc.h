@@ -447,6 +447,7 @@
 #define ISP_NAND
 #define FLASH_TEST_SIZE 				SZ_128K
 
+#if 0
 // locations in NAND flash
 #define UBL_FLASH						0x00000000
 #define UBOOT_FLASH						0x00020000
@@ -480,6 +481,41 @@
 #define ENV2_SIZE						(1 * SZ_128K)
 #define BACKUP_SIZE						(48 * SZ_128K)
 #define RESERVE_SIZE					(435 * SZ_128K)
+#else
+// locations in NAND flash
+#define UBL_FLASH						0x00000000
+#define UBOOT_FLASH						0x00020000
+#define ENV_FLASH						0x00260000
+#define KERNEL_FLASH					0x00280000
+#define ROOTFS_FLASH					0x006C0000
+#define KERNEL2_FLASH					0x03B40000
+#define ROOTFS2_FLASH					0x03F80000
+#define DATA1_FLASH						0x07400000
+#define MPKERNEL_FLASH					0x07BC0000
+#define MPROOTFS_FLASH					0x08000000
+#define MPDATA_FLASH					0x0B480000
+#define CONFIG_FLASH					0x0C080000
+#define ENV2_FLASH						0x0C380000
+#define BACKUP_FLASH					0x0C3A0000
+#define RESERVE_FLASH					0x0C9A0000
+
+// max. sizes
+#define UBL_SIZE						(1 * SZ_128K)
+#define UBOOT_SIZE						(17 * SZ_128K)
+#define ENV_SIZE						(1 * SZ_128K)
+#define KERNEL_SIZE						(34 * SZ_128K)
+#define ROOTFS_SIZE						(420 * SZ_128K)
+#define KERNEL2_SIZE					(34 * SZ_128K)
+#define ROOTFS2_SIZE					(420 * SZ_128K)
+#define DATA1_SIZE						(62 * SZ_128K)
+#define MPKERNEL_SIZE					(34 * SZ_128K)
+#define MPROOTFS_SIZE					(420 * SZ_128K)
+#define MPDATA_SIZE						(96 * SZ_128K)
+#define CONFIG_SIZE						(24 * SZ_128K)
+#define ENV2_SIZE						(1 * SZ_128K)
+#define BACKUP_SIZE						(48 * SZ_128K)
+#define RESERVE_SIZE					(508 * SZ_128K)
+#endif
 
 #define TEST_FLASH						RESERVE_FLASH
 #define TEST_FLASH_SIZE					RESERVE_SIZE
@@ -502,8 +538,8 @@
 
 //wensen
 #define CONFIG_SYS_FUNCTION
-#define CONFIG_SYS_FUNCTION_RED_ENV		0x01;		
-				
+#define CONFIG_SYS_FUNCTION_RED_ENV		0x01;
+
 #define CONFIG_SYS_REDUNDAND_ENVIRONMENT
 #define CONFIG_ENV_OFFSET_REDUND		ENV2_FLASH
 #define CONFIG_ENV_SIZE_REDUND			(CONFIG_ENV_SIZE)
@@ -552,6 +588,10 @@ extern unsigned int boot_flash_type;
 #define GPIO_INPUT			0
 #define GPIO_OUTPUT			1
 
+#define GPIO_SYSBUTTON_ON	0
+#define GPIO_SYSBUTTON_OFF	1
+
+
 #ifndef CONFIG_TI814X_OPTI_CONFIG
 /* SPI support */
 #ifdef CONFIG_SPI
@@ -561,7 +601,7 @@ extern unsigned int boot_flash_type;
 #define CONFIG_SPI_FLASH_WINBOND
 #define CONFIG_CMD_SF
 #define CONFIG_SF_DEFAULT_SPEED			(75000000)
-#define CONFIG_CODEC_AIC26				1
+//#define CONFIG_CODEC_AIC26				1
 #define CONFIG_CMD_SPI
 #endif
 

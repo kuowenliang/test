@@ -53,7 +53,7 @@
 #define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (8 * 1024))
 #define CONFIG_SYS_PROMPT			"UBL#"
 /* set to negative value for no autoboot */
-#define CONFIG_BOOTDELAY			1
+#define CONFIG_BOOTDELAY			2
 #if defined(CONFIG_SPI_BOOT)		/* Autoload the 2nd stage from SPI */
 #define CONFIG_SPI					1
 #if defined(CONFIG_TI81XX_PCIE_BOOT)
@@ -879,7 +879,7 @@ extern unsigned int boot_flash_type;
 #define CONFIG_SPI_FLASH_WINBOND
 #define CONFIG_CMD_SF
 #define CONFIG_SF_DEFAULT_SPEED			(75000000)
-#define CONFIG_CODEC_AIC26				1
+//#define CONFIG_CODEC_AIC26				1
 #define CONFIG_CMD_SPI
 #define CONFIG_DEFAULT_SPI_BUS			1
 #endif
