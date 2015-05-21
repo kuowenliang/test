@@ -310,7 +310,7 @@ extern int env_set_desc(char *desc);
 extern Bool SD_test(int dev_num);
 extern Bool Audio_test(void);
 #ifdef CONFIG_CODEC_AIC3104
-extern int Audio_HW_Reset(void);
+extern int Audio_HW_Reset(int bank, int pin);
 extern Bool DRVfnAudio_AIC3104SendData(u8 addr, u8 val);
 extern Bool DRVfnAudio_AIC3104RecvData(u8 addr, u8 *buf, int length);
 extern Bool Aic3104_RegisterDump(void);
@@ -334,6 +334,7 @@ static int ubl_ubootIdx = 0;
 #endif
 
 static int diag_do_reset(int parameter);
+int _erase_flash(cmd_tbl_t *cmdtp, int flag, ulong nand_addr, ulong size);
 
 //Struct define=====================================================
 typedef struct _Diag_Menu_Table_Struct {
@@ -553,6 +554,10 @@ U_BOOT_CMD(
 
 int do_initenv (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
+	_erase_flash(cmdtp, flag, ENV1_FLASH, ENV1_SIZE);
+#ifdef ENV2_FLASH
+	_erase_flash(cmdtp, flag, ENV2_FLASH, ENV2_SIZE);
+#endif
 	set_default_env();
 	udelay(100000);
 	saveenv();
@@ -717,10 +722,10 @@ int _erase_flash_whole(cmd_tbl_t *cmdtp, int flag)
 	return 0;
 }
 
-#ifdef ENV_FLASH
+#ifdef ENV1_FLASH
 int do_eraseenv (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
-	if(_erase_flash(cmdtp, flag, ENV_FLASH, ENV_SIZE)) return -1;
+	if(_erase_flash(cmdtp, flag, ENV1_FLASH, ENV1_SIZE)) return -1;
 	return 0;
 }
 
@@ -1572,9 +1577,9 @@ int do_ispnand (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		return -1;
 	}
 #endif
-#ifdef ENV_FLASH
-	if(_erase_flash(cmdtp, flag, ENV_FLASH, ENV_SIZE)){
-		printf("Error!! Erase nand flash at 0x%08X size:0x%08X\n", ENV_FLASH, ENV_SIZE);
+#ifdef ENV1_FLASH
+	if(_erase_flash(cmdtp, flag, ENV1_FLASH, ENV1_SIZE)){
+		printf("Error!! Erase nand flash at 0x%08X size:0x%08X\n", ENV1_FLASH, ENV1_SIZE);
 		sys_led_R_ON();
 		return -1;
 	}
@@ -2031,13 +2036,13 @@ int do_ispnand_from_mmc(char* buff, int size)
 			}
 		}
 #endif
-#ifdef ENV_FLASH
+#ifdef ENV1_FLASH
 		memset(tmp, 0, sizeof(tmp));
 		if(parseIniValue(tmp, buff, "mode", "env") > 0){
 			if(*tmp == '3'){
 				printf("Erase environment\n");
-				if(_erase_flash(&cmd_tmp, 0, ENV_FLASH, ENV_SIZE)){
-					printf("Error!! Erase nand flash at 0x%08X size:0x%08X\n", ENV_FLASH, ENV_SIZE);
+				if(_erase_flash(&cmd_tmp, 0, ENV1_FLASH, ENV1_SIZE)){
+					printf("Error!! Erase nand flash at 0x%08X size:0x%08X\n", ENV1_FLASH, ENV1_SIZE);
 					sys_led_R_ON();
 					return -1;
 				}
@@ -3524,6 +3529,26 @@ static int diag_erase_Dsp2(int parameter)
 }
 #endif
 
+#ifdef CONFIG_FLASH
+static int diag_erase_Config(int parameter)
+{
+	cmd_tbl_t cmd_tmp;
+	memset(&cmd_tmp, 0, sizeof(cmd_tbl_t));
+	if(do_eraseconfig(&cmd_tmp, 0, 0, NULL)) return DIAG_ERROR;
+	else return DIAG_OK;
+}
+#endif
+
+#ifdef BACKUP_FLASH
+static int diag_erase_Backup(int parameter)
+{
+	cmd_tbl_t cmd_tmp;
+	memset(&cmd_tmp, 0, sizeof(cmd_tbl_t));
+	if(do_erasebackup(&cmd_tmp, 0, 0, NULL)) return DIAG_ERROR;
+	else return DIAG_OK;
+}
+#endif
+
 static int diag_erase_WholeFlash(int parameter)
 {
 	char cmd[3];
@@ -3551,8 +3576,7 @@ static int diag_erase_WholeFlash(int parameter)
 
 static int diag_do_default(int parameter)
 {
-	set_default_env();
-	saveenv();
+	do_initenv(NULL, 0, 0, NULL);
 	return DIAG_OK;
 }
 
@@ -5924,8 +5948,8 @@ int flash_check_badblock(nand_info_t *nand)
 			}else count = 0;
 		}else
 #endif
-#ifdef ENV_FLASH
-		if(off == ENV_FLASH){
+#ifdef ENV1_FLASH
+		if(off == ENV1_FLASH){
 			if(isBad){
 				printf("Bad Block:0x%08lX (at the first block of ENV.)\n", off);
 				return -1;
@@ -5956,8 +5980,8 @@ int flash_check_badblock(nand_info_t *nand)
 			}
 		}else
 #endif
-#ifdef ENV_FLASH
-		if((off >= ENV_FLASH) && (off < (ENV_FLASH + ENV_SIZE))){
+#ifdef ENV1_FLASH
+		if((off >= ENV1_FLASH) && (off < (ENV1_FLASH + ENV1_SIZE))){
 			if(isBad){
 				count++;
 				printf("Bad Block:0x%08lX (in ENV), count=%d\n", off, count);
@@ -6318,11 +6342,11 @@ static int Audio_test_func(int parameter)
 			else if((c == '-') || (c == '_')) {
 				AIC3104VolumeUpDown(0);
 			}
-			printf("Press 'q':exit / r:read / w:write / d:dump reg. / '+,-':Volume)\n");
+			if(c != 'q') printf("Press 'q':Quit / r:Read / w:Write / d:Dump Reg. / '+,-':Volume)\n");
 		}
 		udelay(100000);
 	}
-	Audio_HW_Reset();
+	Audio_HW_Reset((GPIO_AIC_RSTn / 32), (GPIO_AIC_RSTn % 32));
 	return ret;
 }
 
@@ -6336,7 +6360,7 @@ int do_audio (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	if(strcmp(argv[1], "on") == 0){
 		ret = Audio_test();
 	}else if(strcmp(argv[1], "off") == 0){
-		Audio_HW_Reset();
+		Audio_HW_Reset((GPIO_AIC_RSTn / 32), (GPIO_AIC_RSTn % 32));
 	}else if(strcmp(argv[1], "dump") == 0){
 		Aic3104_RegisterDump();
 	}else if(strcmp(argv[1], "read") == 0){
@@ -7647,6 +7671,12 @@ static DiagMenuTableStruct NewDownloadMenuTable[] = {
 #endif
 #ifdef DSP2_FLASH
 	{ 'j',	"Erase DSP 2",			0,	diag_erase_Dsp2,			NULL},
+#endif
+#ifdef CONFIG_FLASH
+	{ 'k',	"Erase Config",			0,	diag_erase_Config,			NULL},
+#endif
+#ifdef BACKUP_FLASH
+	{ 'l',	"Erase Backup",			0,	diag_erase_Backup,			NULL},
 #endif
 };
 static DiagMenuStruct NewDownloadMenu = {

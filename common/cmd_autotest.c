@@ -62,7 +62,7 @@ typedef enum{
 Bool DRVfnAudio_AIC26RecvData(u16 spiAdr, u16 *spiVal);
 #endif
 #if defined(CONFIG_CODEC_AIC26) || defined(CONFIG_CODEC_AIC3104)
-extern int Audio_HW_Reset(void);
+extern int Audio_HW_Reset(int bank, int pin);
 #endif
 
 extern void dss_pll_config(void);
@@ -102,7 +102,7 @@ void SetRS485_Dir(RS485_dir_t dir)
 }
 */
 void ShowMainMenu(void)
-{	
+{
 	printf(	"\r\n *******************************"
   			"\r\n  TI8148 Diagnostic Program v1.0.0"
 			"\r\n *******************************"
@@ -150,7 +150,7 @@ void ShowMiscMenu(void)
 }
 
 void ShowMemoryMenu(void)
-{	
+{
 	printf(	"\r\n *******************************"
   			"\r\n  TI8148 Diagnostic Program v1.0.0"
 			"\r\n *******************************"
@@ -163,7 +163,7 @@ void ShowMemoryMenu(void)
 }
 
 void ShowOutputMenu(void)
-{	
+{
 	printf(	"\r\n *******************************"
   			"\r\n  TI8148 Diagnostic Program v1.0.0"
 			"\r\n *******************************"
@@ -178,7 +178,7 @@ void ShowOutputMenu(void)
 }
 
 void ShowLEDMenu(void)
-{	
+{
 	printf(	"\r\n *******************************"
   			"\r\n  TI8148 Diagnostic Program v1.0.0"
 			"\r\n *******************************"
@@ -191,7 +191,7 @@ void ShowLEDMenu(void)
 }
 
 void ShowGIOMenu(void)
-{	
+{
 	printf(	"\r\n *******************************"
   			"\r\n  TI8148 Diagnostic Program v1.0.0"
 			"\r\n *******************************"
@@ -265,35 +265,35 @@ void configure_hdmi_phy(void)
 	printf("\tinitialise  hdmi phy  done  \n");
 }
 
-void configure_hdvenc_1080p60(void) 
+void configure_hdvenc_1080p60(void)
 {
-	writel(0x4003A033,     0x48106000); 
-	writel(0x003F0275,     0x48106004); 
-	writel(0x1EA500BB,     0x48106008); 
-	writel(0x1F9901C2,     0x4810600C); 
-	writel(0x1FD71E67,     0x48106010); 
-	writel(0x004001C2,     0x48106014); 
-	writel(0x00200200,     0x48106018); 
-	writel(0x1B6C0C77,     0x4810601C); 
-	writel(0x1C0C0C30,     0x48106020); 
-	writel(0x1C0C0C30,     0x48106024); 
-	writel(0x84465898,     0x48106028); 
-	writel(0x3F000028,     0x4810602C); 
-	writel(0x587800BF,     0x48106030); 
-	writel(0x00000460,     0x48106034); 
-	writel(0x000C39E7,     0x48106038); 
-	writel(0x58780118,     0x4810603C); 
-	writel(0x0002A86D,     0x48106040); 
-	writel(0x00438000,     0x48106044); 
-	writel(0x05000000,     0x48106048); 
-	writel(0x00003000,     0x4810604C); 
-	writel(0x00000000,     0x48106050); 
-	writel(0x58780110,     0x48106054); 
-	writel(0x0002A86D,     0x48106058); 
-	writel(0x00438000,     0x4810605c); 
-	writel(0x05000000,     0x48106060); 
-	writel(0x00003000,     0x48106064); 
-	writel(0x00000000,     0x48106068); 
+	writel(0x4003A033,     0x48106000);
+	writel(0x003F0275,     0x48106004);
+	writel(0x1EA500BB,     0x48106008);
+	writel(0x1F9901C2,     0x4810600C);
+	writel(0x1FD71E67,     0x48106010);
+	writel(0x004001C2,     0x48106014);
+	writel(0x00200200,     0x48106018);
+	writel(0x1B6C0C77,     0x4810601C);
+	writel(0x1C0C0C30,     0x48106020);
+	writel(0x1C0C0C30,     0x48106024);
+	writel(0x84465898,     0x48106028);
+	writel(0x3F000028,     0x4810602C);
+	writel(0x587800BF,     0x48106030);
+	writel(0x00000460,     0x48106034);
+	writel(0x000C39E7,     0x48106038);
+	writel(0x58780118,     0x4810603C);
+	writel(0x0002A86D,     0x48106040);
+	writel(0x00438000,     0x48106044);
+	writel(0x05000000,     0x48106048);
+	writel(0x00003000,     0x4810604C);
+	writel(0x00000000,     0x48106050);
+	writel(0x58780110,     0x48106054);
+	writel(0x0002A86D,     0x48106058);
+	writel(0x00438000,     0x4810605c);
+	writel(0x05000000,     0x48106060);
+	writel(0x00003000,     0x48106064);
+	writel(0x00000000,     0x48106068);
 	writel(0x00000000,     0x4810606c);
 }
 
@@ -446,7 +446,7 @@ Bool DDR_RangeVerify(int* pStart, int nBytes)
 	for(cnt=0;cnt<maxCount;cnt++){
 		if(ddrSr > (volatile int *)MAX_PHY_ADDR)
 			return FALSE;
-			
+
 		if((cnt%0x10000)==0) {
 			printf("\rWrite data to DDR free area - 0x%08X         ", (unsigned int)ddrSr);
 		//	i++;
@@ -454,10 +454,10 @@ Bool DDR_RangeVerify(int* pStart, int nBytes)
 		//		i = 0;
 		//		printf("\r\n");
 		//	}
-		}		
-		*ddrSr = cnt;		
+		}
+		*ddrSr = cnt;
            	ddrSr++;
-		
+
 	}
 	//verify DDR free area
 	printf("\r\n");
@@ -473,7 +473,7 @@ Bool DDR_RangeVerify(int* pStart, int nBytes)
 		//	}
 		}
 		temp = *ddrSr;
-		ddrSr++;		
+		ddrSr++;
 		if(temp != cnt)
 			return E_FAIL;
 	}
@@ -714,7 +714,7 @@ Bool Aic26_test(void)
 	retVal = spi_claim_bus(slave);
 	if(retVal != E_PASS)
 		return retVal;
-	retVal = Audio_HW_Reset();
+	retVal = Audio_HW_Reset((GPIO_AIC_RSTn / 32), (GPIO_AIC_RSTn % 32));
 	if(retVal != E_PASS){
 		printf("Hardware reset fail\n");
 		return retVal;
@@ -908,7 +908,7 @@ Bool Aic3104_test(void)
 {
 	Bool retVal = E_FAIL;
 	//printf("%s\n", __func__);
-	retVal = Audio_HW_Reset();
+	retVal = Audio_HW_Reset((GPIO_AIC_RSTn / 32), (GPIO_AIC_RSTn % 32));
 	if(retVal == E_PASS) {
 		retVal = Aic3104_Init();
 	}
@@ -984,7 +984,7 @@ Bool eth_test(void)
 	start=0;
 	end=31;
 	for (j = start; j <= end; j++) {
-		if (miiphy_info (devname, j, &oui, &model, &rev) == 0) {			
+		if (miiphy_info (devname, j, &oui, &model, &rev) == 0) {
 			printf("PHY 0x%02X: "
 				"OUI = 0x%04X, "
 				"Model = 0x%02X, "
@@ -1013,11 +1013,11 @@ Bool RTC_Verify(void)
 			return E_FAIL;
 		}
 		printf ("Date: %4d-%02d-%02d    Time: %2d:%02d:%02d\n",
-			tm.tm_year, tm.tm_mon, tm.tm_mday,			
+			tm.tm_year, tm.tm_mon, tm.tm_mday,
 			tm.tm_hour, tm.tm_min, tm.tm_sec);
 
 	return E_PASS;
-}	
+}
 Bool RTC_test(void)
 {
 	Bool ret = E_PASS;
@@ -1079,7 +1079,7 @@ void memory_test(void)
 	char cmd = 57;
 
 	while( cmd != 48) {
-		ShowMemoryMenu();		
+		ShowMemoryMenu();
 		cmd =getc();
 		printf("\ninput = %c\n",cmd);
 		switch(cmd) {
@@ -1100,7 +1100,7 @@ void GIO_test(void)
 	u32  add, val;
 	int checkdata, i;
 	while( cmd != 48) {
-		ShowGIOMenu();		
+		ShowGIOMenu();
 		cmd =getc();
 		printf("\ninput = %c\n",cmd);
 		switch(cmd) {
@@ -1110,13 +1110,13 @@ void GIO_test(void)
 				val &= (1<<10);    				//GP3_10-MODE0
 				if(val)
 					printf("\r\n  DIPSW1-2 : 2 - DC IRIS ");
-				else 
+				else
 					printf("\r\n  DIPSW1-2 : 1 - AES ");
 				val =  __raw_readl(add);
 				val &= (1<<11);    				//GP3_11-MODE1
 				if(val)
 					printf("\r\n  DIPSW1-2 : 4 - STATIC IP ");
-				else 
+				else
 					printf("\r\n  DIPSW3-4 : 3 - DHCP ");
 				break;
 			case '2':
@@ -1481,7 +1481,7 @@ script_type script_list[] = {
 #if 0
 	//[Parallel Linear 1080p30]
 	{DELAY,200000},
-	{WRITE, 0x301A, 0x0001}, 	// RESET_REGISTER 
+	{WRITE, 0x301A, 0x0001}, 	// RESET_REGISTER
 	{WRITE, 0x301A, 0x10D8}, 	// RESET_REGISTER
 	{DELAY,200000},
 	// [AR0331 Linear sequencer load - 1.0]
@@ -1642,60 +1642,60 @@ script_type script_list[] = {
 	{WRITE, 0x3086, 0x2C2C}, 	// SEQ_DATA_PORT
 	{WRITE, 0x3086, 0x2C2C}, 	// SEQ_DATA_PORT
 	{DELAY,200000},
-	{WRITE, 0x301A, 0x0058}, 	// RESET_REGISTER 			
-	{WRITE, 0x30B0, 0x0000}, 	// DIGITAL_TEST 			
-	{WRITE, 0x30BA, 0x06EC}, 	// DIGITAL_CTRL		
+	{WRITE, 0x301A, 0x0058}, 	// RESET_REGISTER
+	{WRITE, 0x30B0, 0x0000}, 	// DIGITAL_TEST
+	{WRITE, 0x30BA, 0x06EC}, 	// DIGITAL_CTRL
 	{WRITE, 0x31AC, 0x0C0C}, 	// DATA_FORMAT_BITS
 	{DELAY,200000},
-	// [PLL_settings - Parallel]	
-	{WRITE, 0x302A, 0x0006}, 	// VT_PIX_CLK_DIV 		
-	{WRITE, 0x302C, 0x0001}, 	// VT_SYS_CLK_DIV 		
-	{WRITE, 0x302E, 0x0004}, 	// PRE_PLL_CLK_DIV 		
-	{WRITE, 0x3030, 0x004A}, 	// PLL_MULTIPLIER 		
-	{WRITE, 0x3036, 0x000C}, 	// OP_PIX_CLK_DIV 		
+	// [PLL_settings - Parallel]
+	{WRITE, 0x302A, 0x0006}, 	// VT_PIX_CLK_DIV
+	{WRITE, 0x302C, 0x0001}, 	// VT_SYS_CLK_DIV
+	{WRITE, 0x302E, 0x0004}, 	// PRE_PLL_CLK_DIV
+	{WRITE, 0x3030, 0x004A}, 	// PLL_MULTIPLIER
+	{WRITE, 0x3036, 0x000C}, 	// OP_PIX_CLK_DIV
 	{WRITE, 0x3038, 0x0001}, 	// OP_SYS_CLK_DIV
 	{DELAY,200000},
-	// [Hispi Linear 1080p60]			
-	{WRITE, 0x3002, 0x00E6}, 	// Y_ADDR_START 			
-	{WRITE, 0x3004, 0x0042}, 	// X_ADDR_START 			
-	{WRITE, 0x3006, 0x0521}, 	// Y_ADDR_END 			
-	{WRITE, 0x3008, 0x07C9}, 	// X_ADDR_END 		
-	{WRITE, 0x300A, 0x0461}, 	// FRAME_LENGTH_LINES 		
-	{WRITE, 0x300C, 0x044C}, 	// LINE_LENGTH_PCK 	
-	{WRITE, 0x3012, 0x045C}, 	// COARSE_INTEGRATION_TIME 			
-	{WRITE, 0x30A2, 0x0001}, 	// X_ODD_INC 			
-	{WRITE, 0x30A6, 0x0001}, 	// Y_ODD_INC 			
-	{WRITE, 0x3040, 0x0000}, 	// READ_MODE 		
+	// [Hispi Linear 1080p60]
+	{WRITE, 0x3002, 0x00E6}, 	// Y_ADDR_START
+	{WRITE, 0x3004, 0x0042}, 	// X_ADDR_START
+	{WRITE, 0x3006, 0x0521}, 	// Y_ADDR_END
+	{WRITE, 0x3008, 0x07C9}, 	// X_ADDR_END
+	{WRITE, 0x300A, 0x0461}, 	// FRAME_LENGTH_LINES
+	{WRITE, 0x300C, 0x044C}, 	// LINE_LENGTH_PCK
+	{WRITE, 0x3012, 0x045C}, 	// COARSE_INTEGRATION_TIME
+	{WRITE, 0x30A2, 0x0001}, 	// X_ODD_INC
+	{WRITE, 0x30A6, 0x0001}, 	// Y_ODD_INC
+	{WRITE, 0x3040, 0x0000}, 	// READ_MODE
 	{DELAY,200000},
 	// [Linear Mode]
 	{WRITE, 0x3082, 0x000D}, 	// OPERATION_MODE_CTRL
 	{DELAY,200000},
-	// [2D motion compensation OFF]			
-	{WRITE, 0x318C, 0x0000}, 	// HDR_MC_CTRL2			
-	{WRITE, 0x3190, 0x0000}, 	// HDR_MC_CTRL4			
-	{WRITE, 0x301E, 0x00A8}, 	// DATA_PEDESTAL                             
-	{WRITE, 0x30FE, 0x0080}, 	// RESERVED_MFR_30FE		
+	// [2D motion compensation OFF]
+	{WRITE, 0x318C, 0x0000}, 	// HDR_MC_CTRL2
+	{WRITE, 0x3190, 0x0000}, 	// HDR_MC_CTRL4
+	{WRITE, 0x301E, 0x00A8}, 	// DATA_PEDESTAL
+	{WRITE, 0x30FE, 0x0080}, 	// RESERVED_MFR_30FE
 	{WRITE, 0x320A, 0x0080}, 	// ADACD_PEDESTAL
 	{DELAY,200000},
-	// [ALTM Bypassed]		
-	{WRITE, 0x301A, 0x0058}, 	// RESET_REGISTER 			
-	{WRITE, 0x2400, 0x0003}, 	// ALTM_CONTROL		
-	{WRITE, 0x2450, 0x0000}, 	// ALTM_OUT_PEDESTAL			
+	// [ALTM Bypassed]
+	{WRITE, 0x301A, 0x0058}, 	// RESET_REGISTER
+	{WRITE, 0x2400, 0x0003}, 	// ALTM_CONTROL
+	{WRITE, 0x2450, 0x0000}, 	// ALTM_OUT_PEDESTAL
 	{WRITE, 0x301E, 0x00A8}, 	// DATA_PEDESTAL
 	{DELAY,200000},
 	{WRITE, 0x301A, 0x005C}, 	// RESET_REGISTER
 	{DELAY,200000},
-	// [ADACD Disabled]	
+	// [ADACD Disabled]
 	{WRITE, 0x3200, 0x0000}, 	// ADACD_CONTROL
 	{DELAY,200000},
-	// [Companding Disabled]		
+	// [Companding Disabled]
 	{WRITE, 0x31D0, 0x0000}, 	// COMPANDING
 	{DELAY,200000},
-	{WRITE, 0x31E0, 0x0200}, 	// RESERVED_MFR_31E0			
+	{WRITE, 0x31E0, 0x0200}, 	// RESERVED_MFR_31E0
 	{WRITE, 0x3060, 0x0006}, 	// ANALOG_GAIN
 	{DELAY,200000},
 	// [Disable Embedded Data and Stats]
-	{WRITE, 0x3064, 0x1802}, 	// SMIA_TEST	
+	{WRITE, 0x3064, 0x1802}, 	// SMIA_TEST
 	{WRITE, 0x3064, 0x1802}, 	// SMIA_TEST
 	{DELAY,200000},
 	{WRITE, 0x31AE, 0x0304}, 	// SERIAL_FORMAT
@@ -1709,7 +1709,7 @@ script_type script_list[] = {
 	{WRITE, 0x3EDA, 0x8899}, 	// RESERVED_MFR_3EDA
 	{WRITE, 0x3EE6, 0x00F0}, 	// RESERVED_MFR_3EE6
 	{DELAY,200000},
-	{WRITE, 0x3ED2, 0x9F46}, 	// DAC_LD_6_7 		
+	{WRITE, 0x3ED2, 0x9F46}, 	// DAC_LD_6_7
 	{WRITE, 0x301A, 0x005C}, 	// RESET_REGISTER
 #else
 //
@@ -1882,7 +1882,7 @@ script_type script_list[] = {
 
 	{WRITE, 0x301A, 0x0058}, 	// RESET_REGISTER
 	{WRITE, 0x30B0, 0x0000}, 	// DIGITAL_TEST
-	{WRITE, 0x30BA, 0x06EC}, 	// DIGITAL_CTRL		
+	{WRITE, 0x30BA, 0x06EC}, 	// DIGITAL_CTRL
 	{WRITE, 0x31AC, 0x0C0C},		//DATA_FORMAT_BITS = 3084
 
 	{WRITE, 0x302A, 0x0006},		//VT_PIX_CLK_DIV = 6
@@ -1911,32 +1911,32 @@ script_type script_list[] = {
 	{WRITE, 0x3012, 0x045A},	//COARSE_INTEGRATION_TIME = 1114
 	{WRITE, 0x305E, 0x0080}, 	// GLOBAL_GAIN
 	{DELAY,60000},
-//	[2D motion compensation OFF]			
-	{WRITE, 0x318C, 0x0000}, 	// HDR_MC_CTRL2			
-	{WRITE, 0x3190, 0x0000}, 	// HDR_MC_CTRL4			
-	{WRITE, 0x301E, 0x00A8}, 	// DATA_PEDESTAL                             
-	{WRITE, 0x30FE, 0x0080}, 	// RESERVED_MFR_30FE		
+//	[2D motion compensation OFF]
+	{WRITE, 0x318C, 0x0000}, 	// HDR_MC_CTRL2
+	{WRITE, 0x3190, 0x0000}, 	// HDR_MC_CTRL4
+	{WRITE, 0x301E, 0x00A8}, 	// DATA_PEDESTAL
+	{WRITE, 0x30FE, 0x0080}, 	// RESERVED_MFR_30FE
 	{WRITE, 0x320A, 0x0080}, 	// ADACD_PEDESTAL
 
-//	[ALTM Bypassed]		
-	{WRITE, 0x301A, 0x0058}, 	// RESET_REGISTER 			
-	{WRITE, 0x2400, 0x0003}, 	// ALTM_CONTROL		
-	{WRITE, 0x2450, 0x0000}, 	// ALTM_OUT_PEDESTAL			
+//	[ALTM Bypassed]
+	{WRITE, 0x301A, 0x0058}, 	// RESET_REGISTER
+	{WRITE, 0x2400, 0x0003}, 	// ALTM_CONTROL
+	{WRITE, 0x2450, 0x0000}, 	// ALTM_OUT_PEDESTAL
 	{WRITE, 0x301E, 0x00A8}, 	// DATA_PEDESTAL
 
 	{WRITE, 0x301A, 0x005C}, 	// RESET_REGISTER
 
-//	[ADACD Disabled]	
+//	[ADACD Disabled]
 	{WRITE, 0x3200, 0x0000},		// ADACD_CONTROL
 
-//	[Companding Disabled]		
+//	[Companding Disabled]
 	{WRITE, 0x31D0, 0x0000}, 	// COMPANDING
 
-	{WRITE, 0x31E0, 0x0200}, 	// RESERVED_MFR_31E0			
+	{WRITE, 0x31E0, 0x0200}, 	// RESERVED_MFR_31E0
 	{WRITE, 0x3060, 0x0006}, 	// ANALOG_GAIN
 
 //	[Enable Embedded Data and Stats]
-	{WRITE, 0x3064, 0x1982}, 	// SMIA_TEST	
+	{WRITE, 0x3064, 0x1982}, 	// SMIA_TEST
 	{WRITE, 0x3064, 0x1982}, 	// SMIA_TEST
 	{WRITE, 0x301A, 0x005E}, 	// RESET_REGISTER
 
@@ -2099,7 +2099,7 @@ Bool SD_test(int dev_num)
 	mmc = find_mmc_device(dev_num);
 	if (mmc) {
 		if (mmc_init(mmc) == 0){
-			printf("Device: %s\n", mmc->name);	
+			printf("Device: %s\n", mmc->name);
 			printf("Tran Speed: %d\n", mmc->tran_speed);
 			printf("Rd Block Len: %d\n", mmc->read_bl_len);
 			printf("%s version %d.%d\n", IS_SD(mmc) ? "SD" : "MMC",
@@ -2114,7 +2114,7 @@ Bool SD_test(int dev_num)
 	}
 	else
 		puts("MMC Device not found\n");
-	
+
 	return 1;
 }
 void Output_test(void)
@@ -2134,7 +2134,7 @@ void Output_test(void)
 		gbDSSInitialized = 1;
 	}
 	while( cmd != 48 ) {
-		ShowOutputMenu();		
+		ShowOutputMenu();
 		cmd =getc();
 		printf("\ninput = %c\n",cmd);
 		switch(cmd) {
@@ -2170,13 +2170,13 @@ void LED_test(void)
 			case '1':
 				add=0x481ae13c;  		 	//GPIO_DATAOUT Data Output Register
 				val = __raw_readl(add);
-				val |= (1<<12);    				//GP3_12-LED1_ON 
+				val |= (1<<12);    				//GP3_12-LED1_ON
 				__raw_writel(val, add);
 				break;
 			case '2':
 				add=0x481ae190;  		 	//GPIO_CLEARDATAOUT Clear Data Output Register
 				val = __raw_readl(add);
-				val |= (1<<12);    				//GP3_12-LED1_ON 
+				val |= (1<<12);    				//GP3_12-LED1_ON
 				__raw_writel(val, add);
 				break;
 			default:

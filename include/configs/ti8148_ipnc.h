@@ -21,8 +21,8 @@
 #include "EnvAPI/sizes.h"
 #else
 #include <asm/sizes.h>
-#endif
 #include <model.h>
+#endif
 
 /*
  *#define CONFIG_TI814X_NO_RUNTIME_PG_DETECT
@@ -508,12 +508,11 @@
 #define FLASH_TEST_SIZE 				SZ_128K
 
 #if defined(VPORT56_HIPOWER)
-
 // locations in NAND flash
 #define UBL_FLASH						0x00000000
 #define UBOOT_FLASH						0x00020000
 #define ENV2_FLASH						0x00240000
-#define ENV_FLASH						0x00260000
+#define ENV1_FLASH						0x00260000
 #define KERNEL_FLASH					0x00280000
 #define ROOTFS_FLASH					0x006C0000
 #define KERNEL2_FLASH					0x029C0000
@@ -530,7 +529,7 @@
 #define UBL_SIZE						(1 * SZ_128K)
 #define UBOOT_SIZE						(17 * SZ_128K)
 #define ENV2_SIZE						(1 * SZ_128K)
-#define ENV_SIZE						(1 * SZ_128K)
+#define ENV1_SIZE						(1 * SZ_128K)
 #define KERNEL_SIZE						(34 * SZ_128K)
 #define ROOTFS_SIZE						(280 * SZ_128K)
 #define KERNEL2_SIZE					(34 * SZ_128K)
@@ -545,14 +544,11 @@
 
 #define TEST_FLASH						DSP2_FLASH
 #define TEST_FLASH_SIZE					DSP2_SIZE
-
 #else
-
 // locations in NAND flash
 #define UBL_FLASH						0x00000000
 #define UBOOT_FLASH						0x00020000
-#define ENV2_FLASH						0x00240000
-#define ENV_FLASH						0x00260000
+#define ENV1_FLASH						0x00260000
 #define KERNEL_FLASH					0x00280000
 #define ROOTFS_FLASH					0x006C0000
 #define KERNEL2_FLASH					0x03B40000
@@ -561,13 +557,15 @@
 #define MPKERNEL_FLASH					0x07BC0000
 #define MPROOTFS_FLASH					0x08000000
 #define MPDATA_FLASH					0x0B480000
-#define RESERVE_FLASH					0x0C080000
+#define CONFIG_FLASH					0x0C080000
+#define ENV2_FLASH						0x0C380000
+#define BACKUP_FLASH					0x0C3A0000
+#define RESERVE_FLASH					0x0C9A0000
 
 // max. sizes
 #define UBL_SIZE						(1 * SZ_128K)
 #define UBOOT_SIZE						(17 * SZ_128K)
-#define ENV2_SIZE						(1 * SZ_128K)
-#define ENV_SIZE						(1 * SZ_128K)
+#define ENV1_SIZE						(1 * SZ_128K)
 #define KERNEL_SIZE						(34 * SZ_128K)
 #define ROOTFS_SIZE						(420 * SZ_128K)
 #define KERNEL2_SIZE					(34 * SZ_128K)
@@ -576,130 +574,15 @@
 #define MPKERNEL_SIZE					(34 * SZ_128K)
 #define MPROOTFS_SIZE					(420 * SZ_128K)
 #define MPDATA_SIZE						(96 * SZ_128K)
+#define CONFIG_SIZE						(24 * SZ_128K)
+#define ENV2_SIZE						(1 * SZ_128K)
+#define BACKUP_SIZE						(48 * SZ_128K)
 #define RESERVE_SIZE					(508 * SZ_128K)
 
 #define TEST_FLASH						RESERVE_FLASH
 #define TEST_FLASH_SIZE					RESERVE_SIZE
-
 #endif
 
-/* Kernel setting ************************************************
-#ifdef UBL_FLASH
-	{
-		.name		= "U-Boot-min",
-		.offset 	= UBL_FLASH,
-		.size		= UBL_SIZE,
-		.mask_flags	= MTD_WRITEABLE,	// force read-only
-	},
-#endif
-#ifdef UBOOT_FLASH
-	{
-		.name		= "U-Boot",
-		.offset 	= UBOOT_FLASH,
-		.size		= UBOOT_SIZE,
-		.mask_flags	= MTD_WRITEABLE,	// force read-only
-	},
-#endif
-#ifdef ENV_FLASH
-	{
-		.name		= "U-Boot Env",
-		.offset 	= ENV_FLASH,
-		.size		= ENV_SIZE,
-	},
-#endif
-#ifdef KERNEL_FLASH
-	{
-		.name		= "Kernel",
-		.offset 	= KERNEL_FLASH,
-		.size		= KERNEL_SIZE,
-	},
-#endif
-#ifdef ROOTFS_FLASH
-	{
-		.name		= "File System",
-		.offset 	= ROOTFS_FLASH,
-		.size		= ROOTFS_SIZE,
-	},
-#endif
-#ifdef KERNEL2_FLASH
-	{
-		.name		= "Kernel 2",
-		.offset 	= KERNEL2_FLASH,
-		.size		= KERNEL2_SIZE,
-	},
-#endif
-#ifdef ROOTFS2_FLASH
-	{
-		.name		= "File System 2",
-		.offset 	= ROOTFS2_FLASH,
-		.size		= ROOTFS2_SIZE,
-	},
-#endif
-#ifdef DATA1_FLASH
-	{
-		.name		= "Data",
-		.offset 	= DATA1_FLASH,
-		.size		= DATA1_SIZE,
-	},
-#endif
-#ifdef DATA2_FLASH
-	{
-		.name		= "Data 2",
-		.offset 	= DATA2_FLASH,
-		.size		= DATA2_SIZE,
-	},
-#endif
-#ifdef MPKERNEL_FLASH
-	{
-		.name		= "MP Kernel",
-		.offset 	= MPKERNEL_FLASH,
-		.size		= MPKERNEL_SIZE,
-	},
-#endif
-#ifdef MPROOTFS_FLASH
-	{
-		.name		= "MP File System",
-		.offset 	= MPROOTFS_FLASH,
-		.size		= MPROOTFS_SIZE,
-	},
-#endif
-#ifdef MPDATA_FLASH
-	{
-		.name		= "MP Data",
-		.offset 	= MPDATA_FLASH,
-		.size		= MPDATA_SIZE,
-	},
-#endif
-#ifdef ENV2_FLASH
-	{
-		.name		= "U-Boot Env 2",
-		.offset 	= ENV2_FLASH,
-		.size		= ENV2_SIZE,
-	},
-#endif
-#ifdef DSP1_FLASH
-	{
-		.name		= "Dsp",
-		.offset 	= DSP1_FLASH,
-		.size		= DSP1_SIZE,
-	},
-#endif
-#ifdef DSP2_FLASH
-	{
-		.name		= "Dsp 2",
-		.offset 	= DSP2_FLASH,
-		.size		= DSP2_SIZE,
-	},
-#endif
-#ifdef RESERVE_FLASH
-	{
-		.name		= "Reserved",
-		.offset 	= RESERVE_FLASH,
-		.size		= MTDPART_SIZ_FULL,
-	},
-#endif
-
-*************************************************/
 #endif							/* devices */
 
 /* ENV in NAND */
@@ -712,7 +595,7 @@
 #define CONFIG_SYS_MONITOR_LEN			(256 << 10)	/* Reserve 2 sectors */
 #define CONFIG_SYS_FLASH_BASE			boot_flash_base
 #define CONFIG_SYS_MONITOR_BASE			CONFIG_SYS_FLASH_BASE
-#define MNAND_ENV_OFFSET				ENV_FLASH	/* environment starts here */
+#define MNAND_ENV_OFFSET				ENV1_FLASH	/* environment starts here */
 #define CONFIG_SYS_ENV_SECT_SIZE		boot_flash_sec
 #define CONFIG_ENV_OFFSET				boot_flash_off
 #define CONFIG_ENV_ADDR					MNAND_ENV_OFFSET
