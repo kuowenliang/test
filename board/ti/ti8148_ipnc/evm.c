@@ -476,11 +476,15 @@ u32 get_board_rev(void)
 int misc_init_r (void)
 {
 
-	#ifdef CONFIG_TI814X_MIN_CONFIG
+#ifdef CONFIG_TI814X_MIN_CONFIG
 	printf("The 2nd stage U-Boot will now be auto-loaded\n");
 	printf("Please do not interrupt the countdown till "
 		"TI8148_EVM prompt if 2nd stage is already flashed\n");
-	#endif
+	printf("\nEnable HW Watchdog.\n");
+	hw_watchdog_op(HWWD_INIT);
+	hw_watchdog_op(HWWD_ON);
+	hw_watchdog_op(HWWD_TRIGGER_SKIP);
+#endif
 
 #ifndef CONFIG_TI814X_OPTI_CONFIG
 	#ifdef CONFIG_TI814X_ASCIIART

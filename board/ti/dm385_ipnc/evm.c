@@ -426,6 +426,10 @@ int misc_init_r(void)
 	printf("The 2nd stage U-Boot will now be auto-loaded\n");
 	printf("Please do not interrupt the countdown till "
 		"DM385_IPNC prompt if 2nd stage is already flashed\n");
+	printf("\nEnable HW Watchdog.\n");
+	hw_watchdog_op(HWWD_INIT);
+	hw_watchdog_op(HWWD_ON);
+	hw_watchdog_op(HWWD_TRIGGER_SKIP);
 #endif
 
 #ifndef CONFIG_TI814X_OPTI_CONFIG
@@ -1765,7 +1769,6 @@ U_BOOT_CMD(
 #ifdef CONFIG_GENERIC_MMC
 int board_mmc_init(bd_t *bis)
 {
-	sdcard_enable();
 	omap_mmc_init(0);
 	//omap_mmc_init(1);
 	return 0;

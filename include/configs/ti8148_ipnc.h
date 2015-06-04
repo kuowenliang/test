@@ -577,7 +577,7 @@
 #define CONFIG_SIZE						(24 * SZ_128K)
 #define ENV2_SIZE						(1 * SZ_128K)
 #define BACKUP_SIZE						(48 * SZ_128K)
-#define RESERVE_SIZE					(508 * SZ_128K)
+#define RESERVE_SIZE					(436 * SZ_128K)
 
 #define TEST_FLASH						RESERVE_FLASH
 #define TEST_FLASH_SIZE					RESERVE_SIZE
@@ -615,7 +615,6 @@
 #define MTDPARTS_DEFAULT "mtdparts=nand0:"\
 	"0x00020000@0x00000000(ubl),"\
 	"0x00220000@0x00020000(u-boot),"\
-	"0x00020000@0x00240000(env2),"\
 	"0x00020000@0x00260000(env),"\
 	"0x00440000@0x00280000(kernel),"\
 	"0x03480000@0x006C0000(rootfs),"\
@@ -625,6 +624,7 @@
 	"0x00440000@0x07BC0000(mpkernel),"\
 	"0x03480000@0x08000000(mprootfs),"\
 	"0x00C00000@0x0B480000(mpdata),"\
+	"0x00020000@0x0C380000(env2),"\
 	"-(reserved)"
 
 #ifndef __ASSEMBLY__

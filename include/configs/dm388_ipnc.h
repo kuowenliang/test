@@ -479,7 +479,7 @@
 #define CONFIG_SIZE						(24 * SZ_128K)
 #define ENV2_SIZE						(1 * SZ_128K)
 #define BACKUP_SIZE						(48 * SZ_128K)
-#define RESERVE_SIZE					(508 * SZ_128K)
+#define RESERVE_SIZE					(436 * SZ_128K)
 
 #define TEST_FLASH						RESERVE_FLASH
 #define TEST_FLASH_SIZE					RESERVE_SIZE

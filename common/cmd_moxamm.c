@@ -7113,10 +7113,12 @@ static int BootPreProcessor(int parameter)
 	s = getenv("bootwdon");
 	if(s && (*s == '0')){
 		printf("\nDisable HW Watchdog.\n");
+		hw_watchdog_op(HWWD_OFF);
 	}else{
-		printf("\nEnable HW Watchdog.\n");
-		hw_watchdog_op(HWWD_ON);
-		hw_watchdog_op(HWWD_TRIGGER_SKIP);
+		/* Bobby-20150604 : move to evm.c */
+		//printf("\nEnable HW Watchdog.\n");
+		//hw_watchdog_op(HWWD_ON);
+		//hw_watchdog_op(HWWD_TRIGGER_SKIP);
 	}
 #endif
 #ifdef TEST_SWITCH_MPFLAG
@@ -7848,7 +7850,8 @@ int do_moxamm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 	int boot_mode = BACKDOOR_NONE;
 
-	hw_watchdog_op(HWWD_INIT);
+	/* Bobby-20150604 : move to evm.c */
+	//hw_watchdog_op(HWWD_INIT);
 
 	//wensen : let sys led to be red, because sys led is red in the init state.
 	//sys_led_RG_OFF();
