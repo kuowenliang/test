@@ -426,10 +426,15 @@ int misc_init_r(void)
 	printf("The 2nd stage U-Boot will now be auto-loaded\n");
 	printf("Please do not interrupt the countdown till "
 		"DM385_IPNC prompt if 2nd stage is already flashed\n");
-	printf("\nEnable HW Watchdog.\n");
+	printf("\nEnable HW Watchdog.(%d)\n", UBL_WDT_TIMEOUT_SEC);
 	hw_watchdog_op(HWWD_INIT);
+	(*(volatile unsigned int *)(WDT_WLDR)) = (0xFFFFFFFF - (WDT_TIMEOUT_BASE * UBL_WDT_TIMEOUT_SEC));
 	hw_watchdog_op(HWWD_ON);
-	hw_watchdog_op(HWWD_TRIGGER_SKIP);
+#else
+	printf("\nEnable HW Watchdog.(%d)\n", WDT_TIMEOUT_SEC);
+	hw_watchdog_op(HWWD_INIT);
+	hw_watchdog_op(HWWD_RST);
+	hw_watchdog_op(HWWD_ON);
 #endif
 
 #ifndef CONFIG_TI814X_OPTI_CONFIG

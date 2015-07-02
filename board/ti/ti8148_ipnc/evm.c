@@ -39,13 +39,6 @@
 #include <watchdog.h>
 #endif
 
-#if 0
-#define __raw_readl(a)		(*(volatile unsigned int *)(a))
-#define __raw_writel(v, a)	(*(volatile unsigned int *)(a) = (v))
-#define __raw_readw(a)		(*(volatile unsigned short *)(a))
-#define __raw_writew(v, a)	(*(volatile unsigned short *)(a) = (v))
-#endif
-
 typedef enum{
 	RS485_IN_DIR,
 	RS485_OUT_DIR
@@ -475,15 +468,19 @@ u32 get_board_rev(void)
 
 int misc_init_r (void)
 {
-
 #ifdef CONFIG_TI814X_MIN_CONFIG
 	printf("The 2nd stage U-Boot will now be auto-loaded\n");
 	printf("Please do not interrupt the countdown till "
 		"TI8148_EVM prompt if 2nd stage is already flashed\n");
-	printf("\nEnable HW Watchdog.\n");
+	printf("\nEnable HW Watchdog.(%d)\n", UBL_WDT_TIMEOUT_SEC);
 	hw_watchdog_op(HWWD_INIT);
+	(*(volatile unsigned int *)(WDT_WLDR)) = (0xFFFFFFFF - (WDT_TIMEOUT_BASE * UBL_WDT_TIMEOUT_SEC));
 	hw_watchdog_op(HWWD_ON);
-	hw_watchdog_op(HWWD_TRIGGER_SKIP);
+#else
+	printf("\nEnable HW Watchdog.(%d)\n", WDT_TIMEOUT_SEC);
+	hw_watchdog_op(HWWD_INIT);
+	hw_watchdog_op(HWWD_RST);
+	hw_watchdog_op(HWWD_ON);
 #endif
 
 #ifndef CONFIG_TI814X_OPTI_CONFIG
@@ -2078,7 +2075,7 @@ static struct cpsw_slave_data cpsw_slaves[] = {
 		.phy_id         = 0x10,
 	},
 	{
-		.slave_reg_ofs  = 0x50,
+		.slave_reg_ofs	= 0x50,
 		.sliver_reg_ofs = 0x700,
 		.phy_id         = 0x11,
 	},

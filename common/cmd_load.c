@@ -30,6 +30,7 @@
 #include <net.h>
 #include <exports.h>
 #include <xyzModem.h>
+#include <watchdog.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -1024,6 +1025,7 @@ static ulong load_serial_ymodem (ulong offset, int* img_size)
 
 		while ((res =
 			xyzModem_stream_read (ymodemBuf, 1024, &err)) > 0) {
+			WATCHDOG_RESET();
 			store_addr = addr + offset;
 			size += res;
 			addr += res;

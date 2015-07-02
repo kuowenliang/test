@@ -130,7 +130,7 @@
 #define CONFIG_CMDLINE_TAG        	1	/* enable passing of ATAGs  */
 #define CONFIG_SETUP_MEMORY_TAGS  	1
 #define CONFIG_INITRD_TAG	  		1	/* Required for ramdisk support */
-#define CONFIG_BOOTDELAY			3	/* set to negative value for no autoboot */
+#define CONFIG_BOOTDELAY			1	/* set to negative value for no autoboot */
 #define CONFIG_NAND					1
 #define CONFIG_SETUP_PLL
 #define CONFIG_TI814X_CONFIG_DDR
@@ -256,6 +256,7 @@
 #ifndef CONFIG_TI814X_OPTI_CONFIG
 #define CONFIG_CMD_CACHE
 #define CONFIG_CMD_ECHO
+#define CONFIG_CMD_MISC
 #endif
 
 /*
@@ -348,6 +349,7 @@
 
 /* Hardware related */
 #define CONFIG_HW_WATCHDOG
+#define UBL_WDT_TIMEOUT_SEC			6			/* Watchdog time out (sec.) (in UBL) */
 #define WDT_TIMEOUT_SEC				60			/* Watchdog time out (sec.)*/
 #define WDT_TIMEOUT_BASE			0x00008000	/* ~1 sec. */
 
@@ -446,6 +448,7 @@
 #define CAMERA_NAME					"eserial2"
 #define CAMERA_BAUDRATE_ITEM		CONFIG_BAUDRATE_2_ITEM
 #define CAMERA_BAUDRATE				38400	// for Zoom camera module (MH310/MH322/MH326/MN330)
+#define RS485_2WIRE					/* 2-wire RS-485 */
 #endif
 
 #define CONFIG_CMD_TERMINAL	/* built-in Serial Terminal */
@@ -461,7 +464,6 @@
 #endif
 
 #if defined(CONFIG_CMD_NET)
-//#define CONFIG_NETCONSOLE	/* include NetConsole support (note: caused ping function failed - bobby) */
 #define CONFIG_DRIVER_TI_CPSW
 #define CONFIG_MII
 #define CONFIG_BOOTP_DEFAULT
@@ -599,6 +601,11 @@
 #define CONFIG_SYS_ENV_SECT_SIZE		boot_flash_sec
 #define CONFIG_ENV_OFFSET				boot_flash_off
 #define CONFIG_ENV_ADDR					MNAND_ENV_OFFSET
+
+//wensen
+//#define CONFIG_SYS_FUNCTION
+//#define CONFIG_SYS_FUNCTION_RED_ENV		0x01;
+
 //#define CONFIG_SYS_REDUNDAND_ENVIRONMENT
 //#define CONFIG_ENV_OFFSET_REDUND		ENV2_FLASH
 //#define CONFIG_ENV_SIZE_REDUND			(CONFIG_ENV_SIZE)
@@ -637,6 +644,18 @@ extern unsigned int boot_flash_type;
 #endif /* NAND support */
 
 /* GPIO setting */
+#define GPIO_LED_ON			0
+#define GPIO_LED_OFF		1
+
+#define GPIO_LOW			0
+#define GPIO_HIGH			1
+
+#define GPIO_INPUT			0
+#define GPIO_OUTPUT			1
+
+#define GPIO_SYSBUTTON_ON	1
+#define GPIO_SYSBUTTON_OFF	0
+
 #if defined(VPORT66)
 #define GPIO_AIC_RSTn		((0*32) + 8)	//GP0[8] (OUT) AIC_RSTn
 #define GPIO_FAN_CON		((0*32) + 14)	//GP0[14] (OUT) Fan_con
@@ -667,6 +686,10 @@ extern unsigned int boot_flash_type;
 #define GPIO_DO				GPIO_ARN_OUT
 #define GPIO_SYSLED_GREEN	GPIO_LED_STATE
 #define GPIO_SYSLED_RED		GPIO_LED_SYS
+#undef GPIO_SYSBUTTON_ON
+#undef GPIO_SYSBUTTON_OFF
+#define GPIO_SYSBUTTON_ON	0
+#define GPIO_SYSBUTTON_OFF	1
 #elif defined(VPORT56)
 #define GPIO_AIC_RSTn		((0*32) + 8)	//GP0[8] (OUT) AIC_RSTn
 #define GPIO_SD_WP			((0*32) + 29)	//GP0[29) (IN) SD1_WPn
@@ -743,15 +766,6 @@ extern unsigned int boot_flash_type;
 #define GPIO_SYSLED_GREEN	GPIO_LED_STAT_G
 #define GPIO_SYSLED_RED		GPIO_LED_STAT_R
 #endif
-
-#define GPIO_LED_ON			0
-#define GPIO_LED_OFF		1
-
-#define GPIO_LOW			0
-#define GPIO_HIGH			1
-
-#define GPIO_INPUT			0
-#define GPIO_OUTPUT			1
 
 #ifndef CONFIG_TI814X_OPTI_CONFIG
 /* SPI support */

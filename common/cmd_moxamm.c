@@ -501,6 +501,7 @@ int mem_test(size_t len, unsigned int pattern, unsigned int address, int verbose
 	}
 	int i;
 	for ( i = 0; i < len; i++)  {
+		WATCHDOG_RESET();
 
 		if(ctrlc ()){
 			printf("\nAbort!!\n");
@@ -1070,7 +1071,7 @@ int do_loadfw (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		if((cmd[0] != 'Y') && (cmd[0] != 'y')) return -1;
 	}
 #endif
-	printf("===============< Firmware Informaton >===============\r\n");
+	printf("===============< Firmware Information >===============\r\n");
 	printf("   MagicCode    : 0x%08lX\r\n", firmHead.magiccode);
 	printf("   Feature Flag : 0x%02X\r\n", firmHead.featureflag);
 	printf("   Total Files  : %u\r\n", firmHead.totalfileno);
@@ -3592,12 +3593,27 @@ static int diag_do_reset(int parameter)
 }
 
 //LED Test ---------------------------------------------------------------------------
-#define GPIO_LED_SYS_RED		0
-#define GPIO_LED_SYS_GREEN		1
+//#define GPIO_LED_SYS_RED		0
+//#define GPIO_LED_SYS_GREEN		1
 static int led_test(int parameter);
 static DiagMenuTableStruct LEDTestMenuTable[] = {
-	{ '0',	"STAT Red LED",					GPIO_LED_SYS_RED,	led_test,		NULL},
-	{ '1',	"STAT Green LED",				GPIO_LED_SYS_GREEN,	led_test,		NULL},
+	{ '0',	"STAT Red LED",			GPIO_SYSLED_RED,		led_test,		NULL},
+	{ '1',	"STAT Green LED",		GPIO_SYSLED_GREEN,		led_test,		NULL},
+#ifdef GPIO_LED_SD
+	{ '2',	"SD LED",				GPIO_LED_SD,			led_test,		NULL},
+#endif
+#ifdef GPIO_LED_PTZ
+	{ '3',	"PTZ LED",				GPIO_LED_PTZ,			led_test,		NULL},
+#endif
+#ifdef GPIO_LED_VIDEO
+	{ '4',	"VIDEO LED",			GPIO_LED_VIDEO,			led_test,		NULL},
+#endif
+#ifdef GPIO_LED_FAIL
+	{ '5',	"FAIL LED",				GPIO_LED_FAIL,			led_test,		NULL},
+#endif
+#ifdef GPIO_SYSLED_CONTROL
+	{ '6',	"CONTROL LED", 			GPIO_SYSLED_CONTROL,	led_test,		NULL},
+#endif
 };
 static DiagMenuStruct LedTestMenu = {
 	sizeof(LEDTestMenuTable)/sizeof(DiagMenuTableStruct),
@@ -3610,20 +3626,10 @@ static int led_test(int parameter)
 {
 	char cmd[3];
 	unsigned char value;
-	if(get_line("Set to On[1] / Off[0]:", cmd, sizeof(cmd), -1, "01", NULL, NULL) <= 0) return -1;
+	printf("Set to On[%d] / Off[%d]:", GPIO_LED_ON, GPIO_LED_OFF);
+	if(get_line(NULL, cmd, sizeof(cmd), -1, "01", NULL, NULL) <= 0) return -1;
 	value = (unsigned char)(simple_strtoul(cmd, NULL, 10) & 0x000000ff);
-	switch(parameter){
-		case GPIO_LED_SYS_RED:
-			if(value) sys_led_R_ON();
-			else sys_led_R_OFF();
-			break;
-		case GPIO_LED_SYS_GREEN:
-			if(value) sys_led_G_ON();
-			else sys_led_G_OFF();
-			break;
-		default:
-			break;
-	}
+	GPIO_Out(parameter, value);
 	return DIAG_OK;
 }
 
@@ -3793,7 +3799,9 @@ static int uart_test_485_tx(int parameter)
 
 static int uart_test_485_rx(int parameter)
 {
+#ifdef RS485_2WIRE
 	RS485_SetRx(); udelay(100000);
+#endif
 	return uart_rx_test(RS485_NAME);
 }
 
@@ -5782,8 +5790,18 @@ static int sdram_test_func(int parameter)
 	unsigned int startAddr = CFG_MEMTEST_START;
 	size_t len = (size_t)parameter;
 	int verbose = 0;
+	unsigned long Size = 0;
 
 	memset(tmp, 0, sizeof(tmp));
+
+#ifdef PHYS_DRAM_1
+	printf("DRAM Bank #1 Addr:0x%08X\n", PHYS_DRAM_1);
+	printf("DRAM Bank #1 Size:0x%08X\n", PHYS_DRAM_1_SIZE);
+#endif
+#ifdef PHYS_DRAM_2
+	printf("DRAM Bank #2 Addr:0x%08X\n", PHYS_DRAM_2);
+	printf("DRAM Bank #2 Size:0x%08X\n", PHYS_DRAM_2_SIZE);
+#endif
 
 	printf("Start address(0x%08X):0x", startAddr);
 	if(get_line(NULL, tmp, sizeof(tmp), -1, str_number_hex, NULL, NULL) > 0)

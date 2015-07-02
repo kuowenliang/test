@@ -29,6 +29,7 @@
  */
 
 /* select the DDR3 Freq and timing paramets */
+//#define LOW_POWER_OPP100_MODE	/* 20150626-bobby: for test */
 #ifdef LOW_POWER_OPP100_MODE
 #define CONFIG_DM385_DDR3_400 /* Values supported 400,533 */
 #else
@@ -237,6 +238,7 @@
 #endif
 #define CONFIG_CMD_CACHE
 #define CONFIG_CMD_ECHO
+#define CONFIG_CMD_MISC
 
 /*
  * Miscellaneous configurable options
@@ -323,6 +325,7 @@
 
 /* Hardware related */
 #define CONFIG_HW_WATCHDOG
+#define UBL_WDT_TIMEOUT_SEC			6			/* Watchdog time out (sec.) (in UBL) */
 #define WDT_TIMEOUT_SEC				60			/* Watchdog time out (sec.)*/
 #define WDT_TIMEOUT_BASE			0x00008000	/* ~1 sec. */
 
@@ -331,12 +334,14 @@
 
 /* Thermal Sensor Configuration */
 #define THERMAL_SENSOR_ADDR			0x48
+#if 0
 #define CONFIG_PI_ON_TEMP			0xe7	/* PI Heater ON temperature (-25C) */
 #define CONFIG_PI_OFF_TEMP			0x1e	/* PI Heater OFF temperature (30C) */
 #define CONFIG_SYS_ON_TEMP			0x0a	/* System ON temperature (10C) */
 #define CONFIG_PI_OFF_OFFS			7		/* PI Heater OFF temperature offset (+7C) */
 #define CONFIG_SYS_ON_OFFS			6		/* System ON temperature offset (+6C) */
 #define CONFIG_SYS_ON_TIMEOUT		300		/* System ON time out (300 sec) */
+#endif
 
 /**
  * Physical Memory Map
@@ -519,6 +524,18 @@ extern unsigned int boot_flash_type;
 #endif /* NAND support */
 
 /* GPIO setting */
+#define GPIO_LED_ON			0
+#define GPIO_LED_OFF		1
+
+#define GPIO_LOW			0
+#define GPIO_HIGH			1
+
+#define GPIO_INPUT			0
+#define GPIO_OUTPUT			1
+
+#define GPIO_SYSBUTTON_ON	0
+#define GPIO_SYSBUTTON_OFF	1
+
 #define GPIO_LED_STATE		((0*32) + 1)	//(GP0[1], O) (Green)
 #define GPIO_LED_SYS		((0*32) + 2)	//(GP0[2], O) (RED)
 #define GPIO_LED_CONTROL	((0*32) + 3)	//(GP0[3], O)
@@ -542,18 +559,6 @@ extern unsigned int boot_flash_type;
 #define GPIO_SYSLED_GREEN	GPIO_LED_STATE
 #define GPIO_SYSLED_RED		GPIO_LED_SYS
 #define GPIO_SYSLED_CONTROL	GPIO_LED_CONTROL
-
-#define GPIO_LED_ON			0
-#define GPIO_LED_OFF		1
-
-#define GPIO_LOW			0
-#define GPIO_HIGH			1
-
-#define GPIO_INPUT			0
-#define GPIO_OUTPUT			1
-
-#define GPIO_SYSBUTTON_ON	0
-#define GPIO_SYSBUTTON_OFF	1
 
 
 #ifndef CONFIG_TI814X_OPTI_CONFIG
