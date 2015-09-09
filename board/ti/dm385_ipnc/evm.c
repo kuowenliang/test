@@ -38,6 +38,9 @@
 #ifdef CONFIG_HW_WATCHDOG
 #include <watchdog.h>
 #endif
+//#ifdef CONFIG_I2C
+#include <asm/arch/i2c.h>
+//#endif
 
 typedef enum{
 	RS485_IN_DIR,
@@ -236,79 +239,7 @@ void GPIO_Dir(int gpio_num, int out) //GPIO direction
 	else val &=~(1<<pin);
 	__raw_writel(val, add);
 }
-#if 0
-void sys_led_R_ON(void)
-{
-	GPIO_Output(0, 2, 0); //GP0_2 output low
-}
 
-void sys_led_R_OFF(void)
-{
-	GPIO_Output(0, 2, 1); //GP0_2 output high
-}
-
-void sys_led_R_reverse(void)
-{
-	if(GPIO_Input(0, 2)) sys_led_R_ON();
-	else sys_led_R_OFF();
-}
-
-void sys_led_G_ON(void)
-{
-	GPIO_Output(0, 1, 0); //GP0_1 output low
-}
-
-void sys_led_G_OFF(void)
-{
-	GPIO_Output(0, 1, 1); //GP0_1 output high
-}
-
-void sys_led_G_reverse(void)
-{
-	if(GPIO_Input(0, 1)) sys_led_G_ON();
-	else sys_led_G_OFF();
-}
-
-void sys_led_RG_ON(void)
-{
-	sys_led_R_ON();
-	sys_led_G_ON();
-}
-
-void sys_led_RG_OFF(void)
-{
-	sys_led_R_OFF();
-	sys_led_G_OFF();
-}
-
-void sys_led_RG_reverse(void)
-{
-	sys_led_R_reverse();
-	sys_led_G_reverse();
-}
-#if 0
-void RS485_SetTx(void)
-{
-	GPIO_Output(1, 18, 1);	//GP1_18-RS485_ENT output high
-	GPIO_Output(1, 26, 1);	//GP1_26-RS485_ENRn output high
-}
-
-void RS485_SetRx(void)
-{
-	GPIO_Output(1, 18, 0);	//GP1_18-RS485_ENT output low
-	GPIO_Output(1, 26, 0);	//GP1_26-RS485_ENRn output low
-}
-#endif
-void sdcard_enable(void)
-{
-	GPIO_Output(1, 21, 1);	//GP1_21 output high
-}
-
-void sdcard_disable(void)
-{
-	GPIO_Output(1, 21, 0);	//GP1_21 output low
-}
-#endif
 /*
  * spinning delay to use before udelay works
  */
@@ -330,19 +261,47 @@ int board_init(void)
 
 //	nor_pad_config_mux();
 
+#ifdef CONFIG_PHY_RMII_MODE
+	/* setup RMII_REFCLK to be sourced from REFCLK PIN */
+	__raw_writel(0x1, RMII_REFCLK_SRC);
+#else
 	/* setup RMII_REFCLK to be sourced from audio_pll */
 	__raw_writel(0x4, RMII_REFCLK_SRC);
-
-#ifdef CONFIG_PHY_GMII_MODE
-		/*program GMII_SEL register for G/MII mode */
-		__raw_writel(0x00,GMII_SEL);
-#else
-		/*program GMII_SEL register for RGMII mode */
-		__raw_writel(0x30a,GMII_SEL);
 #endif
 
+#ifdef CONFIG_PHY_GMII_MODE
+	/*program GMII_SEL register for G/MII mode */
+	__raw_writel(0x00,GMII_SEL);
+#elif defined (CONFIG_PHY_RMII_MODE)
+	/*program GMII_SEL register for RMII mode */
+	__raw_writel(0x05,GMII_SEL);
+#else
+	/*program GMII_SEL register for RGMII mode */
+	__raw_writel(0x30a,GMII_SEL);
+#endif
+
+//#ifdef CONFIG_I2C
+	/* I2C softreset */
+	regVal = __raw_readl((I2C_BASE1 + 0x10));
+	regVal |= I2C_SYSC_SRST;
+	__raw_writel(regVal, (I2C_BASE1 + 0x10));
+	regVal = __raw_readl((I2C_BASE2 + 0x10));
+	regVal |= I2C_SYSC_SRST;
+	__raw_writel(regVal, (I2C_BASE2 + 0x10));
+	regVal = __raw_readl((I2C_BASE3 + 0x10));
+	regVal |= I2C_SYSC_SRST;
+	__raw_writel(regVal, (I2C_BASE3 + 0x10));
+//#endif
+
+	/* Enable HW Watchdog. */
+	hw_watchdog_op(HWWD_INIT);
+	hw_watchdog_op(HWWD_RST);
+	hw_watchdog_op(HWWD_ON);
+
 	gpio_init();
+
 	/* Get Timer and UART out of reset */
+
 	/* UART softreset */
 	regVal = __raw_readl(UART_SYSCFG);
 	regVal |= 0x2;
@@ -393,6 +352,7 @@ int dram_init(void)
 
 	return 0;
 }
+
 #ifdef CONFIG_SERIAL_TAG
 /* *********************************************************
  * * get_board_serial() - setup to pass kernel board serial
@@ -412,7 +372,7 @@ void get_board_serial(struct tag_serialnr *serialnr)
  * * get_board_rev() - setup to pass kernel board revision
  * * returns: revision
  * ********************************************************
-*/
+ */
 u32 get_board_rev(void)
 {
 	/* ToDo: read eeprom */
@@ -426,15 +386,6 @@ int misc_init_r(void)
 	printf("The 2nd stage U-Boot will now be auto-loaded\n");
 	printf("Please do not interrupt the countdown till "
 		"DM385_IPNC prompt if 2nd stage is already flashed\n");
-	printf("\nEnable HW Watchdog.(%d)\n", UBL_WDT_TIMEOUT_SEC);
-	hw_watchdog_op(HWWD_INIT);
-	(*(volatile unsigned int *)(WDT_WLDR)) = (0xFFFFFFFF - (WDT_TIMEOUT_BASE * UBL_WDT_TIMEOUT_SEC));
-	hw_watchdog_op(HWWD_ON);
-#else
-	printf("\nEnable HW Watchdog.(%d)\n", WDT_TIMEOUT_SEC);
-	hw_watchdog_op(HWWD_INIT);
-	hw_watchdog_op(HWWD_RST);
-	hw_watchdog_op(HWWD_ON);
 #endif
 
 #ifndef CONFIG_TI814X_OPTI_CONFIG
@@ -519,11 +470,13 @@ int misc_init_r(void)
 	printf("\n");
 #endif
 	#ifdef CONFIG_TPS65911_I2C
-	show_time();
+	//show_time();
 	#endif
 #endif
+
 	return 0;
 }
+
 #ifdef CONFIG_DM385_CONFIG_DDR
 static void config_dm385_ddr(void)
 {
@@ -616,6 +569,7 @@ static void config_dm385_ddr(void)
 	__raw_writel(DDR3_EMIF_TIM3, EMIF4_0_SDRAM_TIM_3);
 	__raw_writel(DDR3_EMIF_TIM3, EMIF4_0_SDRAM_TIM_3_SHADOW);
 	__raw_writel(DDR3_EMIF_SDRAM_CONFIG, EMIF4_0_SDRAM_CONFIG);
+	__raw_writel(0x0080FF10, (EMIF4_0_CFG_BASE + 0x54)); //PBBPR 0x00FEFF20, default 0x00FFFFFF //20150909-bobby test
 
 	__raw_writel(DDR_EMIF_REF_CTRL | DDR_EMIF_REF_TRIGGER,
 					 EMIF4_0_SDRAM_REF_CTRL);
@@ -1200,8 +1154,7 @@ static void cpsw_pad_config()
 	val = PAD233_CNTRL;
 	PAD233_CNTRL = (volatile unsigned int) (BIT(19) | BIT(17) | BIT(0));
 	val = PAD234_CNTRL;
-	PAD234_CNTRL = (volatile unsigned int) (BIT(19) | BIT(18) | BIT(17) |
-			BIT(0));
+	PAD234_CNTRL = (volatile unsigned int) (BIT(19) | BIT(18) | BIT(17) | BIT(0));
 
 	/*setup rgmii0/rgmii1 pins here*/
 	/* In this case we enable rgmii_en bit in GMII_SEL register and
@@ -1402,8 +1355,14 @@ void gpio_init(void)
 	//GPIO2[] group
 	add=(GPIO2_BASE + GPIO_OE);			//GPIO_OE Output Enable Register
 	val = __raw_readl(add);
+	val &=~(1<<5);						//GP2[5]-GPIO_IR_LED output
+	val &=~(1<<6);						//GP2[6]-GPIO_ICR output
+	val &=~(1<<7);						//GP2[7]-GPIO_WD_EN output
 	val &=~(1<<18);   					//GP2[18]-GPIO_CAM_RST output
 	__raw_writel(val, add);
+	__raw_writel((1<<5), (GPIO2_BASE + GPIO_CLEARDATAOUT));	//GP2[5]-GPIO_IR_LED output low
+	__raw_writel((1<<6), (GPIO2_BASE + GPIO_SETDATAOUT));	//GP2[6]-GPIO_ICR output high
+	__raw_writel((1<<7), (GPIO2_BASE + GPIO_SETDATAOUT));	//GP2[7]-GPIO_WD_EN output high
 	/* reset sensor */
 	__raw_writel((1<<18), (GPIO2_BASE + GPIO_CLEARDATAOUT));  //GP2[18]-GPIO_CAM_RST output low
 	delay(1000);
@@ -1491,6 +1450,7 @@ static void power_control(void)
 	*/
 
 	tps65911_config(BBCH_REG      	, BBCHEN | BBSEL_3D15V);
+	tps65911_config(GPIO0_REG      	, GPIO_SET | GPIO_CFG);
 }
 
 static void show_time(void)
@@ -1782,6 +1742,7 @@ int board_mmc_init(bd_t *bis)
 
 #ifdef CONFIG_HW_WATCHDOG
 static int trigger_skip = 0;
+static int debug_cnt = 0;
 void hw_watchdog_reset(void)
 {
 	if(trigger_skip) return;

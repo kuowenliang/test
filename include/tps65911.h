@@ -22,6 +22,15 @@
 /* config for Device control register */
 #define RTC_PWDN	(0x1 << 6)
 
+/* config for GPIOx configuration register */
+#define GPIO_SET	(0x1 << 0)
+#define GPIO_STS	(0x1 << 1)
+#define GPIO_CFG	(0x1 << 2)
+#define GPIO_PDEN	(0x1 << 3)
+#define GPIO_DEB	(0x1 << 4)
+#define GPIO_ODEN	(0x1 << 5)
+#define GPIO_SLEEP	(0x1 << 7)
+
 /* registers */
 #define SECONDS_REG           (0x00)
 #define MINUTES_REG           (0x01)

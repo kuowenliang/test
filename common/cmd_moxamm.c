@@ -117,6 +117,12 @@ int lightsen_state(void)
 #endif
 }
 
+void LED_Reverse(int led_gpio)
+{
+	if(GPIO_OutStat(led_gpio) == GPIO_LED_OFF) GPIO_Out(led_gpio, GPIO_LED_ON);
+	else GPIO_Out(led_gpio, GPIO_LED_OFF);
+}
+
 void sys_led_R_ON(void)
 {
 #ifdef GPIO_SYSLED_RED
@@ -494,6 +500,10 @@ void Sleep(unsigned long sec)
 int mem_test(size_t len, unsigned int pattern, unsigned int address, int verbose)
 {
 	volatile int * mem = (int*) address;
+#if defined(TEST_LED_BLINK_ON_MEM_TEST) && defined(GPIO_LED_STAT_G) && defined(GPIO_LED_STAT_R)
+	GPIO_Out(GPIO_LED_STAT_G, GPIO_LED_ON);
+	GPIO_Out(GPIO_LED_STAT_R, GPIO_LED_OFF);
+#endif
 	printf("\nMemory test start, pattern = [0x%08X], addr = 0x%08X, size = 0x%08X\n", pattern, (int)(mem), len*sizeof(int));
 	if(mem == NULL){
 		printf("\nMemory allocte error!!\n");
@@ -502,6 +512,13 @@ int mem_test(size_t len, unsigned int pattern, unsigned int address, int verbose
 	int i;
 	for ( i = 0; i < len; i++)  {
 		WATCHDOG_RESET();
+
+#if defined(TEST_LED_BLINK_ON_MEM_TEST) && defined(GPIO_LED_STAT_G) && defined(GPIO_LED_STAT_R)
+		if(i % 0x20000 == 0){
+			LED_Reverse(GPIO_LED_STAT_G);
+			LED_Reverse(GPIO_LED_STAT_R);
+		}
+#endif
 
 		if(ctrlc ()){
 			printf("\nAbort!!\n");
@@ -5243,7 +5260,7 @@ static int i2c_read_test(int parameter)
 	uchar chip;
 	uint addr;
 	int alen = 0;
-	uchar buffer[128];
+	uchar buffer[256];
 	int len;
 	bool loop;
 
@@ -5259,7 +5276,7 @@ static int i2c_read_test(int parameter)
 
 	chip = (uchar)(simple_strtoul(i2c_chip_addr, NULL, 16) & 0x000000ff);
 	addr = (uint)(simple_strtoul(i2c_reg_addr, NULL, 16));
-	len = (uchar)(simple_strtoul(i2c_count, NULL, 10));
+	len = (int)(simple_strtoul(i2c_count, NULL, 10));
 	alen = (alen > 3) ? 2 : 1;
 	loop = (bool)(simple_strtoul(i2c_loop, NULL, 10));
 	if(len > sizeof(buffer)){
@@ -5315,7 +5332,7 @@ static int i2c_write_test(int parameter)
 	chip = (uchar)(simple_strtoul(i2c_chip_addr, NULL, 16) & 0x000000ff);
 	addr = (uint)(simple_strtoul(i2c_reg_addr, NULL, 16));
 	value = (uchar)(simple_strtoul(i2c_value, NULL, 16) & 0x000000ff);
-	len = (uchar)(simple_strtoul(i2c_count, NULL, 10));
+	len = (int)(simple_strtoul(i2c_count, NULL, 10));
 	alen = (alen > 3) ? 2 : 1;
 
 	udelay(1000);
@@ -6906,20 +6923,93 @@ U_BOOT_CMD(
 );
 #endif
 
+void LED_All_ON()
+{
+#ifdef GPIO_LED_STATE
+	GPIO_Out(GPIO_LED_STATE, GPIO_LED_ON);
+#endif
+#ifdef GPIO_LED_SYS
+	GPIO_Out(GPIO_LED_SYS, GPIO_LED_ON);
+#endif
+#ifdef GPIO_LED_SD
+	GPIO_Out(GPIO_LED_SD, GPIO_LED_ON);
+#endif
+#ifdef GPIO_LED_PTZ
+	GPIO_Out(GPIO_LED_PTZ, GPIO_LED_ON);
+#endif
+#ifdef GPIO_LED_VIDEO
+	GPIO_Out(GPIO_LED_VIDEO, GPIO_LED_ON);
+#endif
+#ifdef GPIO_LED_STAT_G
+	GPIO_Out(GPIO_LED_STAT_G, GPIO_LED_ON);
+#endif
+#ifdef GPIO_LED_STAT_R
+	GPIO_Out(GPIO_LED_STAT_R, GPIO_LED_OFF);
+#endif
+#ifdef GPIO_LED_FAIL
+	GPIO_Out(GPIO_LED_FAIL, GPIO_LED_ON);
+#endif
+}
+
+void LED_All_OFF()
+{
+#ifdef GPIO_LED_STATE
+	GPIO_Out(GPIO_LED_STATE, GPIO_LED_OFF);
+#endif
+#ifdef GPIO_LED_SYS
+	GPIO_Out(GPIO_LED_SYS, GPIO_LED_OFF);
+#endif
+#ifdef GPIO_LED_SD
+	GPIO_Out(GPIO_LED_SD, GPIO_LED_OFF);
+#endif
+#ifdef GPIO_LED_PTZ
+	GPIO_Out(GPIO_LED_PTZ, GPIO_LED_OFF);
+#endif
+#ifdef GPIO_LED_VIDEO
+	GPIO_Out(GPIO_LED_VIDEO, GPIO_LED_OFF);
+#endif
+#ifdef GPIO_LED_STAT_G
+	GPIO_Out(GPIO_LED_STAT_G, GPIO_LED_OFF);
+#endif
+#ifdef GPIO_LED_STAT_R
+	GPIO_Out(GPIO_LED_STAT_R, GPIO_LED_OFF);
+#endif
+#ifdef GPIO_LED_FAIL
+	GPIO_Out(GPIO_LED_FAIL, GPIO_LED_OFF);
+#endif
+}
+
+void wait_reset_button()
+{
+#if defined(TEST_LED_BLINK_ON_T1BIOS) && defined(GPIO_LED_STAT_G) && defined(GPIO_LED_STAT_R)
+	GPIO_Out(GPIO_LED_STAT_G, GPIO_LED_ON);
+	GPIO_Out(GPIO_LED_STAT_R, GPIO_LED_OFF);
+#endif
+
+	while(!resetkey_state())
+	{
+#if defined(TEST_LED_BLINK_ON_T1BIOS) && defined(GPIO_LED_STAT_G) && defined(GPIO_LED_STAT_R)
+		LED_Reverse(GPIO_LED_STAT_G);
+		LED_Reverse(GPIO_LED_STAT_R);
+#endif
+		udelay(500000);
+	}
+}
+
 static int RunT1BIOS(int parameter)
 {
 	////T1-BIOS
 
 	//Step 1: Test Led
-	sys_led_RG_ON();
+	LED_All_ON();
 	printf("Check All LED were light.\n");
 	Sleep(1);
 
 	//Step 2: Test Reset Button
 	printf("Press reset button for detection.\n");
-	while(!resetkey_state()) udelay(500000);
+	wait_reset_button();
 	printf("\n[Button detected.]\n\n");
-	sys_led_RG_OFF();
+	LED_All_OFF();
 	Sleep(1);
 
 #if defined(TEST_LIGHTSENSOR_ON_T1BIOS)
@@ -7136,7 +7226,7 @@ static int BootPreProcessor(int parameter)
 		/* Bobby-20150604 : move to evm.c */
 		//printf("\nEnable HW Watchdog.\n");
 		//hw_watchdog_op(HWWD_ON);
-		//hw_watchdog_op(HWWD_TRIGGER_SKIP);
+		hw_watchdog_op(HWWD_TRIGGER_SKIP);
 	}
 #endif
 #ifdef TEST_SWITCH_MPFLAG

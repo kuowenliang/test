@@ -86,6 +86,7 @@
 #endif
 #elif defined(CONFIG_NAND_BOOT)		/* Autoload the 2nd stage from NAND */
 #define CONFIG_NAND			1
+#define CONFIG_MMC			1
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"verify=yes\0" \
 	"bootcmd=nand read 0x81000000 0x20000 0x80000; go 0x81000000\0" \
@@ -93,6 +94,7 @@
 
 #elif defined(CONFIG_SD_BOOT)		/* Autoload the 2nd stage from SD */
 #define CONFIG_MMC			1
+#define CONFIG_NAND			1
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"verify=yes\0" \
 	"bootcmd=mmc rescan 0; fatload mmc 0 0x80800000 u-boot.bin; go 0x80800000\0" \
@@ -117,6 +119,11 @@
 #define CONFIG_AUTOBOOT_PROMPT		">"
 #define CONFIG_AUTOBOOT_DELAY_STR	"mmmoxa"	/* 1st "password"	*/
 #endif
+
+/* Watchdog setting */
+#define CONFIG_HW_WATCHDOG
+#define WDT_TIMEOUT_SEC				6			/* Watchdog time out (sec.)*/
+#define WDT_TIMEOUT_BASE			0x00008000	/* ~1 sec. */
 
 #elif defined(CONFIG_TI814X_OPTI_CONFIG)		/* Optimized code */
 #include <config_cmd_default.h>
@@ -244,7 +251,13 @@
 #define CONFIG_PREBOOT				"moxamm"
 #define CONFIG_CMD_MOXAMM
 #define CONFIG_AUTO_COMPLETE		/* add autocompletion support	*/
-#endif
+
+/* Watchdog setting */
+#define CONFIG_HW_WATCHDOG
+#define WDT_TIMEOUT_SEC				60			/* Watchdog time out (sec.)*/
+#define WDT_TIMEOUT_BASE			0x00008000	/* ~1 sec. */
+
+#endif	/* CONFIG_TI814X_MIN_CONFIG */
 
 #define CONFIG_SYS_GBL_DATA_SIZE	128	/* size in bytes reserved for initial data */
 
@@ -348,10 +361,6 @@
 #define CONFIG_SERIAL_NUMBER		000000000000
 
 /* Hardware related */
-#define CONFIG_HW_WATCHDOG
-#define UBL_WDT_TIMEOUT_SEC			6			/* Watchdog time out (sec.) (in UBL) */
-#define WDT_TIMEOUT_SEC				60			/* Watchdog time out (sec.)*/
-#define WDT_TIMEOUT_BASE			0x00008000	/* ~1 sec. */
 
 /* Light Sensor Configuration */
 #define LIGHT_SENSOR_ADDR			0x39
@@ -670,17 +679,18 @@ extern unsigned int boot_flash_type;
 #define GPIO_SPI_CSC		((1*32) + 6)	//GP1[6] (OUT) SPI_CSC
 #define GPIO_FAN_INT		((1*32) + 7)	//GP1[7] (IN) Fan_int
 #define GPIO_MCU_RST		((2*32) + 0)	//GP2[0] (OUT) MCU_RST
+#define GPIO_FPGA_RST		((2*32) + 1)	//GP2[1] (OUT) FPGA_RST
 #define GPIO_RE_SETING		((2*32) + 21)	//GP2[21] (IN) Reset button
 #define GPIO_PHY_RESET		((2*32) + 22)	//GP2[22] (OUT) ENET_RSTn
 #define GPIO_PHY_LINKSTAT	((2*32) + 23)	//GP2[23] (IN) E_LINKSTS
 #define GPIO_CAM_RST		((2*32) + 25)	//GP2[25] (OUT) CAM_REST
 #define GPIO_RTC_INTn		((2*32) + 26)	//GP2[26] (IN) RTC_INTn
-#define GPIO_CAM_RST		((2*32) + 30)	//GP2[30] (OUT) CAM_REST
 #define GPIO_THERMAL_SOUT	((2*32) + 31)	//GP2[31] (IN) THERMAL_SOUT
 #define GPIO_ARN_IN			((3*32) + 7)	//GP3[7] (IN) DI
 #define GPIO_ARN_OUT		((3*32) + 8)	//GP3[8] (OUT) DO
 #define GPIO_LED_STATE		((3*32) + 12)	//GP3[12] (OUT) LED_G
 #define GPIO_LED_SYS		((3*32) + 13)	//GP3[13] (OUT) LED_R
+#define GPIO_FPGA_PROG		((3*32) + 17)	//GP3[17] (OUT) FPGA_PROG
 #define GPIO_SYSBUTTON		GPIO_RE_SETING
 #define GPIO_DI				GPIO_ARN_IN
 #define GPIO_DO				GPIO_ARN_OUT
@@ -759,12 +769,17 @@ extern unsigned int boot_flash_type;
 #define GPIO_LED_SD			((3*32) + 9)	//GP3[9] (OUT) SD_LEDn
 #define GPIO_LED_PTZ		((3*32) + 10)	//GP3[10] (OUT) PTZ_LEDn
 #define GPIO_LED_VIDEO		((3*32) + 11)	//GP3[11] (OUT) VIDEO_LEDn
-#define GPIO_LED_STAT_R		((3*32) + 12)	//GP3[12] (OUT) STAT_RLEDn
-#define GPIO_LED_STAT_G		((3*32) + 13)	//GP3[13] (OUT) STAT_GLEDn
+#define GPIO_LED_STAT_G		((3*32) + 12)	//GP3[12] (OUT) STAT_GLEDn
+#define GPIO_LED_STAT_R		((3*32) + 13)	//GP3[13] (OUT) STAT_RLEDn
 #define GPIO_LED_FAIL		((3*32) + 14)	//GP3[14] (OUT) FAIL_LEDn
 #define GPIO_SYSBUTTON		GPIO_RE_SETING
 #define GPIO_SYSLED_GREEN	GPIO_LED_STAT_G
 #define GPIO_SYSLED_RED		GPIO_LED_STAT_R
+#undef GPIO_SYSBUTTON_ON
+#undef GPIO_SYSBUTTON_OFF
+#define GPIO_SYSBUTTON_ON	0
+#define GPIO_SYSBUTTON_OFF	1
+#define TEST_LED_BLINK_ON_MEM_TEST
 #endif
 
 #ifndef CONFIG_TI814X_OPTI_CONFIG

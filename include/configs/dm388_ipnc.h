@@ -94,6 +94,7 @@
 #endif
 #elif defined(CONFIG_NAND_BOOT)		/* Autoload the 2nd stage from NAND */
 #define CONFIG_NAND			1
+#define CONFIG_MMC			1
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"verify=yes\0" \
 	"bootcmd=nand read 0x81000000 0x20000 0x80000; go 0x81000000\0" \
@@ -101,6 +102,7 @@
 
 #elif defined(CONFIG_SD_BOOT)		/* Autoload the 2nd stage from SD */
 #define CONFIG_MMC			1
+#define CONFIG_NAND			1
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"verify=yes\0" \
 	"bootcmd=mmc rescan 0; fatload mmc 0 0x80800000 u-boot.bin; go 0x80800000\0" \
@@ -126,7 +128,12 @@
 #define CONFIG_AUTOBOOT_DELAY_STR	"mmmoxa"	/* 1st "password"	*/
 #endif
 
-#elif defined(CONFIG_TI814X_OPTI_CONFIG)		/* Optimized code */
+/* Watchdog setting */
+#define CONFIG_HW_WATCHDOG
+#define WDT_TIMEOUT_SEC				6			/* Watchdog time out (sec.)*/
+#define WDT_TIMEOUT_BASE			0x00008000	/* ~1 sec. */
+
+#elif defined(CONFIG_DM385_OPTI_CONFIG)		/* Optimized code */
 #include <config_cmd_default.h>
 
 #define CONFIG_ZERO_BOOTDELAY_CHECK
@@ -229,7 +236,13 @@
 #define CONFIG_PREBOOT				"moxamm"
 #define CONFIG_CMD_MOXAMM
 #define CONFIG_AUTO_COMPLETE		/* add autocompletion support	*/
-#endif
+
+/* Watchdog setting */
+#define CONFIG_HW_WATCHDOG
+#define WDT_TIMEOUT_SEC				60			/* Watchdog time out (sec.)*/
+#define WDT_TIMEOUT_BASE			0x00008000	/* ~1 sec. */
+
+#endif	/* CONFIG_DM385_MIN_CONFIG */
 
 #define CONFIG_SYS_GBL_DATA_SIZE	128
 #define CONFIG_MISC_INIT_R		1
@@ -324,10 +337,6 @@
 #define CONFIG_SERIAL_NUMBER		000000000000
 
 /* Hardware related */
-#define CONFIG_HW_WATCHDOG
-#define UBL_WDT_TIMEOUT_SEC			6			/* Watchdog time out (sec.) (in UBL) */
-#define WDT_TIMEOUT_SEC				60			/* Watchdog time out (sec.)*/
-#define WDT_TIMEOUT_BASE			0x00008000	/* ~1 sec. */
 
 /* Light Sensor Configuration */
 #define LIGHT_SENSOR_ADDR			0x39
@@ -551,6 +560,9 @@ extern unsigned int boot_flash_type;
 #define GPIO_PHY_RESET		((1*32) + 20)	//(GP1[20], O)
 #define GPIO_SD_EN			((1*32) + 21)	//(GP1[21], O)
 #define GPIO_RTC_INTn		((1*32) + 22)	//(GP1[22], I)
+#define GPIO_IR_LED			((2*32) + 5)	//(GP2[5], O)
+#define GPIO_ICR			((2*32) + 6)	//(GP2[6], O)
+#define GPIO_WD_EN			((2*32) + 7)	//(GP2[7], O)
 #define GPIO_CAM_RST		((2*32) + 18)	//(GP2[18], O)
 #define GPIO_ARN_IN			((3*32) + 7)	//(GP3[7], I)
 
@@ -653,6 +665,7 @@ extern unsigned int boot_flash_type;
 
 #define CONFIG_RTC_ISL1208				1
 #define CONFIG_SYS_I2C_RTC_ADDR			0x6f
+//#define DEBUG_RTC
 
 /* EEPROM definitions */
 #define CONFIG_SYS_I2C_EEPROM_ADDR_LEN			3

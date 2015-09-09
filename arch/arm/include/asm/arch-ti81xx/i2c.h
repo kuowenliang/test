@@ -37,6 +37,7 @@
 
 #if defined(CONFIG_I2C_MULTI_BUS)
 #define I2C_REV		((unsigned long)i2c_base + 0x00)
+#define I2C_SYSC	((unsigned long)i2c_base + 0x10)
 #define I2C_IE		((unsigned long)i2c_base + 0x2C)
 #define I2C_STAT	((unsigned long)i2c_base + 0x28)
 #define I2C_BUF		((unsigned long)i2c_base + 0x94)
@@ -51,6 +52,7 @@
 #define I2C_SYSTEST	((unsigned long)i2c_base + 0xBc)
 #else
 #define I2C_REV		(I2C_DEFAULT_BASE + 0x00)
+#define I2C_SYSC	(I2C_DEFAULT_BASE + 0x10)
 #define I2C_IE		(I2C_DEFAULT_BASE + 0x2C)
 #define I2C_STAT	(I2C_DEFAULT_BASE + 0x28)
 #define I2C_BUF		(I2C_DEFAULT_BASE + 0x94)
@@ -66,6 +68,9 @@
 #endif
 
 /* I2C masks */
+
+/* I2C System Configuration Register (I2C_SYSC): */
+#define I2C_SYSC_SRST	(1 << 1) /* SoftReset bit */
 
 /* I2C Interrupt Enable Register (I2C_IE): */
 #define I2C_IE_GC_IE	(1 << 5)

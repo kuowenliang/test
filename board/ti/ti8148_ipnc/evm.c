@@ -259,89 +259,7 @@ void GPIO_Dir(int gpio_num, int out) //GPIO direction
 	else val &=~(1<<pin);
 	__raw_writel(val, add);
 }
-#if 0
-void sys_led_R_ON(void)
-{
-	GPIO_Output(3, 13, 0); //GP3_13 output low
-}
 
-void sys_led_R_OFF(void)
-{
-	GPIO_Output(3, 13, 1); //GP3_13 output high
-}
-
-void sys_led_R_reverse(void)
-{
-	if(GPIO_Input(3, 13)) sys_led_R_ON();
-	else sys_led_R_OFF();
-}
-
-void sys_led_G_ON(void)
-{
-	GPIO_Output(3, 12, 0); //GP3_12 output low
-}
-
-void sys_led_G_OFF(void)
-{
-	GPIO_Output(3, 12, 1); //GP3_12 output high
-}
-
-void sys_led_G_reverse(void)
-{
-	if(GPIO_Input(3, 12)) sys_led_G_ON();
-	else sys_led_G_OFF();
-}
-
-void sys_led_RG_ON(void)
-{
-	sys_led_R_ON();
-	sys_led_G_ON();
-}
-
-void sys_led_RG_OFF(void)
-{
-	sys_led_R_OFF();
-	sys_led_G_OFF();
-}
-
-void sys_led_RG_reverse(void)
-{
-	sys_led_R_reverse();
-	sys_led_G_reverse();
-}
-
-void RS485_SetTx(void)
-{
-#if defined(VPORT56)
-	GPIO_Output(1, 18, 1);	//GP1_18-RS485_ENT output high
-	GPIO_Output(1, 26, 1);	//GP1_26-RS485_ENRn output high
-#elif defined(VPORT36_2MP)
-	GPIO_Output(2, 31, 1);	//GP2_31-RS485_ENT output high
-	GPIO_Output(2, 30, 1);	//GP2_30-RS485_ENRn output high
-#endif
-}
-
-void RS485_SetRx(void)
-{
-#if defined(VPORT56)
-	GPIO_Output(1, 18, 0);	//GP1_18-RS485_ENT output low
-	GPIO_Output(1, 26, 0);	//GP1_26-RS485_ENRn output low
-#elif defined(VPORT36_2MP)
-	GPIO_Output(2, 31, 0);	//GP2_31-RS485_ENT output low
-	GPIO_Output(2, 30, 0);	//GP2_30-RS485_ENRn output low
-#endif
-}
-
-void sdcard_enable(void)
-{
-	GPIO_Output(0, 31, 1);	//GP0_31 output high
-}
-
-void sdcard_disable(void)
-{
-	GPIO_Output(0, 31, 0);	//GP0_31 output low
-}
-#endif
 /*
  * spinning delay to use before udelay works
  */
@@ -361,7 +279,7 @@ int board_init(void)
 	/* Do the required pin-muxing before modules are setup */
 	set_muxconf_regs();
 
-    //nor_pad_config_mux();
+//	nor_pad_config_mux();
 
 #ifdef CONFIG_PHY_RMII_MODE
 	/* setup RMII_REFCLK to be sourced from REFCLK PIN */
@@ -383,14 +301,22 @@ int board_init(void)
 		__raw_writel(0x30a,GMII_SEL);
 #endif
 	}
+
+	/* Enable HW Watchdog. */
+	hw_watchdog_op(HWWD_INIT);
+	hw_watchdog_op(HWWD_RST);
+	hw_watchdog_op(HWWD_ON);
+
 	gpio_init();
+
 	/* Get Timer and UART out of reset */
 
 	/* UART softreset */
 	regVal = __raw_readl(UART_SYSCFG);
 	regVal |= 0x2;
 	__raw_writel(regVal, UART_SYSCFG);
-	while( (__raw_readl(UART_SYSSTS) & 0x1) != 0x1);
+	while ((__raw_readl(UART_SYSSTS) & 0x1) != 0x1)
+		;
 
 	/* Disable smart idle */
 	regVal = __raw_readl(UART_SYSCFG);
@@ -409,15 +335,15 @@ int board_init(void)
 
 #ifndef CONFIG_NOR
 	/* GPMC will come up with default buswidth configuration,
-    * we will override it based on BW pin CONFIG_STATUS register.
-    * This is currently required only for NAND/NOR to
-    * support 8/16 bit NAND/NOR part. Also we always use chipselect 0
-    * for NAND/NOR boot.
-    *
-    * NOTE: This code is DM8168 EVM specific, hence we are using CS 0.
-    * Also, even for other boot modes user is expected to
-    * on/off the BW pin on the EVM.
-    */
+	 * we will override it based on BW pin CONFIG_STATUS register.
+	 * This is currently required only for NAND/NOR to
+	 * support 8/16 bit NAND/NOR part. Also we always use chipselect 0
+	 * for NAND/NOR boot.
+	 *
+	 * NOTE: This code is DM8168 EVM specific, hence we are using CS 0.
+	 * Also, even for other boot modes user is expected to
+	 * on/off the BW pin on the EVM.
+	 */
 	//gpmc_set_cs_buswidth(0, get_sysboot_ipnc_bw());
 	gpmc_set_cs_buswidth(0, get_sysboot_bw());
 #endif
@@ -466,26 +392,18 @@ u32 get_board_rev(void)
 }
 #endif
 
-int misc_init_r (void)
+int misc_init_r(void)
 {
 #ifdef CONFIG_TI814X_MIN_CONFIG
 	printf("The 2nd stage U-Boot will now be auto-loaded\n");
 	printf("Please do not interrupt the countdown till "
 		"TI8148_EVM prompt if 2nd stage is already flashed\n");
-	printf("\nEnable HW Watchdog.(%d)\n", UBL_WDT_TIMEOUT_SEC);
-	hw_watchdog_op(HWWD_INIT);
-	(*(volatile unsigned int *)(WDT_WLDR)) = (0xFFFFFFFF - (WDT_TIMEOUT_BASE * UBL_WDT_TIMEOUT_SEC));
-	hw_watchdog_op(HWWD_ON);
-#else
-	printf("\nEnable HW Watchdog.(%d)\n", WDT_TIMEOUT_SEC);
-	hw_watchdog_op(HWWD_INIT);
-	hw_watchdog_op(HWWD_RST);
-	hw_watchdog_op(HWWD_ON);
 #endif
 
 #ifndef CONFIG_TI814X_OPTI_CONFIG
 	#ifdef CONFIG_TI814X_ASCIIART
 	int i = 0, j = 0;
+
 	char ti814x[28][54] = {
 "                                                      ",
 "                                                      ",
@@ -529,9 +447,9 @@ int misc_init_r (void)
 #endif
 
 	/* Enable CLKOUT0 */
-	__raw_writel(0x20, CTRL_BASE + 0xA14);
-	__raw_writel(0x00, CLKOUT_MUX);
-	__raw_writel(0x80, PRCM_BASE + 0x100); /* Enable SYS_CLKOUT */
+//	__raw_writel(0x20, CTRL_BASE + 0xA14);
+//	__raw_writel(0x00, CLKOUT_MUX);
+//	__raw_writel(0x80, PRCM_BASE + 0x100); /* Enable SYS_CLKOUT */
 
 	return 0;
 }
@@ -976,7 +894,7 @@ static void pll_config(u32 base, u32 n, u32 m, u32 m2, u32 clkctrl_val)
 	 * ref_clk = 20/(n + 1);
 	 * clkout_dco = ref_clk * m;
 	 * clk_out = clkout_dco/m2;
-	*/
+	 */
 
 	read_clkctrl = __raw_readl(base + ADPLLJ_CLKCTRL) & 0xffffe3ff;
 	__raw_writel(m2nval, (base + ADPLLJ_M2NDIV));
@@ -1537,6 +1455,7 @@ void gpio_init(void)
 	add=(GPIO2_BASE + GPIO_OE);			//GPIO_OE Output Enable Register
 	val = __raw_readl(add);
 	val &=~(1<<0);   					//GP2[0] (OUT) MCU_RST
+	val &=~(1<<1);   					//GP2[1] (OUT) FPGA_RST
 	val &=~(1<<18);   					//GP2[18] (OUT) CAM_RST
 	val |= (1<<21);						//GP2[21] (IN) Reset button
 	val &=~(1<<22);						//GP2[22] (OUT) ENET_RSTn
@@ -1554,6 +1473,7 @@ void gpio_init(void)
 	__raw_writel((1<<22), (GPIO2_BASE + GPIO_SETDATAOUT));	//GP2[22]-ENET_RSTn output high
 	delay(30000);
 	__raw_writel((1<<0), (GPIO2_BASE + GPIO_SETDATAOUT));	//GP2[0]-MCU_RST output high
+	__raw_writel((1<<1), (GPIO2_BASE + GPIO_SETDATAOUT));	//GP2[1]-FPGA_RST output high
 	__raw_writel((1<<25), (GPIO2_BASE + GPIO_SETDATAOUT));	//GP2[25]-CAM_RST output high
 
 	// GPIO3[] group
@@ -1564,10 +1484,12 @@ void gpio_init(void)
     val |= (1<<9);						//GP3[9] (IN) ARM_RST
     val &=~(1<<12);						//GP3[12] (OUT) LED_G
     val &=~(1<<13);						//GP3[13] (OUT) LED_R
+    val &=~(1<<17);						//GP3[17] (OUT) FPGA_PROG
 	__raw_writel(val, add);
 	__raw_writel((1<<8), (GPIO3_BASE + GPIO_CLEARDATAOUT));	//GP3[12]-ARM_OUT output low
 	__raw_writel((1<<12), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[12]-LED_G output high (OFF)
 	__raw_writel((1<<13), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[13]-LED_R output high (OFF)
+	__raw_writel((1<<17), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[17]-FPGA_PROG output high
 
 	while(__raw_readl(add) != val);
 
