@@ -40,6 +40,7 @@ typedef	struct	global_data {
 	unsigned long	have_console;	/* serial_init() was called */
 	unsigned long	env_addr;	/* Address  of Environment struct */
 	unsigned long	env_valid;	/* Checksum of Environment valid? */
+	unsigned char	env_default;	/* Is default Environment ? */
 	unsigned long	fb_base;	/* base address of frame buffer */
 #ifdef CONFIG_VFD
 	unsigned char	vfd_type;	/* display type */

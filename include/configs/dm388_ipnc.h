@@ -248,6 +248,7 @@
 #define CONFIG_MISC_INIT_R		1
 #ifndef CONFIG_DM385_MIN_CONFIG
 #define CONFIG_DM388_ASCIIART		1
+#define CONFIG_FORCE_SAVEENV			/* force saveenv after default */
 #endif
 #define CONFIG_CMD_CACHE
 #define CONFIG_CMD_ECHO

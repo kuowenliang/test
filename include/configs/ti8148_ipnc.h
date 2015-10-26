@@ -86,7 +86,7 @@
 #endif
 #elif defined(CONFIG_NAND_BOOT)		/* Autoload the 2nd stage from NAND */
 #define CONFIG_NAND			1
-#define CONFIG_MMC			1
+//#define CONFIG_MMC			1
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"verify=yes\0" \
 	"bootcmd=nand read 0x81000000 0x20000 0x80000; go 0x81000000\0" \
@@ -94,7 +94,7 @@
 
 #elif defined(CONFIG_SD_BOOT)		/* Autoload the 2nd stage from SD */
 #define CONFIG_MMC			1
-#define CONFIG_NAND			1
+//#define CONFIG_NAND			1
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"verify=yes\0" \
 	"bootcmd=mmc rescan 0; fatload mmc 0 0x80800000 u-boot.bin; go 0x80800000\0" \
@@ -264,6 +264,7 @@
 #define CONFIG_MISC_INIT_R			1
 #ifndef CONFIG_TI814X_MIN_CONFIG
 #define CONFIG_TI814X_ASCIIART		1	/* The centaur */
+#define CONFIG_FORCE_SAVEENV			/* force saveenv after default */
 #endif
 #define CONFIG_SYS_AUTOLOAD			"yes"
 #ifndef CONFIG_TI814X_OPTI_CONFIG
@@ -276,6 +277,13 @@
  * For test or debug
  */
 //#define TEST_SWITCH_MPFLAG
+
+//wensen
+//#define CONFIG_SYS_FUNCTION
+//#define CONFIG_SYS_FUNCTION_RED_ENV		0x01;
+
+//#define CONFIG_SHOW_BOOT_PROGRESS
+
 
 /*
  * Miscellaneous configurable options
@@ -518,7 +526,11 @@
 #define ISP_NAND
 #define FLASH_TEST_SIZE 				SZ_128K
 
+/*****************************************************************************/
+/*  NAND Flash Layout                                                                                                      */
+/*****************************************************************************/
 #if defined(VPORT56_HIPOWER)
+
 // locations in NAND flash
 #define UBL_FLASH						0x00000000
 #define UBOOT_FLASH						0x00020000
@@ -555,7 +567,73 @@
 
 #define TEST_FLASH						DSP2_FLASH
 #define TEST_FLASH_SIZE					DSP2_SIZE
+
+#elif defined(VPORT461A)
+
+// locations in NAND flash
+#define UBL_FLASH						0x00000000
+#define UBOOT_FLASH						0x00020000
+#define ENV1_FLASH						0x00240000
+#define ENV2_FLASH						0x00260000
+#define KERNEL_FLASH					0x00280000
+#define ROOTFS_FLASH					0x006C0000
+#define KERNEL2_FLASH					0x047C0000
+#define ROOTFS2_FLASH					0x04C00000
+#define DATA1_FLASH						0x08D00000
+#define MPKERNEL_FLASH					0x094C0000
+#define MPROOTFS_FLASH					0x09900000
+#define MPDATA_FLASH					0x0CD80000
+#define CONFIG_FLASH					0x0D980000
+#define CONFIG2_FLASH					0x0DC80000
+#define LOG_FLASH						0x0DF80000
+#define LOG2_FLASH						0x0E280000
+#define RESERVE_FLASH					0x0E580000
+
+// max. sizes
+#define UBL_SIZE						(1 * SZ_128K)
+#define UBOOT_SIZE						(17 * SZ_128K)
+#define ENV1_SIZE						(1 * SZ_128K)
+#define ENV2_SIZE						(1 * SZ_128K)
+#define KERNEL_SIZE						(34 * SZ_128K)
+#define ROOTFS_SIZE						(520 * SZ_128K)
+#define KERNEL2_SIZE					(34 * SZ_128K)
+#define ROOTFS2_SIZE					(520 * SZ_128K)
+#define DATA1_SIZE						(62 * SZ_128K)
+#define MPKERNEL_SIZE					(34 * SZ_128K)
+#define MPROOTFS_SIZE					(420 * SZ_128K)
+#define MPDATA_SIZE						(96 * SZ_128K)
+#define CONFIG_SIZE						(24 * SZ_128K)
+#define CONFIG2_SIZE					(24 * SZ_128K)
+#define LOG_SIZE						(24 * SZ_128K)
+#define LOG2_SIZE						(24 * SZ_128K)
+#define RESERVE_SIZE					(212 * SZ_128K)
+
+#define TEST_FLASH						RESERVE_FLASH
+#define TEST_FLASH_SIZE					RESERVE_SIZE
+
+#define CONFIG_SYS_REDUNDAND_ENVIRONMENT
+
+#define MTDPARTS_DEFAULT "mtdparts=nand0:"\
+	"0x00020000@0x00000000(ubl),"\
+	"0x00220000@0x00020000(u-boot),"\
+	"0x00020000@0x00240000(env),"\
+	"0x00020000@0x00260000(env2),"\
+	"0x00440000@0x00280000(kernel),"\
+	"0x04100000@0x006C0000(rootfs),"\
+	"0x00440000@0x047C0000(kernel2),"\
+	"0x04100000@0x04C00000(rootfs2),"\
+	"0x007C0000@0x08D00000(data),"\
+	"0x00440000@0x094C0000(mpkernel),"\
+	"0x03480000@0x09900000(mprootfs),"\
+	"0x00C00000@0x0CD80000(mpdata),"\
+	"0x00300000@0x0D980000(config),"\
+	"0x00300000@0x0DC80000(config2),"\
+	"0x00300000@0x0DF80000(log),"\
+	"0x00300000@0x0E280000(log2),"\
+	"-(reserved)"
+
 #else
+
 // locations in NAND flash
 #define UBL_FLASH						0x00000000
 #define UBOOT_FLASH						0x00020000
@@ -575,7 +653,7 @@
 
 // max. sizes
 #define UBL_SIZE						(1 * SZ_128K)
-#define UBOOT_SIZE						(17 * SZ_128K)
+#define UBOOT_SIZE						(18 * SZ_128K)
 #define ENV1_SIZE						(1 * SZ_128K)
 #define KERNEL_SIZE						(34 * SZ_128K)
 #define ROOTFS_SIZE						(420 * SZ_128K)
@@ -592,7 +670,24 @@
 
 #define TEST_FLASH						RESERVE_FLASH
 #define TEST_FLASH_SIZE					RESERVE_SIZE
+
+#define MTDPARTS_DEFAULT "mtdparts=nand0:"\
+	"0x00020000@0x00000000(ubl),"\
+	"0x00240000@0x00020000(u-boot),"\
+	"0x00020000@0x00260000(env),"\
+	"0x00440000@0x00280000(kernel),"\
+	"0x03480000@0x006C0000(rootfs),"\
+	"0x00440000@0x03B40000(kernel2),"\
+	"0x03480000@0x03F80000(rootfs2),"\
+	"0x007C0000@0x07400000(data),"\
+	"0x00440000@0x07BC0000(mpkernel),"\
+	"0x03480000@0x08000000(mprootfs),"\
+	"0x00C00000@0x0B480000(mpdata),"\
+	"0x00020000@0x0C380000(env2),"\
+	"-(reserved)"
+
 #endif
+/*****************************************************************************/
 
 #endif							/* devices */
 
@@ -611,14 +706,12 @@
 #define CONFIG_ENV_OFFSET				boot_flash_off
 #define CONFIG_ENV_ADDR					MNAND_ENV_OFFSET
 
-//wensen
-//#define CONFIG_SYS_FUNCTION
-//#define CONFIG_SYS_FUNCTION_RED_ENV		0x01;
-
-//#define CONFIG_SYS_REDUNDAND_ENVIRONMENT
-//#define CONFIG_ENV_OFFSET_REDUND		ENV2_FLASH
-//#define CONFIG_ENV_SIZE_REDUND			(CONFIG_ENV_SIZE)
+#ifdef CONFIG_SYS_REDUNDAND_ENVIRONMENT
+#define CONFIG_ENV_OFFSET_REDUND		ENV2_FLASH
+#define CONFIG_ENV_SIZE_REDUND			(CONFIG_ENV_SIZE)
 #endif
+
+#endif	/* CONFIG_ENV_IS_IN_NAND */
 
 #define CONFIG_CMD_UBIFS
 #define CONFIG_CMD_UBI
@@ -628,20 +721,6 @@
 #define CONFIG_RBTREE
 #define CONFIG_LZO
 #define MTDIDS_DEFAULT "nand0=nand0"
-#define MTDPARTS_DEFAULT "mtdparts=nand0:"\
-	"0x00020000@0x00000000(ubl),"\
-	"0x00220000@0x00020000(u-boot),"\
-	"0x00020000@0x00260000(env),"\
-	"0x00440000@0x00280000(kernel),"\
-	"0x03480000@0x006C0000(rootfs),"\
-	"0x00440000@0x03B40000(kernel2),"\
-	"0x03480000@0x03F80000(rootfs2),"\
-	"0x007C0000@0x07400000(data),"\
-	"0x00440000@0x07BC0000(mpkernel),"\
-	"0x03480000@0x08000000(mprootfs),"\
-	"0x00C00000@0x0B480000(mpdata),"\
-	"0x00020000@0x0C380000(env2),"\
-	"-(reserved)"
 
 #ifndef __ASSEMBLY__
 extern unsigned int boot_flash_base;

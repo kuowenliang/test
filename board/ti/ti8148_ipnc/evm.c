@@ -269,6 +269,13 @@ static inline void delay(unsigned long loops)
 		"bne 1b" : "=r" (loops) : "0"(loops));
 }
 
+#ifdef CONFIG_SHOW_BOOT_PROGRESS
+void show_boot_progress(int progress)
+{
+	printf("%i\n", progress);
+}
+#endif
+
 /*
  * Basic board specific setup
  */

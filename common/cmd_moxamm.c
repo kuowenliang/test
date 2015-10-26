@@ -578,7 +578,10 @@ int do_initenv (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 #endif
 	set_default_env();
 	udelay(100000);
-	saveenv();
+	saveenv();	/* Bobby Chen - 20151021 : force write to flash */
+#ifdef CONFIG_SYS_REDUNDAND_ENVIRONMENT
+	saveenv();	/* Bobby Chen - 20151021 : make sure write to each env partition */
+#endif
 	return 0;
 }
 
@@ -740,6 +743,43 @@ int _erase_flash_whole(cmd_tbl_t *cmdtp, int flag)
 	return 0;
 }
 
+int _scrub_flash(cmd_tbl_t *cmdtp, int flag, ulong nand_addr, ulong size)
+{
+	char *args[5];
+	char nandAddr[11];//0xffffffff
+	char imageLen[11];//0xffffffff
+
+	sprintf(nandAddr, "0x%08lx", nand_addr);
+	sprintf(imageLen, "0x%08lx", size);
+
+	args[0] = "nand";
+	args[1] = "scrub";
+	args[2] = nandAddr;
+	args[3] = imageLen;
+	udelay(1000);
+	if(do_nand(cmdtp, flag, 4, args)){
+		printf("Failed to scrub nand flash at %s.\n", nandAddr);
+		return -1;
+	}
+
+	return 0;
+}
+
+int _scrub_flash_whole(cmd_tbl_t *cmdtp, int flag)
+{
+	char *args[5];
+
+	args[0] = "nand";
+	args[1] = "scrub";
+	udelay(1000);
+	if(do_nand(cmdtp, flag, 2, args)){
+		printf("Failed to scrub whole nand flash.\n");
+		return -1;
+	}
+
+	return 0;
+}
+
 #ifdef ENV1_FLASH
 int do_eraseenv (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
@@ -856,12 +896,32 @@ U_BOOT_CMD(
 int do_eraseconfig (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 	if(_erase_flash(cmdtp, flag, CONFIG_FLASH, CONFIG_SIZE)) return -1;
+#ifdef CONFIG2_FLASH
+	if(_erase_flash(cmdtp, flag, CONFIG2_FLASH, CONFIG2_SIZE)) return -1;
+#endif
 	return 0;
 }
 
 U_BOOT_CMD(
 	eraseconfig, 1, 0,	do_eraseconfig,
 	"Erase config",
+	NULL
+);
+#endif
+
+#ifdef LOG_FLASH
+int do_eraselog (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+{
+	if(_erase_flash(cmdtp, flag, LOG_FLASH, LOG_SIZE)) return -1;
+#ifdef LOG2_FLASH
+	if(_erase_flash(cmdtp, flag, LOG2_FLASH, LOG2_SIZE)) return -1;
+#endif
+	return 0;
+}
+
+U_BOOT_CMD(
+	eraselog, 1, 0,	do_eraselog,
+	"Erase log",
 	NULL
 );
 #endif
@@ -3557,6 +3617,16 @@ static int diag_erase_Config(int parameter)
 }
 #endif
 
+#ifdef LOG_FLASH
+static int diag_erase_Log(int parameter)
+{
+	cmd_tbl_t cmd_tmp;
+	memset(&cmd_tmp, 0, sizeof(cmd_tbl_t));
+	if(do_eraselog(&cmd_tmp, 0, 0, NULL)) return DIAG_ERROR;
+	else return DIAG_OK;
+}
+#endif
+
 #ifdef BACKUP_FLASH
 static int diag_erase_Backup(int parameter)
 {
@@ -3584,11 +3654,36 @@ static int diag_erase_WholeFlash(int parameter)
 	printf(" !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 	printf("\n");
 
-	if(get_line("Really ERASE WHOLE NAND Flash? <Y/N>:", cmd, sizeof(cmd), -1, "YyNn", NULL, "N") < 0) return DIAG_ERROR;
+	if(get_line("Really ERASE WHOLE NAND Flash? <y/N>:", cmd, sizeof(cmd), -1, "YyNn", NULL, "N") < 0) return DIAG_ERROR;
 	if((cmd[0] == 'Y') || (cmd[0] == 'y')){
 		if(_erase_flash_whole(&cmd_tmp, 0)) return DIAG_ERROR;
 		else return DIAG_OK;
 	}
+	return DIAG_OK;
+}
+
+static int diag_scrub_WholeFlash(int parameter)
+{
+	char cmd[3];
+	cmd_tbl_t cmd_tmp;
+	memset(&cmd_tmp, 0, sizeof(cmd_tbl_t));
+
+//	printf("\n");
+//	printf(" !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+//	printf("                                                                              \n");
+//	printf(" This command will CLEAR ALL THE CONTENTS of the NAND Flash,                  \n");
+//	printf(" including the BOOT SECTOR,                                                   \n");
+//	printf(" which will cause the SYSTEM UNABLE TO BOOT.                                  \n");
+//	printf(" Are you sure you want to do?                                                 \n");
+//	printf("                                                                              \n");
+//	printf(" !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+//	printf("\n");
+//
+//	if(get_line("Really SCRUB WHOLE NAND Flash? <y/N>:", cmd, sizeof(cmd), -1, "YyNn", NULL, "N") < 0) return DIAG_ERROR;
+//	if((cmd[0] == 'Y') || (cmd[0] == 'y')){
+		if(_scrub_flash_whole(&cmd_tmp, 0)) return DIAG_ERROR;
+//		else return DIAG_OK;
+//	}
 	return DIAG_OK;
 }
 
@@ -7788,6 +7883,10 @@ static DiagMenuTableStruct NewDownloadMenuTable[] = {
 #ifdef BACKUP_FLASH
 	{ 'l',	"Erase Backup",			0,	diag_erase_Backup,			NULL},
 #endif
+#ifdef LOG_FLASH
+	{ 'm',	"Erase Log",			0,	diag_erase_Log,				NULL},
+#endif
+	{ 's',	"Scrub whole Flash",	0,	diag_scrub_WholeFlash,		NULL},
 };
 static DiagMenuStruct NewDownloadMenu = {
 	sizeof(NewDownloadMenuTable)/sizeof(DiagMenuTableStruct),

@@ -369,6 +369,14 @@ void start_armboot (void)
 
 	/* initialize environment */
 	env_relocate ();
+#ifdef CONFIG_FORCE_SAVEENV
+	if(gd->env_default == 1){
+		saveenv();	/* Bobby Chen - 20151021 : force write to flash */
+#ifdef CONFIG_SYS_REDUNDAND_ENVIRONMENT
+		saveenv();	/* Bobby Chen - 20151021 : make sure write to each env partition */
+#endif
+	}
+#endif
 
 #ifdef CONFIG_VFD
 	/* must do this after the framebuffer is allocated */

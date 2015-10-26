@@ -339,6 +339,7 @@ void set_default_env(void)
 #endif
 	env_crc_update ();
 	gd->env_valid = 1;
+	gd->env_default = 1;
 }
 
 void env_relocate (void)
@@ -784,7 +785,7 @@ int env_set_kernel_idx(int idx)
 		if(setenv("kernel_idx", MK_STR(CONFIG_KERNEL_IDX))) return -1;
 		if(setenv("kernelflash", MK_STR(KERNEL_FLASH))) return -1;
 		if(setenv("mtd_idx", MK_STR(CONFIG_MTD_IDX))) return -1;
-	}else 
+	}else
 	if(idx == CONFIG_KERNEL2_IDX){
 		if(setenv("kernel_idx", MK_STR(CONFIG_KERNEL2_IDX))) return -1;
 		if(setenv("kernelflash", MK_STR(KERNEL2_FLASH))) return -1;

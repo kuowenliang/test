@@ -249,6 +249,13 @@ static inline void delay(unsigned long loops)
 		"bne 1b" : "=r" (loops) : "0"(loops));
 }
 
+#ifdef CONFIG_SHOW_BOOT_PROGRESS
+void show_boot_progress(int progress)
+{
+	printf("%i\n", progress);
+}
+#endif
+
 /*
  * Basic board specific setup
  */
@@ -1418,9 +1425,9 @@ static void power_control(void)
 
 	tps65911_init();
 
-	vdd1_val 	= (arm_freq>720)? VDD_1D35:((arm_freq>600)? VDD_1D2:VDD_1D1);
-	vdd2_val 	= (iva_freq>306)? VDD_1D35:((iva_freq>266)?VDD_1D2:VDD_1D1);
-	vddctrl_val = ((iss_freq>400)||(ddr_freq>400))?VDD_1D35:VDD_1D2;
+	vdd1_val 	= VDD_1D35;//(arm_freq>720)? VDD_1D35:((arm_freq>600)? VDD_1D2:VDD_1D1);
+	vdd2_val 	= VDD_1D35;//(iva_freq>306)? VDD_1D35:((iva_freq>266)?VDD_1D2:VDD_1D1);
+	vddctrl_val = VDD_1D35;//((iss_freq>400)||(ddr_freq>400))?VDD_1D35:VDD_1D2;
 
 	tps65911_config(VDDCRTL_OP_REG	, vddctrl_val);
 	delay(10000);
