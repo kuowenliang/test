@@ -1431,7 +1431,7 @@ static void power_control(void)
 
 	tps65911_config(VDDCRTL_OP_REG	, vddctrl_val);
 	delay(10000);
-	tps65911_config(VDD1_OP_REG   	, vdd1_val);
+	//tps65911_config(VDD1_OP_REG   	, vdd1_val);	/* Bobby Chen - 20151028: For Power-on failed issue */
 	tps65911_config(VDD2_OP_REG   	, vdd2_val);
 
 	//tps65911_config(VIO_REG   		, 0x0d);

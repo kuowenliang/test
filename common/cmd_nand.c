@@ -317,29 +317,33 @@ int do_nand(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 		opts.quiet  = quiet;
 
 		if (scrub) {
-			puts("Warning: "
-			     "scrub option will erase all factory set "
-			     "bad blocks!\n"
-			     "         "
-			     "There is no reliable way to recover them.\n"
-			     "         "
-			     "Use this command only for testing purposes "
-			     "if you\n"
-			     "         "
-			     "are sure of what you are doing!\n"
-			     "\nReally scrub this NAND flash? <y/N>\n");
+			if (quiet){
+				opts.scrub = 1;
+			}else{
+				puts("Warning: "
+				     "scrub option will erase all factory set "
+				     "bad blocks!\n"
+				     "         "
+				     "There is no reliable way to recover them.\n"
+				     "         "
+				     "Use this command only for testing purposes "
+				     "if you\n"
+				     "         "
+				     "are sure of what you are doing!\n"
+				     "\nReally scrub this NAND flash? <y/N>\n");
 
-			if (getc() == 'y') {
-				puts("y");
-				if (getc() == '\r')
-					opts.scrub = 1;
-				else {
+				if (getc() == 'y') {
+					puts("y");
+					if (getc() == '\r')
+						opts.scrub = 1;
+					else {
+						puts("scrub aborted\n");
+						return -1;
+					}
+				} else {
 					puts("scrub aborted\n");
 					return -1;
 				}
-			} else {
-				puts("scrub aborted\n");
-				return -1;
 			}
 		}
 		ret = nand_erase_opts(nand, &opts);

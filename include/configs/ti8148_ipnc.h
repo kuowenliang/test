@@ -19,6 +19,7 @@
 
 #ifdef ENVAPI_IN_LINUX
 #include "EnvAPI/sizes.h"
+#include "model_env_config.h"
 #else
 #include <asm/sizes.h>
 #include <model.h>
@@ -324,6 +325,9 @@
 #define CONFIG_HW_VER 				0.0
 #define CONFIG_FW_VER 				0.0
 #define CONFIG_MP_VER 				0.0
+#ifndef CONFIG_BIOS_VER
+#define CONFIG_BIOS_VER				0.0
+#endif
 #define CONFIG_UBL_VER 				CONFIG_BIOS_VER
 #define CONFIG_UBOOT_VER 			CONFIG_BIOS_VER
 #define CFG_CBSIZE					CONFIG_SYS_CBSIZE
@@ -568,7 +572,7 @@
 #define TEST_FLASH						DSP2_FLASH
 #define TEST_FLASH_SIZE					DSP2_SIZE
 
-#elif defined(VPORT461A)
+#elif defined(VPORT461A) || defined(VPORT36_2MP)
 
 // locations in NAND flash
 #define UBL_FLASH						0x00000000
