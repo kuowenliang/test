@@ -84,23 +84,7 @@ extern void GPIO_Output(int bank, int pin, int set);
 extern int GPIO_In(int gpio_num);
 extern void GPIO_Out(int gpio_num, int value);
 extern int GPIO_OutStat(int gpio_num);
-#if 0
-extern void sys_led_R_ON(void);
-extern void sys_led_R_OFF(void);
-extern void sys_led_R_reverse(void);
-extern void sys_led_G_ON(void);
-extern void sys_led_G_OFF(void);
-extern void sys_led_G_reverse(void);
-extern void sys_led_RG_ON(void);
-extern void sys_led_RG_OFF(void);
-extern void sys_led_RG_reverse(void);
-#ifdef RS485_NAME
-extern void RS485_SetTx(void);
-extern void RS485_SetRx(void);
-#endif
-extern void sdcard_enable(void);
-extern void sdcard_disable(void);
-#endif
+
 int resetkey_state(void)
 {
 #ifdef GPIO_SYSBUTTON
@@ -6096,14 +6080,17 @@ static int sdram_test_func(int parameter)
 		printf("Show detail(%d):", verbose);
 		if(get_line(NULL, tmp, sizeof(tmp), -1, "01", NULL, NULL) > 0)
 			verbose = (int)simple_strtol(tmp, NULL, 10);
-		if(mem_test(len, 0x5555aaaa, startAddr, verbose)) return DIAG_ERROR;
-		if(mem_test(len, 0xaaaa5555, startAddr, verbose)) return DIAG_ERROR;
-		if(mem_test(len, 0x55555555, startAddr, verbose)) return DIAG_ERROR;
-		if(mem_test(len, 0xaaaaaaaa, startAddr, verbose)) return DIAG_ERROR;
-		if(mem_test(len, 0xffff0000, startAddr, verbose)) return DIAG_ERROR;
-		if(mem_test(len, 0x0000ffff, startAddr, verbose)) return DIAG_ERROR;
-		if(mem_test(len, 0xffffffff, startAddr, verbose)) return DIAG_ERROR;
-		if(mem_test(len, 0x00000000, startAddr, verbose)) return DIAG_ERROR;
+		while(1){
+			printf("\npress 'Ctrl+C' to stop.\n\n");
+			if(mem_test(len, 0x5555aaaa, startAddr, verbose)) return DIAG_ERROR;
+			if(mem_test(len, 0xaaaa5555, startAddr, verbose)) return DIAG_ERROR;
+			if(mem_test(len, 0x55555555, startAddr, verbose)) return DIAG_ERROR;
+			if(mem_test(len, 0xaaaaaaaa, startAddr, verbose)) return DIAG_ERROR;
+			if(mem_test(len, 0xffff0000, startAddr, verbose)) return DIAG_ERROR;
+			if(mem_test(len, 0x0000ffff, startAddr, verbose)) return DIAG_ERROR;
+			if(mem_test(len, 0xffffffff, startAddr, verbose)) return DIAG_ERROR;
+			if(mem_test(len, 0x00000000, startAddr, verbose)) return DIAG_ERROR;
+		}
 	}
 	return DIAG_OK;
 }
