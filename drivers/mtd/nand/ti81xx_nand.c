@@ -52,7 +52,11 @@ struct nand_bch_priv {
 #define ECC_BCH16_NIBBLES	52
 
 static uint8_t cs;
+#ifdef GPMC_NAND_HW_ECC_LAYOUT_KERNEL
 static struct nand_ecclayout hw_nand_oob = GPMC_NAND_HW_ECC_LAYOUT_KERNEL;
+#else
+static struct nand_ecclayout hw_nand_oob = GPMC_NAND_HW_ECC_LAYOUT;
+#endif
 static struct nand_ecclayout hw_bch4_nand_oob = GPMC_NAND_HW_BCH4_ECC_LAYOUT;
 static struct nand_ecclayout hw_bch8_nand_oob = GPMC_NAND_HW_BCH8_ECC_LAYOUT;
 static struct nand_ecclayout hw_bch16_nand_oob = GPMC_NAND_HW_BCH16_ECC_LAYOUT;
@@ -974,11 +978,11 @@ int board_nand_init(struct nand_chip *nand)
 	nand->IO_ADDR_W = (void __iomem *)&gpmc_cfg->cs[cs].nand_cmd;
 
 	nand->cmd_ctrl = ti81xx_nand_hwcontrol;
-#if 0 
+#if 0
 	nand->options = NAND_NO_PADDING | NAND_CACHEPRG | NAND_NO_AUTOINCR;
 #else
 	nand->options = NAND_NO_PADDING | NAND_CACHEPRG ;
-#endif	
+#endif
 	/* If we are 16 bit dev, our gpmc config tells us that */
 	if ((readl(&gpmc_cfg->cs[cs].config1) & 0x3000) == 0x1000) {
 		nand->options |= NAND_BUSWIDTH_16;
@@ -986,7 +990,7 @@ int board_nand_init(struct nand_chip *nand)
 
 	nand->chip_delay = 100;
 
-	/* fallback ecc info, this will be overridden by 
+	/* fallback ecc info, this will be overridden by
 	 * ti81xx_nand_switch_ecc() below to 1-bit h/w ecc
 	 */
 	nand->priv = &bch_priv;
@@ -996,7 +1000,7 @@ int board_nand_init(struct nand_chip *nand)
 	elm_init();
 
 	nand_curr_device = 0;
-#ifdef ECC_BCH8_OFF	
+#ifdef ECC_BCH8_OFF
 	ti81xx_nand_switch_ecc(NAND_ECC_HW, 0);
 #else
 	ti81xx_nand_switch_ecc(NAND_ECC_HW, 2);

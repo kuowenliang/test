@@ -33,11 +33,11 @@
 #define DEVICE1_NAME      "/dev/mtd2"
 #define DEVICE2_NAME      "/dev/mtd11"
 #define DEVICE1_OFFSET    0x0000
-#define ENV1_SIZE         0x4000
+#define ENV_1_SIZE         0x4000
 #define DEVICE1_ESIZE     0x20000
 #define DEVICE1_ENVSECTORS 1
 #define DEVICE2_OFFSET    0x0000
-#define ENV2_SIZE         0x4000
+#define ENV_2_SIZE         0x4000
 #define DEVICE2_ESIZE     0x20000
 #define DEVICE2_ENVSECTORS 1
 #if 0

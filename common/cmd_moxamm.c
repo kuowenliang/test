@@ -513,9 +513,9 @@ int mem_test(size_t len, unsigned int pattern, unsigned int address, int verbose
 
 		if(verbose) printf("Memory test at 0x%08X               \r", (int)(mem+i));
 
-		if((((int)(mem+i) >= PHYS_DRAM_1) && ((int)(mem+i) < (PHYS_DRAM_1+PHYS_DRAM_1_SIZE)))
+		if((((int)(mem+i) >= PHYS_DRAM_1) && ((int)(mem+i) <= (PHYS_DRAM_1+PHYS_DRAM_1_SIZE-1)))
 #ifdef PHYS_DRAM_2
-			|| (((int)(mem+i) >= PHYS_DRAM_2) && ((int)(mem+i) < (PHYS_DRAM_2+PHYS_DRAM_2_SIZE)))
+			|| (((int)(mem+i) >= PHYS_DRAM_2) && ((int)(mem+i) <= (PHYS_DRAM_2+PHYS_DRAM_2_SIZE-1)))
 #endif
 		){
 			*(mem+i) = pattern;
@@ -6069,9 +6069,9 @@ static int sdram_test_func(int parameter)
 	printf("Start address(0x%08X):0x", startAddr);
 	if(get_line(NULL, tmp, sizeof(tmp), -1, str_number_hex, NULL, NULL) > 0)
 		startAddr = (unsigned int)simple_strtoul(tmp, NULL, 16);
-	if(((startAddr >= PHYS_DRAM_1) && (startAddr < (PHYS_DRAM_1+PHYS_DRAM_1_SIZE)))
+	if(((startAddr >= PHYS_DRAM_1) && (startAddr <= (PHYS_DRAM_1+PHYS_DRAM_1_SIZE-1)))
 #ifdef PHYS_DRAM_2
-		|| ((startAddr >= PHYS_DRAM_2) && (startAddr < (PHYS_DRAM_2+PHYS_DRAM_2_SIZE)))
+		|| ((startAddr >= PHYS_DRAM_2) && (startAddr <= (PHYS_DRAM_2+PHYS_DRAM_2_SIZE-1)))
 #endif
 	){
 		printf("Test size(0x%08X):0x", len);
@@ -7023,13 +7023,13 @@ static int diag_get_Info(int parameter)
 	}
 	_PRINT_FIRST(tmp, i, j);
 	if(nand_total_size >= (1024 * 1024 * 1024)){
-		sprintf(tmp, "NAND size  : %lu GB ", nand_total_size / (1024 * 1024 * 1024));
+		sprintf(tmp, "NAND size  : %lu GB (bus:%s)", nand_total_size / (1024 * 1024 * 1024), get_sysboot_bw()==0?"8-bit":"16-bit");
 	}else if(nand_total_size >= (1024 * 1024)){
-		sprintf(tmp, "NAND size  : %lu MB ", nand_total_size / (1024 * 1024));
+		sprintf(tmp, "NAND size  : %lu MB (bus:%s)", nand_total_size / (1024 * 1024), get_sysboot_bw()==0?"8-bit":"16-bit");
 	}else if(nand_total_size >= (1024)){
-		sprintf(tmp, "NAND size  : %lu KB ", nand_total_size / (1024));
+		sprintf(tmp, "NAND size  : %lu KB (bus:%s)", nand_total_size / (1024), get_sysboot_bw()==0?"8-bit":"16-bit");
 	}else{
-		sprintf(tmp, "NAND size  : %lu Byte ", nand_total_size);
+		sprintf(tmp, "NAND size  : %lu Byte (bus:%s)", nand_total_size, get_sysboot_bw()==0?"8-bit":"16-bit");
 	}
 	_PRINT_SECOND(tmp, j);
 

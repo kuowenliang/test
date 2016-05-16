@@ -530,6 +530,12 @@
 #define ISP_NAND
 #define FLASH_TEST_SIZE 				SZ_128K
 
+//#define CONFIG_MTD_DEBUG
+//#define CONFIG_MTD_DEBUG_VERBOSE	(0)	/* Quiet   */
+//#define CONFIG_MTD_DEBUG_VERBOSE	(1)	/* Audible */
+//#define CONFIG_MTD_DEBUG_VERBOSE	(2)	/* Loud    */
+//#define CONFIG_MTD_DEBUG_VERBOSE	(3)	/* Noisy   */
+
 /*****************************************************************************/
 /*  NAND Flash Layout                                                                                                      */
 /*****************************************************************************/
@@ -591,7 +597,8 @@
 #define CONFIG2_FLASH					0x0DC80000
 #define LOG_FLASH						0x0DF80000
 #define LOG2_FLASH						0x0E280000
-#define RESERVE_FLASH					0x0E580000
+#define BACKUP_FLASH					0x0E580000
+#define RESERVE_FLASH					0x0EB80000
 
 // max. sizes
 #define UBL_SIZE						(1 * SZ_128K)
@@ -610,7 +617,8 @@
 #define CONFIG2_SIZE					(24 * SZ_128K)
 #define LOG_SIZE						(24 * SZ_128K)
 #define LOG2_SIZE						(24 * SZ_128K)
-#define RESERVE_SIZE					(212 * SZ_128K)
+#define BACKUP_SIZE						(24 * SZ_128K)
+#define RESERVE_SIZE					(188 * SZ_128K)
 
 #define TEST_FLASH						RESERVE_FLASH
 #define TEST_FLASH_SIZE					RESERVE_SIZE
@@ -634,6 +642,7 @@
 	"0x00300000@0x0DC80000(config2),"\
 	"0x00300000@0x0DF80000(log),"\
 	"0x00300000@0x0E280000(log2),"\
+	"0x00300000@0x0E580000(backup),"\
 	"-(reserved)"
 
 #else
