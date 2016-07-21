@@ -83,7 +83,11 @@
 #define DDR_CLKCTRL	0x801
 
 #define DSP_N		19
+#if defined(CONFIG_TI814X_DSP_M)
+#define DSP_M		CONFIG_TI814X_DSP_M
+#else
 #define DSP_M		500
+#endif
 #define DSP_M2		1
 #define DSP_CLKCTRL	0x801
 
@@ -107,7 +111,11 @@
 #define IVA_CLKCTRL	0x801
 
 #define ISS_N		19
+#if defined(CONFIG_TI814X_ISS_M)
+#define ISS_M		CONFIG_TI814X_ISS_M
+#else
 #define ISS_M		800
+#endif
 #ifdef CONFIG_TI813X
 #define ISS_M2		(opp_val_ti813x(4, 2))
 #else

@@ -280,7 +280,7 @@ int print_cpuinfo (void)
 	printf("L3 clk:  %dMHz\n", l3_freq);
     printf("IVA clk: %dMHz\n", iva_freq);
     printf("ISS clk: %dMHz\n", iss_freq);
-#if 1
+#if 0
     printf("DSP Default OFF\n");
 #else
 	printf("DSP clk: %dMHz\n", dsp_freq);

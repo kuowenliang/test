@@ -29,6 +29,7 @@
 #include <net.h>
 #include <miiphy.h>
 #include <netdev.h>
+#include <i2c.h>
 #ifdef CONFIG_TPS65911_I2C
 #include <tps65911.h>
 #endif
@@ -1806,6 +1807,27 @@ int Audio_HW_Reset(int bank, int pin)
 #endif
 
 #ifdef CONFIG_TPS65911_I2C
+#define TPS62355_SLAVE_ADDR		0x4b
+#define TPS62355_REG_VSEL0		0x00
+#define TPS62355_REG_VSEL1		0x01
+#define TPS62355_REG_CTRL1		0x02
+#define TPS62355_REG_CTRL2		0x03
+int tps62355_config(u8 addr, u8 val)
+{
+	int ret;
+	int old_bus;
+
+	old_bus = I2C_GET_BUS();
+	I2C_SET_BUS(0);
+	ret = i2c_write(TPS62355_SLAVE_ADDR, addr, 0x1, &val, 0x1);
+	if (ret != 0) {
+		puts ("Error writing tps62355.\n");
+	}
+	if(old_bus != 0)
+		I2C_SET_BUS(old_bus);
+	return ret;
+}
+
 static void power_control(void)
 {
 	int arm_freq, ddr_freq, dsp_freq, iva_freq, iss_freq, dss_freq;
@@ -1823,12 +1845,20 @@ static void power_control(void)
 
 	vdd1_val 	= (arm_freq>720)? VDD_1D35:((arm_freq>600)? VDD_1D2:VDD_1D1);
 	vdd2_val 	= (iva_freq>306)? VDD_1D35:((iva_freq>266)?VDD_1D2:VDD_1D1);
+#ifdef CONFIG_TPS65911_VDDCTRL_VAL
+	vddctrl_val = CONFIG_TPS65911_VDDCTRL_VAL;
+#else
 	vddctrl_val = ((iss_freq>400)||(ddr_freq>400))?VDD_1D35:VDD_1D2;
+#endif
 
 	tps65911_config(VDD1_OP_REG   	, vdd1_val);
 	tps65911_config(VDD2_OP_REG   	, vdd2_val);/*VDD_1D35*/
 	tps65911_config(VDDCRTL_OP_REG	, vddctrl_val);
 	tps65911_config(BBCH_REG      	, BBCHEN | BBSEL_3D15V);
+
+	/* TPS62355 */
+	tps62355_config(TPS62355_REG_VSEL1, 0xf0);	/* 0xf0:1.35V */
+	
 }
 
 static void show_time(void)

@@ -418,6 +418,13 @@
 #define CONFIG_SYS_CLK_FREQ			20000000
 #define CONFIG_SYS_TIMERBASE		0x4802E000
 
+#if defined(VPORT66)
+#define CONFIG_TI814X_DSP_M			750			/* overwrite DSP_M in clocks_ti814x.h */
+#define CONFIG_TI814X_ISS_M			1120		/* overwrite ISS_M in clocks_ti814x.h */
+#define CONFIG_TPS65911_VDDCTRL_VAL VDD_1D35	/* force VDDCRTL setting */
+#endif
+
+
 /*
  * NS16550 Configuration
  */
