@@ -1806,7 +1806,7 @@ int Audio_HW_Reset(int bank, int pin)
 }
 #endif
 
-#ifdef CONFIG_TPS65911_I2C
+#ifdef CONFIG_TPS62355_VAL
 #define TPS62355_SLAVE_ADDR		0x4b
 #define TPS62355_REG_VSEL0		0x00
 #define TPS62355_REG_VSEL1		0x01
@@ -1827,7 +1827,9 @@ int tps62355_config(u8 addr, u8 val)
 		I2C_SET_BUS(old_bus);
 	return ret;
 }
+#endif
 
+#ifdef CONFIG_TPS65911_I2C
 static void power_control(void)
 {
 	int arm_freq, ddr_freq, dsp_freq, iva_freq, iss_freq, dss_freq;
@@ -1856,9 +1858,11 @@ static void power_control(void)
 	tps65911_config(VDDCRTL_OP_REG	, vddctrl_val);
 	tps65911_config(BBCH_REG      	, BBCHEN | BBSEL_3D15V);
 
+#ifdef CONFIG_TPS62355_VAL
 	/* TPS62355 */
-	tps62355_config(TPS62355_REG_VSEL1, 0xf0);	/* 0xf0:1.35V */
-	
+	tps62355_config(TPS62355_REG_VSEL1, CONFIG_TPS62355_VAL);
+#endif
+
 }
 
 static void show_time(void)

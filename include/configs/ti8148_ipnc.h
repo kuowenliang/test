@@ -422,6 +422,7 @@
 #define CONFIG_TI814X_DSP_M			750			/* overwrite DSP_M in clocks_ti814x.h */
 #define CONFIG_TI814X_ISS_M			1120		/* overwrite ISS_M in clocks_ti814x.h */
 #define CONFIG_TPS65911_VDDCTRL_VAL VDD_1D35	/* force VDDCRTL setting */
+#define CONFIG_TPS62355_VAL			0xf0		/*  CORE_DSP voltage, 0xf0:1.35V */
 #endif
 
 
