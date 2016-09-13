@@ -1394,7 +1394,7 @@ void set_muxconf_regs(void)
 {
 	u32 i, add, val;
 	u32 pad_conf[] = {
-#if defined(VPORT66)
+#if defined(VPORT66) || defined(VPORTP66)
 #include "mux_vport66.h"
 #elif defined(VPORT56)
 #include "mux_vport56.h"
@@ -1423,7 +1423,7 @@ void set_muxconf_regs(void)
 /*
  * gpio init
  */
-#if defined(VPORT66)
+#if defined(VPORT66) || defined(VPORTP66)
 void gpio_init(void)
 {
 	u32  add, val;
@@ -2122,7 +2122,7 @@ int board_eth_init(bd_t *bis)
 		printf("Caution:using static MACID!! Set <ethaddr> variable\n");
 	}
 
-#ifdef VPORT66
+#if defined(VPORT66) || defined(VPORTP66)
 	if (PG1_0 != get_cpu_rev()) {
 		cpsw_slaves[0].phy_id = 0;
 		cpsw_slaves[1].phy_id = 1;

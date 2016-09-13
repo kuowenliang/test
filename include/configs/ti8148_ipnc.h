@@ -418,7 +418,7 @@
 #define CONFIG_SYS_CLK_FREQ			20000000
 #define CONFIG_SYS_TIMERBASE		0x4802E000
 
-#if defined(VPORT66)
+#if defined(VPORT66) || defined(VPORTP66)
 #define CONFIG_TI814X_DSP_M			750			/* overwrite DSP_M in clocks_ti814x.h */
 #define CONFIG_TI814X_ISS_M			1120		/* overwrite ISS_M in clocks_ti814x.h */
 #define CONFIG_TPS65911_VDDCTRL_VAL VDD_1D35	/* force VDDCRTL setting */
@@ -463,7 +463,7 @@
 
 
 #define DEFAULT_NAME				"serial"
-#if defined(VPORT66)
+#if defined(VPORT66) || defined(VPORTP66)
 #define CAMERA_NAME					"eserial2"
 #define CAMERA_BAUDRATE_ITEM		CONFIG_BAUDRATE_2_ITEM
 #define CAMERA_BAUDRATE				38400	// for Zoom camera module (MH310/MH322/MH326/MN330)
@@ -504,7 +504,7 @@
 #define CONFIG_NET_RETRY_COUNT			10
 #define CONFIG_NET_MULTI
 #define CONFIG_PHY_GMII_MODE
-#if defined(VPORT66)
+#if defined(VPORT66) || defined(VPORTP66)
 #define CONFIG_PHY_GIGE
 #undef CONFIG_PHY_GMII_MODE
 #endif
@@ -586,7 +586,7 @@
 #define TEST_FLASH						DSP2_FLASH
 #define TEST_FLASH_SIZE					DSP2_SIZE
 
-#elif defined(VPORT461A) || defined(VPORT36_2MP)
+#elif defined(VPORT461A) || defined(VPORT36_2MP) || defined(VPORTP66)
 
 // locations in NAND flash
 #define UBL_FLASH						0x00000000
@@ -766,6 +766,41 @@ extern unsigned int boot_flash_type;
 #define GPIO_SYSBUTTON_OFF	0
 
 #if defined(VPORT66)
+#define GPIO_AIC_RSTn		((0*32) + 8)	//GP0[8] (OUT) AIC_RSTn
+#define GPIO_FAN_CON		((0*32) + 14)	//GP0[14] (OUT) Fan_con
+#define GPIO_HEATERSYS_INT	((0*32) + 17)	//GP0[17] (IN) Heatersys_int
+#define GPIO_HEATER_SYS		((0*32) + 22)	//GP0[22] (OUT) Heater_sys
+#define GPIO_HEATER_CAM		((0*32) + 26)	//GP0[26] (OUT) Heater_cam
+#define GPIO_SD_WP			((0*32) + 29)	//GP0[29) (IN) SD1_WPn
+#define GPIO_SD_CD			((0*32) + 30)	//GP0[30) (IN) SD1_CDn
+#define GPIO_SD_EN			((0*32) + 31)	//GP0[31) (OUT) SD1_EN
+#define GPIO_FLASH_WP		((1*32) + 0)	//GP1[0] (OUT) FLASH_WP
+#define GPIO_HEATERCAM_INT	((1*32) + 4)	//GP1[4] (IN) Heatercam_int
+#define GPIO_SPI_CSC		((1*32) + 6)	//GP1[6] (OUT) SPI_CSC
+#define GPIO_FAN_INT		((1*32) + 7)	//GP1[7] (IN) Fan_int
+#define GPIO_MCU_RST		((2*32) + 0)	//GP2[0] (OUT) MCU_RST
+#define GPIO_FPGA_RST		((2*32) + 1)	//GP2[1] (OUT) FPGA_RST
+#define GPIO_RE_SETING		((2*32) + 21)	//GP2[21] (IN) Reset button
+#define GPIO_PHY_RESET		((2*32) + 22)	//GP2[22] (OUT) ENET_RSTn
+#define GPIO_PHY_LINKSTAT	((2*32) + 23)	//GP2[23] (IN) E_LINKSTS
+#define GPIO_CAM_RST		((2*32) + 25)	//GP2[25] (OUT) CAM_REST
+#define GPIO_RTC_INTn		((2*32) + 26)	//GP2[26] (IN) RTC_INTn
+#define GPIO_THERMAL_SOUT	((2*32) + 31)	//GP2[31] (IN) THERMAL_SOUT
+#define GPIO_ARN_IN			((3*32) + 7)	//GP3[7] (IN) DI
+#define GPIO_ARN_OUT		((3*32) + 8)	//GP3[8] (OUT) DO
+#define GPIO_LED_STATE		((3*32) + 12)	//GP3[12] (OUT) LED_G
+#define GPIO_LED_SYS		((3*32) + 13)	//GP3[13] (OUT) LED_R
+#define GPIO_FPGA_PROG		((3*32) + 17)	//GP3[17] (OUT) FPGA_PROG
+#define GPIO_SYSBUTTON		GPIO_RE_SETING
+#define GPIO_DI				GPIO_ARN_IN
+#define GPIO_DO				GPIO_ARN_OUT
+#define GPIO_SYSLED_GREEN	GPIO_LED_STATE
+#define GPIO_SYSLED_RED		GPIO_LED_SYS
+#undef GPIO_SYSBUTTON_ON
+#undef GPIO_SYSBUTTON_OFF
+#define GPIO_SYSBUTTON_ON	0
+#define GPIO_SYSBUTTON_OFF	1
+#elif defined(VPORTP66)
 #define GPIO_AIC_RSTn		((0*32) + 8)	//GP0[8] (OUT) AIC_RSTn
 #define GPIO_FAN_CON		((0*32) + 14)	//GP0[14] (OUT) Fan_con
 #define GPIO_HEATERSYS_INT	((0*32) + 17)	//GP0[17] (IN) Heatersys_int

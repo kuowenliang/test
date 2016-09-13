@@ -250,7 +250,9 @@
 #define DDR2_EMIF_SDRAM_CONFIG		0x40801AB2
 #define DDR2_EMIF_SDRAM_ZQCR		0x50074BE1
 
-#ifdef CONFIG_TI813X
+/*===================================================================================================*/
+#ifdef CONFIG_TI813X	
+/*===================================================================================================*/
 /* select the DDR3 Freq and timing paramets */
 #define CONFIG_TI813X_DDR3_400 /* Values supported 400,533 */
 
@@ -276,7 +278,9 @@
 #define DDR3_EMIF_SDRAM_ZQCR		0x50074BE1
 #endif
 
-#elif defined(CONFIG_DM385)
+/*===================================================================================================*/
+#elif defined(CONFIG_DM385)	
+/*===================================================================================================*/
 
 /* DM385 DDR3 EMIF CFG Registers values 533MHz */
 #if defined(CONFIG_DM385_DDR3_533)
@@ -375,7 +379,10 @@
 /*******************************************************/
 #endif
 
+/*===================================================================================================*/
 #elif defined(CONFIG_TI811X)
+/*===================================================================================================*/
+
 /* TI811X DDR3 EMIF CFG Registers values 400MHz */
 #define DDR3_EMIF_READ_LATENCY		0x00170209
 #define DDR3_EMIF_TIM1				0x0AAAD4DB
@@ -384,22 +391,41 @@
 #define DDR3_EMIF_REF_CTRL			0x00000C30
 #define DDR3_EMIF_SDRAM_CONFIG		0x61C011B2
 #define DDR3_EMIF_SDRAM_ZQCR		0x50074BE1
-#else
+
+/*===================================================================================================*/
+#else	
+/*===================================================================================================*/
+
 /* TI814X DDR3 EMIF CFG Registers values 400MHz */
+#if defined(CONFIG_TI814X_DDR3_4Gb)
 #define DDR3_EMIF_READ_LATENCY		0x00170208		//RD_ODT=0x2, IDLE_ODT=0x0, Dynamic power_down enabled
 #define DDR3_EMIF_TIM1				0x0AAAD4DB
 #define DDR3_EMIF_TIM2				0x682F7FDA
-#if defined(CONFIG_TI814X_DDR3_4Gb)
-#define DDR3_EMIF_TIM3				0x501F867F //Yosun, for 4Gb(tRFC=260@400MHz)
+#define DDR3_EMIF_TIM3				0x501F867F		//Yosun, for 4Gb(tRFC=260@400MHz)
+#define DDR3_EMIF_REF_CTRL			0x00000C30
+#define DDR3_EMIF_SDRAM_CONFIG		0x61C011B2
+#define DDR3_EMIF_SDRAM_ZQCR		0x50074BE1
 #elif defined(CONFIG_TI814X_DDR3_2Gb)
-#define DDR3_EMIF_TIM3				0x501F83FF //Yosun, for 2Gb(tRFC=160@400MHz)
+#define DDR3_EMIF_READ_LATENCY		0x00170208		//RD_ODT=0x2, IDLE_ODT=0x0, Dynamic power_down enabled
+#define DDR3_EMIF_TIM1				0x0AAAD4DB
+#define DDR3_EMIF_TIM2				0x682F7FDA
+#define DDR3_EMIF_TIM3				0x501F83FF		//Yosun, for 2Gb(tRFC=160@400MHz)
+#define DDR3_EMIF_REF_CTRL			0x00000C30
+#define DDR3_EMIF_SDRAM_CONFIG		0x61C011B2
+#define DDR3_EMIF_SDRAM_ZQCR		0x50074BE1
 #else
-#define DDR3_EMIF_TIM3				0x501F82BF //Yosun, for 1Gb(tRFC=110@400MHz)
-#endif
+#define DDR3_EMIF_READ_LATENCY		0x00170208		//RD_ODT=0x2, IDLE_ODT=0x0, Dynamic power_down enabled
+#define DDR3_EMIF_TIM1				0x0AAAD4DB
+#define DDR3_EMIF_TIM2				0x682F7FDA
+#define DDR3_EMIF_TIM3				0x501F82BF		//Yosun, for 1Gb(tRFC=110@400MHz)
 #define DDR3_EMIF_REF_CTRL			0x00000C30
 #define DDR3_EMIF_SDRAM_CONFIG		0x61C011B2
 #define DDR3_EMIF_SDRAM_ZQCR		0x50074BE1
 #endif
+
+/*===================================================================================================*/
+#endif	
+/*===================================================================================================*/
 
 /*
  * TI814X PG1.0 DMM LISA MAPPING
