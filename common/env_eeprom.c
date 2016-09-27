@@ -32,6 +32,9 @@
 #include <i2c.h>
 #endif
 
+
+
+
 #ifdef CONFIG_ENV_OFFSET_REDUND
 #define ACTIVE_FLAG   1
 #define OBSOLETE_FLAG 0

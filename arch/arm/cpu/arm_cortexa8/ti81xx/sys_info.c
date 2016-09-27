@@ -280,10 +280,10 @@ int print_cpuinfo (void)
 	printf("L3 clk:  %dMHz\n", l3_freq);
     printf("IVA clk: %dMHz\n", iva_freq);
     printf("ISS clk: %dMHz\n", iss_freq);
-#if 0
-    printf("DSP Default OFF\n");
+#if defined(CONFIG_TI814X_DSP_M)
+    printf("DSP clk: %dMHz\n", dsp_freq);
 #else
-	printf("DSP clk: %dMHz\n", dsp_freq);
+    printf("DSP Default OFF\n");
 #endif
 #if	1
     printf("DSS Default OFF\n");

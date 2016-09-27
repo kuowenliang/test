@@ -339,6 +339,15 @@
 
 /* Hardware related */
 
+//wensen VPort06EC-2
+#if defined(VPORT06EC_2V)
+#define G_SENSOR_ADDR				0x53
+#define PM_IC_ADDR					0x2D
+#define HUMIDITY_SENSOR_ADDR		0x40
+#define AR0331_ADDR					0x20
+#define SN65LVDS324					0x2D
+#endif
+
 /* Light Sensor Configuration */
 #define LIGHT_SENSOR_ADDR			0x39
 
@@ -585,6 +594,9 @@ extern unsigned int boot_flash_type;
 
 #define GPIO_SYSBUTTON		GPIO_RE_SETING
 #define GPIO_DI				GPIO_ARN_IN
+#if defined(VPORT06EC_2V)
+#define GPIO_DO				GPIO_IR_LED
+#endif
 #define GPIO_SYSLED_GREEN	GPIO_LED_STATE
 #define GPIO_SYSLED_RED		GPIO_LED_SYS
 #define GPIO_SYSLED_CONTROL	GPIO_LED_CONTROL
@@ -680,6 +692,50 @@ extern unsigned int boot_flash_type;
 #define CONFIG_SYS_I2C_BUS_SELECT		1
 #define CONFIG_DRIVER_TI81XX_I2C		1
 
+#if defined(VPORT06EC_2V)
+
+//#define CONFIG_RTC_ISL1208				1
+#define CONFIG_RTC_MCP7941X				1
+#define CONFIG_SYS_I2C_RTC_ADDR			0x6f
+#define CONFIG_RTC_CALIBRATION			0
+#define RTC_REG_CALIBRATION				0x08
+#define RTC_REG_VBT						0x03
+//#define DEBUG_RTC
+
+/* EEPROM definitions */
+
+#define CONFIG_SYS_I2C_EEPROM_ADDR_LEN			1
+#define CONFIG_SYS_I2C_EEPROM_ADDR				0x57
+#define CONFIG_SYS_EEPROM_PAGE_WRITE_BITS		6
+#define CONFIG_SYS_EEPROM_PAGE_WRITE_DELAY_MS	20
+
+#define CONFIG_SYS_I2C_EEPROM	1
+#define EEPROM_DATA_TOTAL_SIZE	128
+#define EEPROM_DATA_PAGE_SIZE	8
+
+#define EEPROM_DATA_PROFILE_ID  "pf="
+#define EEPROM_DATA_PROFILE_POS 0
+#define EEPROM_DATA_PROFILE_LEN 8
+
+#define EEPROM_DATA_MODELNAME_ID  "=md="
+#define EEPROM_DATA_MODELNAME_POS 8
+#define EEPROM_DATA_MODELNAME_LEN 64
+
+#define EEPROM_DATA_MAC_ID  "=ma="
+#define EEPROM_DATA_MAC_POS 72
+#define EEPROM_DATA_MAC_LEN 10
+
+#define EEPROM_DATA_SERIAL_ID  "=sn="
+#define EEPROM_DATA_SERIAL_POS 82
+#define EEPROM_DATA_SERIAL_LEN 16
+
+#define EEPROM_DATA_MPFLAG_ID  "=mf="
+#define EEPROM_DATA_MPFLAG_POS 98
+#define EEPROM_DATA_MPFLAG_LEN 6
+
+#else
+
+
 #define CONFIG_RTC_ISL1208				1
 #define CONFIG_SYS_I2C_RTC_ADDR			0x6f
 //#define DEBUG_RTC
@@ -689,6 +745,7 @@ extern unsigned int boot_flash_type;
 #define CONFIG_SYS_I2C_EEPROM_ADDR				0x50
 #define CONFIG_SYS_EEPROM_PAGE_WRITE_BITS		6
 #define CONFIG_SYS_EEPROM_PAGE_WRITE_DELAY_MS	20
+#endif
 
 #endif
 

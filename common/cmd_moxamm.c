@@ -85,6 +85,13 @@ extern int GPIO_In(int gpio_num);
 extern void GPIO_Out(int gpio_num, int value);
 extern int GPIO_OutStat(int gpio_num);
 
+#if CONFIG_SYS_I2C_EEPROM
+static char g_model_name[EEPROM_DATA_MODELNAME_LEN + 1] = {0};
+static char g_mac_addr[18] = {0};
+static char g_serial_str[EEPROM_DATA_SERIAL_LEN + 1] = {0};
+static unsigned short g_mp_flag = 0;
+#endif
+
 int resetkey_state(void)
 {
 #ifdef GPIO_SYSBUTTON
@@ -236,9 +243,12 @@ void Heater_Cam_OFF(void)
 }
 
 #ifdef CONFIG_ETHADDR
+#if !CONFIG_SYS_I2C_EEPROM
 extern int env_get_ethaddr(char **mac);
 extern int env_set_ethaddr(char *mac);
 #endif
+#endif
+
 #ifdef CONFIG_IPADDR
 extern int env_get_ipaddr(char **ip);
 extern int env_set_ipaddr(char *ip);
@@ -255,10 +265,14 @@ extern int env_set_netmask(char *ip);
 extern int env_get_baudrate(unsigned int *rate);
 extern int env_set_baudrate(unsigned int rate);
 #endif
+
 #ifdef CONFIG_MP_FLAG
+#if !CONFIG_SYS_I2C_EEPROM
 extern int env_get_mp_flag(int *flag);
 extern int env_set_mp_flag(int flag);
 #endif
+#endif
+
 #ifdef CONFIG_IVA_FLAG
 extern int env_get_iva_flag(int *flag);
 extern int env_set_iva_flag(int flag);
@@ -271,10 +285,14 @@ extern int env_set_burnintime(unsigned int time);
 extern int env_get_t2_bootup_counter(unsigned int *counter);
 extern int env_set_t2_bootup_counter(unsigned int counter);
 #endif
+
 #ifdef CONFIG_SERIAL_NUMBER
+#if !CONFIG_SYS_I2C_EEPROM
 extern int env_get_serial_number(char **number);
 extern int env_set_serial_number(char *number);
 #endif
+#endif
+
 #ifdef CONFIG_DUT_ID
 extern int env_get_dut_id(char **id);
 extern int env_set_dut_id(char *id);
@@ -287,10 +305,14 @@ extern int env_set_fw_recovery(unsigned int rcv);
 extern int env_get_fw_recovery_file(char **file);
 extern int env_set_fw_recovery_file(char *file);
 #endif
+
 #ifdef CONFIG_DUT_MODEL
+#if !CONFIG_SYS_I2C_EEPROM
 extern int env_get_model(char **model);
 extern int env_set_model(char *model);
 #endif
+#endif
+
 #ifdef CONFIG_DUT_HOST
 extern int env_get_host(char **host);
 extern int env_set_host(char *host);
@@ -602,6 +624,438 @@ U_BOOT_CMD(
 	gpio [index][set_value]"
 );
 
+#if CONFIG_SYS_I2C_EEPROM
+//wensen for VPort06EC-2
+int EEPROM_Dump(void)
+{
+	uchar chip;
+	uint addr;
+	int alen = 1;
+	uchar value[EEPROM_DATA_PAGE_SIZE];
+	int len;
+	int i, j;
+
+	alen = CONFIG_SYS_I2C_EEPROM_ADDR_LEN;
+	chip = CONFIG_SYS_I2C_EEPROM_ADDR;
+	addr = EEPROM_DATA_MODELNAME_POS;
+	len = EEPROM_DATA_TOTAL_SIZE;
+
+	printf("Dumping eeprom from Page %d\n", 0);
+	printf("--------------------------------\n");
+	printf("0x| 00 01 02 03 04 05 06 07 08 |\n");
+	printf("--------------------------------\n");
+	for (i = 0; i < (EEPROM_DATA_TOTAL_SIZE / EEPROM_DATA_PAGE_SIZE); i++)
+	{
+		printf("%02X| ", (i * EEPROM_DATA_PAGE_SIZE));
+		addr = (i * EEPROM_DATA_PAGE_SIZE);
+		if (i2c_read(chip, addr, alen, value, EEPROM_DATA_PAGE_SIZE))
+		{
+			printf("Failed to read I2C bus.\n");
+			return DIAG_ERROR;
+		}
+
+		for (j = 0; j < EEPROM_DATA_PAGE_SIZE; j++)
+		{
+			printf("%02X ", value[j]);
+    	}
+		printf("|");
+
+		for (j = 0; j < EEPROM_DATA_PAGE_SIZE; j++)
+		{
+			if ((value[j] > 0x1f) &&
+				(value[j] < 0x7f))
+			{
+				printf("%c", value[j]);
+			}
+			else
+			{
+				printf(".");
+			}
+		}
+		printf("|\n");
+
+		udelay(1000);
+	}
+
+	return DIAG_OK;
+}
+
+
+
+//-----------------------------------------------------------------------------
+int EEPROM_SetProfile(void)
+{
+	uchar chip;
+	uint addr;
+	int alen = 0;
+	uchar profile[EEPROM_DATA_PROFILE_LEN + 1] = {0};
+	int len;
+	int i;
+
+	chip = CONFIG_SYS_I2C_EEPROM_ADDR;
+	addr = EEPROM_DATA_PROFILE_POS;
+	len = EEPROM_DATA_PROFILE_LEN;
+	alen = CONFIG_SYS_I2C_EEPROM_ADDR_LEN;
+
+	if (i2c_read(chip, addr, alen, profile, len))
+	{
+		printf("Failed : %s : read I2C bus.\n", __func__);
+		return DIAG_ERROR;
+	}
+
+	if (strncmp(profile, EEPROM_DATA_PROFILE_ID, strlen(EEPROM_DATA_PROFILE_ID)) == 0)
+	{
+		return DIAG_OK;
+	}
+
+	chip = CONFIG_SYS_I2C_EEPROM_ADDR;
+	addr = EEPROM_DATA_PROFILE_POS;
+	sprintf(profile, "%s", EEPROM_DATA_PROFILE_ID);
+	profile[strlen(EEPROM_DATA_PROFILE_ID)] = 0x01;
+	profile[strlen(EEPROM_DATA_PROFILE_ID) + 1] = ((EEPROM_DATA_TOTAL_SIZE >> 8) & 0xff);
+	profile[strlen(EEPROM_DATA_PROFILE_ID) + 2] = (EEPROM_DATA_TOTAL_SIZE & 0xff);
+	len = EEPROM_DATA_PROFILE_LEN;
+	alen = CONFIG_SYS_I2C_EEPROM_ADDR_LEN;
+
+	for (i = 0; i < len; i++)
+	{
+		if (i2c_write(chip, addr++, alen, &profile[i], 1))
+		{
+			printf("Failed to write I2C bus.\n");
+			return DIAG_ERROR;
+		}
+		udelay(1000);
+	}
+
+	return DIAG_OK;
+}
+
+//---------------------------------------------------------------------------
+int EEPROM_GetModelName(char *modelname)
+{
+	uchar chip;
+	uint addr;
+	int alen;
+	int len;
+	int i;
+	char temp[10];
+	int total_len = 0;
+
+	chip = CONFIG_SYS_I2C_EEPROM_ADDR;
+	addr = EEPROM_DATA_MODELNAME_POS;
+	//len = EEPROM_DATA_MODELNAME_LEN;
+	alen = CONFIG_SYS_I2C_EEPROM_ADDR_LEN;
+
+	while (total_len < EEPROM_DATA_MODELNAME_LEN)
+	{
+		if ((EEPROM_DATA_MODELNAME_LEN - total_len) > 10)
+		{
+			len = 10;
+		}
+		else
+		{
+			len = EEPROM_DATA_MODELNAME_LEN - total_len;
+		}
+		if (i2c_read(chip, addr + total_len, alen, temp, len))
+		{
+			printf("Failed : %s : read I2C bus.\n", __func__);
+			return DIAG_ERROR;
+		}
+
+		memcpy(modelname + total_len, temp, len);
+
+		for (i = 0; i < len; i++)
+		{
+			if (temp[i] == 0x00)
+			{
+				break;
+			}
+		}
+		if (i != len)
+		{
+			break;
+		}
+
+
+		total_len = total_len + len;
+	}
+
+	strcpy(modelname, modelname + strlen(EEPROM_DATA_MODELNAME_ID));
+
+	return DIAG_OK;
+}
+
+int EEPROM_SetModelName(char *modelname)
+{
+	uchar chip;
+	uint addr;
+	int alen = 0;
+	uchar value[EEPROM_DATA_MODELNAME_LEN + 1] = {0};
+	int len;
+	int i;
+
+	if (strlen(modelname) > (EEPROM_DATA_MODELNAME_LEN - strlen(EEPROM_DATA_MODELNAME_ID)))
+	{
+		printf("The model name shall be shorter than 60 bytes\n");
+	}
+
+	chip = CONFIG_SYS_I2C_EEPROM_ADDR;
+	addr = EEPROM_DATA_MODELNAME_POS;
+	sprintf(value, "%s%s", EEPROM_DATA_MODELNAME_ID, modelname);
+	len = EEPROM_DATA_MODELNAME_LEN;
+	alen = CONFIG_SYS_I2C_EEPROM_ADDR_LEN;
+
+	for (i = 0; i < len; i++)
+	{
+		if (i2c_write(chip, addr++, alen, &value[i], 1))
+		{
+			printf("Failed to write I2C bus.\n");
+			return DIAG_ERROR;
+		}
+		udelay(1000);
+	}
+
+	return DIAG_OK;
+}
+
+//-----------------------------------------------------------------------------
+int EEPROM_GetMac(char *mac)
+{
+	uchar chip;
+	uint addr;
+	int alen;
+	int len;
+	int i;
+	uchar mac_str[EEPROM_DATA_MAC_LEN] = {0};
+	uchar mac_addr[6] = {0};
+
+	chip = CONFIG_SYS_I2C_EEPROM_ADDR;
+	addr = EEPROM_DATA_MAC_POS;
+	len = EEPROM_DATA_MAC_LEN;
+	alen = CONFIG_SYS_I2C_EEPROM_ADDR_LEN;
+
+	if (i2c_read(chip, addr, alen, mac_str, len))
+	{
+		printf("Failed : %s : read I2C bus.\n", __func__);
+		return DIAG_ERROR;
+	}
+
+	for (i = 0; i < 6; i++)
+	{
+		mac_addr[i] = mac_str[strlen(EEPROM_DATA_MAC_ID) + i];
+	}
+
+	sprintf(mac, "%02x:%02x:%02x:%02x:%02x:%02x", mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+
+	return DIAG_OK;
+}
+
+int EEPROM_SetMac(char *mac)
+{
+	uchar chip;
+	uint addr;
+	int alen = 0;
+	uchar mac_addr[6] = {0};
+	uchar value[EEPROM_DATA_MAC_LEN] = {0};
+	int len;
+	int i;
+	int mac_addr_idx = 0;
+	int ret = 0;
+	uchar temp, temp1;
+
+	i = 0;
+	while (1)
+	{
+		temp = mac[i++];
+		if ((temp >= 0x30) && temp <= 0x39)
+		{
+			temp = temp - 0x30;
+		}
+		else if ((temp >= 0x41) && temp <= 0x46)
+		{
+			temp = temp - 0x41 + 10;
+		}
+		else if ((temp >= 0x61) && temp <= 0x66)
+		{
+			temp = temp - 0x61 + 10;
+		}
+		else
+		{
+			return -1;
+		}
+
+		temp1 = mac[i++];
+		if ((temp1 >= 0x30) && temp1 <= 0x39)
+		{
+			temp1 = temp1 - 0x30;
+		}
+		else if ((temp1 >= 0x41) && temp1 <= 0x46)
+		{
+			temp1 = temp1 - 0x41 + 10;
+		}
+		else if ((temp1 >= 0x61) && temp1 <= 0x66)
+		{
+			temp1 = temp1 - 0x61 + 10;
+		}
+		else
+		{
+			return -1;
+		}
+
+		if (mac[i++] == ':' || i > strlen(mac))
+		{
+			mac_addr[mac_addr_idx] = (temp << 4) + temp1;
+			mac_addr_idx++;
+		}
+
+		if (mac_addr_idx == 6)
+		{
+			break;
+		}
+	}
+
+	chip = CONFIG_SYS_I2C_EEPROM_ADDR;
+	addr = EEPROM_DATA_MAC_POS;
+	len = EEPROM_DATA_MAC_LEN;
+	alen = CONFIG_SYS_I2C_EEPROM_ADDR_LEN;
+
+	sprintf(value, "%s", EEPROM_DATA_MAC_ID);
+	for (i = 0; i < 6; i++)
+	{
+		value[i + strlen(EEPROM_DATA_MAC_ID)] = mac_addr[i];
+	}
+
+	for (i = 0; i < len; i++)
+	{
+		if (i2c_write(chip, addr++, alen, &value[i], 1))
+		{
+			printf("Failed to write I2C bus.\n");
+			return DIAG_ERROR;
+		}
+		udelay(1000);
+	}
+
+	return DIAG_OK;
+}
+
+//-----------------------------------------------------------------------------
+int EEPROM_GetSerial(char *serial_str)
+{
+	uchar chip;
+	uint addr;
+	int alen;
+	int len;
+	int i;
+
+	chip = CONFIG_SYS_I2C_EEPROM_ADDR;
+	addr = EEPROM_DATA_SERIAL_POS;
+	len = EEPROM_DATA_SERIAL_LEN;
+	alen = CONFIG_SYS_I2C_EEPROM_ADDR_LEN;
+
+	if (i2c_read(chip, addr, alen, serial_str, len))
+	{
+		printf("Failed : %s : read I2C bus.\n", __func__);
+		return DIAG_ERROR;
+	}
+
+	strcpy(serial_str, serial_str + strlen(EEPROM_DATA_SERIAL_ID));
+
+	return DIAG_OK;
+}
+
+int EEPROM_SetSerial(char *serial_str)
+{
+	uchar chip;
+	uint addr;
+	int alen = 0;
+	uchar value[EEPROM_DATA_SERIAL_LEN + 1] = {0};
+	int len;
+	int i;
+
+	if (strlen(serial_str) > (EEPROM_DATA_SERIAL_LEN - strlen(EEPROM_DATA_SERIAL_ID)))
+	{
+		printf("The model name shall be shorter than 12 bytes\n");
+	}
+
+
+	chip = CONFIG_SYS_I2C_EEPROM_ADDR;
+	addr = EEPROM_DATA_SERIAL_POS;
+	sprintf(value, "%s%s", EEPROM_DATA_SERIAL_ID, serial_str);
+	len = EEPROM_DATA_SERIAL_LEN;
+	alen = CONFIG_SYS_I2C_EEPROM_ADDR_LEN;
+
+	for (i = 0; i < len; i++)
+	{
+		if (i2c_write(chip, addr++, alen, &value[i], 1))
+		{
+			printf("Failed to write I2C bus.\n");
+			return DIAG_ERROR;
+		}
+		udelay(1000);
+	}
+
+	return DIAG_OK;
+}
+
+//---------------------------------------------------------------------------
+int EEPROM_GetMpFlag(unsigned short *mpflag)
+{
+	uchar chip;
+	uint addr;
+	int alen;
+	int len;
+	int i;
+	uchar value[EEPROM_DATA_MPFLAG_LEN + 1] = {0};
+
+	chip = CONFIG_SYS_I2C_EEPROM_ADDR;
+	addr = EEPROM_DATA_MPFLAG_POS;
+	len = EEPROM_DATA_MPFLAG_LEN;
+	alen = CONFIG_SYS_I2C_EEPROM_ADDR_LEN;
+
+	if (i2c_read(chip, addr, alen, value, len))
+	{
+		printf("Failed : %s : read I2C bus.\n", __func__);
+		return DIAG_ERROR;
+	}
+
+	*mpflag = (value[strlen(EEPROM_DATA_MPFLAG_ID)] << 8) + value[strlen(EEPROM_DATA_MPFLAG_ID) + 1];
+
+	return DIAG_OK;
+}
+
+int EEPROM_SetMpFlag(unsigned short mpflag)
+{
+	uchar chip;
+	uint addr;
+	int alen = 0;
+	uchar value[EEPROM_DATA_MPFLAG_LEN + 1] = {0};
+	int len;
+	int i;
+
+	chip = CONFIG_SYS_I2C_EEPROM_ADDR;
+	addr = EEPROM_DATA_MPFLAG_POS;
+	sprintf(value, "%s", EEPROM_DATA_MPFLAG_ID);
+	len = EEPROM_DATA_MPFLAG_LEN;
+	alen = CONFIG_SYS_I2C_EEPROM_ADDR_LEN;
+
+	value[strlen(EEPROM_DATA_MPFLAG_ID)] = ((mpflag >> 8) & 0xff);
+	value[strlen(EEPROM_DATA_MPFLAG_ID) + 1] = (mpflag & 0xff);
+
+	for (i = 0; i < len; i++)
+	{
+		if (i2c_write(chip, addr++, alen, &value[i], 1))
+		{
+			printf("Failed to write I2C bus.\n");
+			return DIAG_ERROR;
+		}
+		udelay(1000);
+	}
+
+	return DIAG_OK;
+}
+
+#endif
+
 int SD_init(void)
 {
 	struct mmc *mmc;
@@ -625,7 +1079,6 @@ long load_image(cmd_tbl_t *cmdtp, int flag, char* mode, char* file, ulong buff_a
 	char *args[5];
 	char buffAddr[11];//0xffffffff
 	char baudRate[7];//112500
-	char *ptr;
 	int size = 0;
 	if(mode == NULL || buff_addr == 0) return -1;
 	sprintf(buffAddr, "0x%08lx", buff_addr);
@@ -950,7 +1403,6 @@ int get_ubl_info(int *majorVer, int *minorVer, int *cvVer, int *ubootIdx)
 
 int do_loadfw (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
-	char cmd[3];
 	long size = 0;
 	if( (argc < 2) || ( (argc < 3) && (strcmp(argv[1], "tftp") == 0))){
 		printf ("Usage:\n%s\n", cmdtp->usage);
@@ -1555,7 +2007,7 @@ int parseIniValue(char* dest, char* src, const char* section, const char* item)
 {
 	char *ptr, *ptr1, *ptr2;
 	char tmp[64];
-	int i = 0;
+
 	if(dest == NULL || src == NULL || section == NULL || item == NULL) return -1;
 	sprintf(tmp, "[%s]", section);
 	if((ptr = strstr(src, tmp)) != NULL){
@@ -2005,9 +2457,7 @@ int ispnand_from_mmc(int mmc_part, char* file)
 	char buff[1024];
 	char tmp[64];
 	char mmc[5];
-	char *ptr, *ptr1, *ptr2;
 	cmd_tbl_t cmd_tmp;
-	bool do_saveenv = false;
 	int size = 0;
 	int i = 0;
 	int count = 1;
@@ -2159,19 +2609,57 @@ static int MM_Set_MP_Flag_Manual(int parameter);
 
 int Set_MP_Flag(int mpFlag)
 {
-	if(env_set_mp_flag(mpFlag) < 0){
-		return -1;
+
+#if CONFIG_SYS_I2C_EEPROM
+
+	if (EEPROM_SetMpFlag(mpFlag) < 0)
+	{
+		printf("Set MP Flag to EEPROM Failed!!\n");
+		return DIAG_ERROR;
 	}
+	else
+	{
+		EEPROM_GetMpFlag(&g_mp_flag);
+	}
+
+#else
+
+	if (env_set_mp_flag(mpFlag) < 0)
+	{
+		printf("Set MP Flag to flash Failed!!\n");
+		return DIAG_ERROR;
+	}
+
+#endif
+
 	return 0;
 }
 
 int Get_MP_Flag(int *mpFlag)
 {
-	if(env_get_mp_flag(mpFlag) < 0){
+
+#if CONFIG_SYS_I2C_EEPROM
+
+	if (EEPROM_GetMpFlag(&g_mp_flag) < 0)
+	{
 		*mpFlag = CONFIG_MP_FLAG;
-		printf("Read Fail, use default vlaue.\n");
+		printf("Get MP Flag from EEPROM Failed!!, use default vlaue.\n");
 		return -1;
 	}
+
+	*mpFlag = g_mp_flag;
+
+#else
+
+	if (env_get_mp_flag(mpFlag) < 0)
+	{
+		*mpFlag = CONFIG_MP_FLAG;
+		printf("Get MP Flag from FLASH Failed!!, use default vlaue.\n");
+		return -1;
+	}
+
+#endif
+
 	return 0;
 }
 
@@ -2196,20 +2684,26 @@ char* Get_MP_Flag_String(int mpFlag)
 static int MM_Set_MP_Flag(int parameter)
 {
 	printf("Set MP Flag = 0x%03x (%s)\n", parameter, Get_MP_Flag_String(parameter));
-	if(Set_MP_Flag(parameter) < 0){
+
+	if (Set_MP_Flag(parameter) < 0)
+	{
 		printf("Set MP Flag Failed!!\n");
 		return -1;
 	}
+
 	return 0;
 }
 
 static int MM_Get_MP_Flag(int parameter)
 {
 	int rs = 0;
-	if(Get_MP_Flag(&rs) < 0){
+
+	if (Get_MP_Flag(&rs) < 0)
+	{
 		printf("Get MP Flag Failed!!\n");
 		return -1;
 	}
+
 	printf("Get MP Flag = 0x%03x (%s)\n", rs, Get_MP_Flag_String(rs));
 	return 0;
 }
@@ -2218,13 +2712,21 @@ static int MM_Set_MP_Flag_Manual(int parameter)
 {
 	int data;
 	char tmp[5];
-	if(get_line("MP Flag:0x", tmp, sizeof(tmp), -1, NULL, NULL, NULL) <= 0 ) return DIAG_ERROR;
+
+	if (get_line("MP Flag:0x", tmp, sizeof(tmp), -1, NULL, NULL, NULL) <= 0 )
+	{
+		return DIAG_ERROR;
+	}
+
 	data = (int)simple_strtoul(tmp, NULL, 16);
 	printf("Set MP Flag = 0x%03x (%s)\n", data, Get_MP_Flag_String(data));
-	if(Set_MP_Flag(data) < 0){
+
+	if (Set_MP_Flag(data) < 0)
+	{
 		printf("Set MP Flag Failed!!\n");
 		return -1;
 	}
+
 	return 0;
 }
 
@@ -2373,28 +2875,74 @@ static int MM_Set_T2_Bootup_Counter(int parameter)
 #ifdef CONFIG_SERIAL_NUMBER
 static int MM_Get_Serial_Number(int parameter)
 {
+#if CONFIG_SYS_I2C_EEPROM
+
+	if (EEPROM_GetSerial(&g_serial_str))
+	{
+		printf("Get Serial Number from EEPROM Failed!!\n");
+		return DIAG_ERROR;
+	}
+	else
+	{
+		printf("Serial Number from EEPROM: %s\n", g_serial_str);
+	}
+
+#else
+
 	char *tmp;
-	if(env_get_serial_number(&tmp)){
+
+	if (env_get_serial_number(&tmp))
+	{
 		printf("Get Serial Number Failed!!\n");
 		return DIAG_ERROR;
-	}else{
-		printf("Serial Number: %s\n", tmp);
-		return DIAG_OK;
 	}
+	else
+	{
+		printf("Serial Number: %s\n", tmp);
+	}
+
+#endif
+
+	return DIAG_OK;
 }
 
 static int MM_Set_Serial_Number(int parameter)
 {
 	char tmp[14];
 	memset(tmp, 0, sizeof(tmp));
-	if(get_line("Set Serial Number:", tmp, sizeof(tmp), -1, str_menu_operate, NULL, NULL) <= 0 ) return DIAG_ERROR;
-	if(env_set_serial_number(tmp)){
+	if (get_line("Set Serial Number:", tmp, sizeof(tmp), -1, str_menu_operate, NULL, NULL) <= 0)
+	{
+		return DIAG_ERROR;
+	}
+
+#if CONFIG_SYS_I2C_EEPROM
+
+	if (EEPROM_SetSerial(tmp))
+	{
+		printf("Set Serial Number to EEPROM Failed!!\n");
+		return DIAG_ERROR;
+	}
+	else
+	{
+		EEPROM_GetSerial(&g_serial_str);
+		printf("Set Serial Number to EEPROM Successed.\n");
+	}
+
+#else
+
+	if (env_set_serial_number(tmp))
+	{
 		printf("Set Serial Number Failed!!\n");
 		return DIAG_ERROR;
-	}else{
+	}
+	else
+	{
 		printf("Set Serial Number Successed.\n");
 		return DIAG_OK;
 	}
+
+#endif
+
 }
 #endif
 
@@ -2489,28 +3037,75 @@ static int MM_Set_IVA_Flag(int parameter)
 #ifdef CONFIG_DUT_MODEL
 static int MM_Get_Model(int parameter)
 {
+#if CONFIG_SYS_I2C_EEPROM
+
+	if (EEPROM_GetModelName(&g_model_name))
+	{
+		printf("Get Model Name from EEPROM Failed!!\n");
+		return DIAG_ERROR;
+	}
+	else
+	{
+		printf("Model Name from EEPROM: %s\n", g_model_name);
+	}
+
+#else
+
 	char *tmp;
-	if(env_get_model(&tmp)){
+
+	if (env_get_model(&tmp))
+	{
 		printf("Get Model Name Failed!!\n");
 		return DIAG_ERROR;
-	}else{
-		printf("Model Name: %s\n", tmp);
-		return DIAG_OK;
 	}
+	else
+	{
+		printf("Model Name: %s\n", tmp);
+	}
+
+#endif
+
+	return DIAG_OK;
 }
 
 static int MM_Set_Model(int parameter)
 {
 	char tmp[62];
 	memset(tmp, 0, sizeof(tmp));
-	if(get_line("Set Model Name:", tmp, sizeof(tmp), -1, NULL, NULL, NULL) <= 0 ) return DIAG_ERROR;
-	if(env_set_model(tmp)){
+	if (get_line("Set Model Name:", tmp, sizeof(tmp), -1, NULL, NULL, NULL) <= 0)
+	{
+		return DIAG_ERROR;
+	}
+
+#if CONFIG_SYS_I2C_EEPROM
+
+	EEPROM_SetProfile();
+
+	if (EEPROM_SetModelName(tmp))
+	{
+		printf("Set Model Name to EEPROM Failed!!\n");
+		return DIAG_ERROR;
+	}
+	else
+	{
+		EEPROM_GetModelName(&g_model_name);
+		printf("Set Model Name to EEPROM Successed.\n");
+	}
+
+#else
+
+	if (env_set_model(tmp))
+	{
 		printf("Set Model Name Failed!!\n");
 		return DIAG_ERROR;
-	}else{
+	}
+	else
+	{
 		printf("Set Model Name Successed.\n");
 		return DIAG_OK;
 	}
+
+#endif
 }
 #endif
 
@@ -2637,14 +3232,34 @@ static int EnvConfig_Default(int parameter)
 #ifdef CONFIG_ETHADDR
 static int EnvConfig_get_MAC(int parameter)
 {
+#if CONFIG_SYS_I2C_EEPROM
+
+	if (EEPROM_GetMac(&g_mac_addr))
+	{
+		printf("Get MAC Address from EEPROM Failed!!\n");
+		return DIAG_ERROR;
+	}
+	else
+	{
+		printf("MAC Address from EEPROM: %s\n", g_mac_addr);
+	}
+#else
+
 	char *tmp;
-	if(env_get_ethaddr(&tmp)){
+
+	if (env_get_ethaddr(&tmp))
+	{
 		printf("Get MAC Address Failed!!\n");
 		return DIAG_ERROR;
-	}else{
-		printf("MAC Address: %s\n", tmp);
-		return DIAG_OK;
 	}
+	else
+	{
+		printf("MAC Address: %s\n", tmp);
+	}
+
+#endif
+
+	return DIAG_OK;
 }
 
 static int EnvConfig_set_MAC(int parameter)
@@ -2654,21 +3269,49 @@ static int EnvConfig_set_MAC(int parameter)
 	char tmp[19];//xx:xx:xx:xx:xx:xx
 	char tmp1[19];//xx:xx:xx:xx:xx:xx
 	memset(tmp, 0, sizeof(tmp));
-	if((ret = get_line("Set MAC Address:", tmp, sizeof(tmp), -1, str_mac, NULL, NULL)) < 12 ) return DIAG_ERROR;
-	for(i=0; i<15; i+=3){
+	if ((ret = get_line("Set MAC Address:", tmp, sizeof(tmp), -1, str_mac, NULL, NULL)) < 12 )
+	{
+		return DIAG_ERROR;
+	}
+
+	for (i = 0; i < 15; i += 3)
+	{
 		memcpy(tmp1, tmp, sizeof(tmp));
-		if(tmp1[i+2] != ':'){
+		if (tmp1[i + 2] != ':')
+		{
 			tmp[i+2] = ':';
 			memcpy(&tmp[i+3], &tmp1[i+2], sizeof(tmp)-(i+2));
 		}
 	}
-	if(env_set_ethaddr(tmp)){
+
+#if CONFIG_SYS_I2C_EEPROM
+
+	if (EEPROM_SetMac(tmp))
+	{
+		printf("Set MAC Address to EEPROM Failed!!\n");
+		return DIAG_ERROR;
+	}
+	else
+	{
+		EEPROM_GetMac(&g_mac_addr);
+		printf("Set MAC Address to EEPROM Successed.\n");
+	}
+
+#else
+
+	if (env_set_ethaddr(tmp))
+	{
 		printf("Set MAC Address Failed!!\n");
 		return DIAG_ERROR;
-	}else{
+	}
+	else
+	{
 		printf("Set MAC Address Successed.\n");
 		return DIAG_OK;
 	}
+
+#endif
+
 }
 #endif
 
@@ -5254,11 +5897,49 @@ U_BOOT_CMD(
 #endif
 
 //DIDO Test ---------------------------------------------------------------------------
+#if defined(VPORT06EC_2V)
+static int dido_loopback_test(int parameter)
+{
+	printf("Write DO High\n");
+	GPIO_Out(GPIO_DO, GPIO_HIGH);
+	Sleep(1);
+	if (GPIO_In(GPIO_DI) != 1)
+	{
+		printf("Failed : Read DI Low\n");
+		return DIAG_ERROR;
+	}
+	else
+	{
+		printf("Read DI High\n");
+	}
+	Sleep(1);
+	printf("Write DO Low\n");
+	GPIO_Out(GPIO_DO, GPIO_LOW);
+	Sleep(1);
+	if (GPIO_In(GPIO_DI) != 0)
+	{
+		printf("Failed : Read DI High\n");
+		return DIAG_ERROR;
+	}
+	else
+	{
+		printf("Read DI Low\n");
+	}
+
+	printf("PASS.\n");
+
+	return DIAG_OK;
+}
+#endif
+
 static DiagMenuTableStruct DIDOTestMenuTable[] = {
 	{ '0', "DI 0 read status", 		GPIO_READ_DI_0,			gpio_read_func,		NULL},
 	{ '1', "DO 0 read status", 		GPIO_READ_DO_0,			gpio_read_func,		NULL},
 	{ '2', "DO 0 write high", 		GPIO_WRITE_HIGH_DO_0,	gpio_write_func,	NULL},
 	{ '3', "DO 0 write low", 		GPIO_WRITE_LOW_DO_0,	gpio_write_func,	NULL},
+#if defined(VPORT06EC_2V)
+	{ '4', "DI/DO loopback test", 	0,						dido_loopback_test,	NULL},
+#endif
 };
 static DiagMenuStruct DIDOTestMenu = {
 	sizeof(DIDOTestMenuTable)/sizeof(DiagMenuTableStruct),
@@ -5269,9 +5950,16 @@ static DiagMenuStruct DIDOTestMenu = {
 
 //RTC Test ---------------------------------------------------------------------------
 #define _RTC_ISL1208	0
+//wensen for VPort06EC-2
+#define _RTC_MCP7941X	1
 static int rtc_query_test(int parameter);
+
 static DiagMenuTableStruct RTCTestMenuTable[] = {
+#if defined(CONFIG_RTC_MCP7941X)
+	{ '0',	"Query RTC",		_RTC_MCP7941X,	rtc_query_test, 		NULL},
+#else
 	{ '0',	"Query RTC",		_RTC_ISL1208,	rtc_query_test, 		NULL},
+#endif
 };
 static DiagMenuStruct RTCTestMenu = {
 	sizeof(RTCTestMenuTable)/sizeof(DiagMenuTableStruct),
@@ -5284,6 +5972,7 @@ int rtc_get_time(int device, struct rtc_time *tm)
 {
 	switch(device){
 		case _RTC_ISL1208: return rtc_get(tm);
+		case _RTC_MCP7941X: return rtc_get(tm);
 		default: return -1;
 	}
 	return 0;
@@ -5293,6 +5982,7 @@ int rtc_set_time(int device, struct rtc_time *tm)
 {
 	switch(device){
 		case _RTC_ISL1208: return rtc_set(tm);
+		case _RTC_MCP7941X: return rtc_set(tm);
 		default: return -1;
 	}
 	return 0;
@@ -5302,6 +5992,7 @@ void rtc_reset_device(int device)
 {
 	switch(device){
 		case _RTC_ISL1208: rtc_reset();
+		case _RTC_MCP7941X: rtc_reset();
 	}
 }
 
@@ -5447,6 +6138,45 @@ static int rtc_query_test(int parameter)
 	return DIAG_OK;
 }
 
+#if defined(CONFIG_RTC_MCP7941X)
+
+
+static int rtc_get_vbat_bit(void)
+{
+	uchar chip;
+	uint addr;
+	int alen;
+	int len;
+	int i;
+	char vbat_reg = 0;
+
+	chip = CONFIG_SYS_I2C_RTC_ADDR;
+	addr = RTC_REG_VBT;
+	len = 1;
+	alen = 1;
+
+	if (i2c_read(chip, addr, alen, &vbat_reg, len))
+	{
+		printf("Failed : %s : read I2C bus.\n", __func__);
+		return DIAG_ERROR;
+	}
+
+	if (vbat_reg & 0x10)
+	{
+		printf("Cool start\n");
+		return 1;
+	}
+	else
+	{
+		printf("Warm start\n");
+	}
+
+	return DIAG_OK;
+}
+
+#endif //defined(CONFIG_RTC_MCP7941X)
+
+
 //I2C Test ---------------------------------------------------------------------------
 static char i2c_chip_addr[4];
 static char i2c_reg_addr[6];
@@ -5456,10 +6186,16 @@ static char i2c_loop[3];
 static int i2c_probe_test(int parameter);
 static int i2c_read_test(int parameter);
 static int i2c_write_test(int parameter);
+#if defined(VPORT06EC_2V)
+static int i2c_addr_list_func(int parameter);
+#endif
 static DiagMenuTableStruct I2CTestMenuTable[] = {
 	{ '0',	"I2C Probe",					0,	i2c_probe_test,		NULL},
 	{ '1',	"I2C Read",						0,	i2c_read_test,		NULL},
 	{ '2',	"I2C Write",					0,	i2c_write_test,		NULL},
+#if defined(VPORT06EC_2V)
+	{ '3',	"I2C Address List",				0,	i2c_addr_list_func,	NULL},
+#endif
 };
 static DiagMenuStruct I2CTestMenu = {
 	sizeof(I2CTestMenuTable)/sizeof(DiagMenuTableStruct),
@@ -5533,8 +6269,7 @@ static int i2c_read_test(int parameter)
 	udelay(1000);
 	if(loop){
 		int c = 0;
-		u8 value = 0;
-		char tmp[16];
+
 		while(c != 0x1B){
 			if(tstc()) c = getc();
 			else c = 0;
@@ -5590,6 +6325,44 @@ static int i2c_write_test(int parameter)
 	}
 	return DIAG_OK;
 }
+
+#if defined(VPORT06EC_2V)
+static int i2c_addr_list_func(int parameter)
+{
+	int c = 0;
+
+	printf("\n==============================================\n");
+	printf("I2C Address List.\n");
+	printf("==============================================\n");
+	printf("Bus: 0, Addr:0x6f -> RTC (RTC_MPC7941)\n");
+	printf("Bus: 0, Addr:0x57 -> EEPROM (RTC_MPC7941)\n");
+	printf("Bus: 0, Addr:0x53 -> G-Sensor\n");
+	printf("Bus: 0, Addr:0x2D -> PMIC\n");
+	printf("Bus: 0, Addr:0x18 -> Audio\n");
+	printf("Bus: 1, Addr:0x39 -> Light Sensor\n");
+	printf("Bus: 1, Addr:0x40 -> Humidity Sensor (Si7021)\n");
+	printf("Bus: 1, Addr:0x48 -> Temp. Sensor\n");
+	printf("Bus: 2, Addr:0x10 -> Image Sensor (AR0331)\n");
+	printf("Bus: 2, Addr:0x2D -> LVDS (SN65LVDS324)\n");
+
+	printf("Press 'ESC' to exit.\n");
+	while (c != 0x1B)
+	{
+		if (tstc())
+		{
+			c = getc();
+		}
+		else
+		{
+			c = 0;
+		}
+
+		udelay(100000);
+	}
+
+	return DIAG_OK;
+}
+#endif
 
 //Sensor Test ---------------------------------------------------------------------------
 static int LightSensor_test_func(int parameter);
@@ -6880,6 +7653,9 @@ static DiagMenuTableStruct StatusReaderMenuTable[] = {
 	{ '7',	"Heater_cam_Int state", 	GPIO_READ_Heatercam_Int,	gpio_read_func, 				NULL},
 	{ '8',	"Heater_sys_Int state", 	GPIO_READ_Heatersys_Int,	gpio_read_func, 				NULL},
 	{ '9',	"Fan_Int state",			GPIO_READ_FAN_Int,			gpio_read_func, 				NULL},
+#if CONFIG_SYS_I2C_EEPROM
+	{ 'a',	"EEPROM dump",				0,							EEPROM_Dump, 				NULL},
+#endif
 };
 static DiagMenuStruct StatusReaderMenu = {
 	sizeof(StatusReaderMenuTable)/sizeof(DiagMenuTableStruct),
@@ -6951,7 +7727,8 @@ static int diag_get_Info(int parameter)
 	unsigned long Size = 0;
 
 #ifdef CONFIG_UBOOT_IDX
-	if(ubl_ubootIdx == 2){
+	if (ubl_ubootIdx == 2)
+	{
 		printf("!!!! This is Second U-Boot. !!!!\n");
 	}
 #endif
@@ -6960,7 +7737,13 @@ static int diag_get_Info(int parameter)
 	extern char version_string[];
 	printf("Ver 	   : %s\n", version_string);
 #endif /* CONFIG_VERSION_VARIABLE */
+
+#if CONFIG_SYS_I2C_EEPROM
+	printf("Model name : %s\n", g_model_name);
+#else
 	printf("Model name : %s\n", getenv("dut_model"));
+#endif
+
 	printf("Host name  : %s\n", getenv("dut_host"));
 	printf("Description: %s\n", getenv("dut_desc"));
 
@@ -6984,10 +7767,18 @@ static int diag_get_Info(int parameter)
 
 	sprintf(tmp, "Netmask    : %s ", getenv("netmask"));
 	_PRINT_FIRST(tmp, i, j);
+#if CONFIG_SYS_I2C_EEPROM
+	sprintf(tmp, "MAC        : %s ", g_mac_addr);
+#else
 	sprintf(tmp, "MAC        : %s ", getenv("ethaddr"));
+#endif
 	_PRINT_SECOND(tmp, j);
 
+#if CONFIG_SYS_I2C_EEPROM
+	sprintf(tmp, "S/N        : %s ", g_serial_str);
+#else
 	sprintf(tmp, "S/N        : %s ", getenv("ser_num"));
+#endif
 	_PRINT_FIRST(tmp, i, j);
 	sprintf(tmp, "DUT ID     : %s ", getenv("dut_id"));
 	_PRINT_SECOND(tmp, j);
@@ -7002,7 +7793,11 @@ static int diag_get_Info(int parameter)
 	sprintf(tmp, "UBoot Ver. : %s ", getenv("uboot_ver"));
 	_PRINT_SECOND(tmp, j);
 
+#if CONFIG_SYS_I2C_EEPROM
+	sprintf(tmp, "MP Flag    : 0x%03x ", g_mp_flag);
+#else
 	sprintf(tmp, "MP Flag    : %s ", getenv("mp_flag"));
+#endif
 	_PRINT_FIRST(tmp, i, j);
 	sprintf(tmp, "Burn Time  : %s hr ", getenv("burntime"));
 	_PRINT_SECOND(tmp, j);
@@ -7116,10 +7911,39 @@ static int RunT0(int parameter)
 	setenv("quiet", "1");
 
 	//Step 1: Set Model name
-	if(MM_Set_Model(0) <= 0) return DIAG_ERROR;
+	if (MM_Set_Model(0) <= 0)
+	{
+		printf("Set Model failed\n");
+		return DIAG_ERROR;
+	}
+
+#if CONFIG_SYS_I2C_EEPROM
+
+	//char model_name[EEPROM_DATA_MODELNAME_LEN + 1] = {0};
+
+	if (EEPROM_GetModelName(&g_model_name))
+	{
+		printf("Get Model from EEPROM failed\n");
+		return DIAG_ERROR;
+	}
+
+#else
+
 	ptr = NULL;
-	if(env_get_model(&ptr)) return DIAG_ERROR;
-	if(!ptr) return DIAG_ERROR;
+	if (env_get_model(&ptr))
+	{
+		printf("Get Model from FLASH failed\n");
+		return DIAG_ERROR;
+	}
+
+	if (!ptr)
+	{
+		printf("Get Model from FLASH failed\n");
+		return DIAG_ERROR;
+	}
+
+#endif
+
 	printf("\n[%s]\n\n", ptr);
 	Sleep(1);
 
@@ -7148,8 +7972,14 @@ static int RunT0(int parameter)
 
 	//Step 5: Set MP FLag as T1-BIOS
 	printf("Set FLAG_T1_BIOS\n");
-	if(Set_MP_Flag(CONFIG_MP_FLAG_T1_BIOS)) return DIAG_ERROR;
+
+	if (Set_MP_Flag(CONFIG_MP_FLAG_T1_BIOS))
+	{
+		printf("Set MP Flag Failed!!\n");
+		return DIAG_ERROR;
+	}
 	printf("\n[Set FLAG_T1_BIOS Passed.]\n\n");
+
 	Sleep(1);
 
 	setenv("quiet", "0");
@@ -7376,8 +8206,21 @@ static int check_fw_bootup_counter()
 		}
 #endif
 		printf("FW Bootup Counter: %u\n", val);
+
+
+#if defined(CONFIG_RTC_MCP7941X)
+#if defined(VPORT06EC_2V)
+		if (rtc_get_vbat_bit() != 1 )
+		{
 		val++;
-		if(env_set_fw_bootup_counter(val)){
+		}
+#endif
+#else
+		val++;
+#endif
+
+		if (env_set_fw_bootup_counter(val))
+		{
 			printf("Set Bootup Counter(%u) Failed!!\n", val);
 			return DIAG_ERROR;
 		}
@@ -8236,6 +9079,27 @@ int do_mmmenu (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 	bool back2Root = false;
 	int layer = 0;
+
+
+#if CONFIG_SYS_I2C_EEPROM
+	printf("Model name : ");
+	EEPROM_GetModelName(&g_model_name);
+	printf("%s\n", g_model_name);
+
+	printf("Mac address : ");
+	EEPROM_GetMac(&g_mac_addr);
+	printf("%s\n", g_mac_addr);
+
+	printf("Serial number : ");
+	EEPROM_GetSerial(&g_serial_str);
+	printf("%s\n", g_serial_str);
+
+	printf("MP Flag : ");
+	EEPROM_GetMpFlag(&g_mp_flag);
+	printf("0x%03x\n", g_mp_flag);
+
+#endif
+
 	printf("\n\n");
 	menu_process(&NewMainMenu, &back2Root, &layer);
 	printf("\n\n");
