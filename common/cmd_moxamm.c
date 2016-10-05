@@ -2884,7 +2884,7 @@ static int MM_Get_Serial_Number(int parameter)
 	}
 	else
 	{
-		printf("Serial Number from EEPROM: %s\n", g_serial_str);
+		printf("Serial Number: %s\n", g_serial_str);
 	}
 
 #else
@@ -3047,7 +3047,7 @@ static int MM_Get_Model(int parameter)
 	}
 	else
 	{
-		printf("Model Name from EEPROM: %s\n", g_model_name);
+		printf("Model Name: %s\n", g_model_name);
 	}
 
 #else
@@ -3242,7 +3242,7 @@ static int EnvConfig_get_MAC(int parameter)
 	}
 	else
 	{
-		printf("MAC Address from EEPROM: %s\n", g_mac_addr);
+		printf("MAC Address: %s\n", g_mac_addr);
 	}
 #else
 
