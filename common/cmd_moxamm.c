@@ -2925,7 +2925,7 @@ static int MM_Set_Serial_Number(int parameter)
 	else
 	{
 		EEPROM_GetSerial(&g_serial_str);
-		printf("Set Serial Number to EEPROM Successed.\n");
+		printf("Set Serial Number Successed.\n");
 		return DIAG_OK;
 	}
 
@@ -3090,7 +3090,7 @@ static int MM_Set_Model(int parameter)
 	else
 	{
 		EEPROM_GetModelName(&g_model_name);
-		printf("Set Model Name to EEPROM Successed.\n");
+		printf("Set Model Name Successed.\n");
 	}
 
 #else
@@ -3295,7 +3295,7 @@ static int EnvConfig_set_MAC(int parameter)
 	else
 	{
 		EEPROM_GetMac(&g_mac_addr);
-		printf("Set MAC Address to EEPROM Successed.\n");
+		printf("Set MAC Address Successed.\n");
 	}
 
 #else
