@@ -2926,6 +2926,7 @@ static int MM_Set_Serial_Number(int parameter)
 	{
 		EEPROM_GetSerial(&g_serial_str);
 		printf("Set Serial Number to EEPROM Successed.\n");
+		return DIAG_OK;
 	}
 
 #else
