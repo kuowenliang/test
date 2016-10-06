@@ -680,7 +680,57 @@ int EEPROM_Dump(void)
 	return DIAG_OK;
 }
 
+//-----------------------------------------------------------------------------
+int EEPROM_SetHWFeature(void)
+{
+	uchar chip;
+	uint addr;
+	int alen = 0;
+	uchar hw_feature[EEPROM_DATA_HWFEATURE_LEN + 1] = {0};
+	int len;
+	int i;
+	char hw_feature_byte = 0;
 
+	//chip = CONFIG_SYS_I2C_EEPROM_ADDR;
+	//addr = EEPROM_DATA_HWFEATURE_POS;
+	//len = EEPROM_DATA_HWFEATURE_LEN;
+	//alen = CONFIG_SYS_I2C_EEPROM_ADDR_LEN;
+
+	//if (i2c_read(chip, addr, alen, hw_feature, len))
+	//{
+	//	printf("Failed : %s : read I2C bus.\n", __func__);
+	//	return DIAG_ERROR;
+	//}
+
+	//if (strncmp(hw_feature, EEPROM_DATA_PROFILE_ID, strlen(EEPROM_DATA_PROFILE_ID)) == 0)
+	//{
+	//	return DIAG_OK;
+	//}
+
+	chip = CONFIG_SYS_I2C_EEPROM_ADDR;
+	addr = EEPROM_DATA_HWFEATURE_POS;
+	sprintf(hw_feature, "%s", EEPROM_DATA_HWFEATURE_ID);
+
+	hw_feature_byte |= (CONFIG_HF_AUDIO_LINEIN << 7);
+	hw_feature_byte |= (CONFIG_HF_AUDIO_MICROPHONE << 6);
+	hw_feature_byte |= (CONFIG_HF_AUDIO_OUT << 5);
+	hw_feature[strlen(EEPROM_DATA_HWFEATURE_ID)] = hw_feature_byte;
+
+	len = EEPROM_DATA_HWFEATURE_LEN;
+	alen = CONFIG_SYS_I2C_EEPROM_ADDR_LEN;
+
+	for (i = 0; i < len; i++)
+	{
+		if (i2c_write(chip, addr++, alen, &hw_feature[i], 1))
+		{
+			printf("Failed to write I2C bus.\n");
+		return DIAG_ERROR;
+	}
+		udelay(1000);
+	}
+
+	return DIAG_OK;
+}
 
 //-----------------------------------------------------------------------------
 int EEPROM_SetProfile(void)
@@ -692,21 +742,21 @@ int EEPROM_SetProfile(void)
 	int len;
 	int i;
 
-	chip = CONFIG_SYS_I2C_EEPROM_ADDR;
-	addr = EEPROM_DATA_PROFILE_POS;
-	len = EEPROM_DATA_PROFILE_LEN;
-	alen = CONFIG_SYS_I2C_EEPROM_ADDR_LEN;
+	//chip = CONFIG_SYS_I2C_EEPROM_ADDR;
+	//addr = EEPROM_DATA_PROFILE_POS;
+	//len = EEPROM_DATA_PROFILE_LEN;
+	//alen = CONFIG_SYS_I2C_EEPROM_ADDR_LEN;
 
-	if (i2c_read(chip, addr, alen, profile, len))
-	{
-		printf("Failed : %s : read I2C bus.\n", __func__);
-		return DIAG_ERROR;
-	}
+	//if (i2c_read(chip, addr, alen, profile, len))
+	//{
+	//	printf("Failed : %s : read I2C bus.\n", __func__);
+	//	return DIAG_ERROR;
+	//}
 
-	if (strncmp(profile, EEPROM_DATA_PROFILE_ID, strlen(EEPROM_DATA_PROFILE_ID)) == 0)
-	{
-		return DIAG_OK;
-	}
+	//if (strncmp(profile, EEPROM_DATA_PROFILE_ID, strlen(EEPROM_DATA_PROFILE_ID)) == 0)
+	//{
+	//	return DIAG_OK;
+	//}
 
 	chip = CONFIG_SYS_I2C_EEPROM_ADDR;
 	addr = EEPROM_DATA_PROFILE_POS;
@@ -797,11 +847,14 @@ int EEPROM_SetModelName(char *modelname)
 	if (strlen(modelname) > (EEPROM_DATA_MODELNAME_LEN - strlen(EEPROM_DATA_MODELNAME_ID)))
 	{
 		printf("The model name shall be shorter than 60 bytes\n");
+		return DIAG_ERROR;
 	}
 
 	chip = CONFIG_SYS_I2C_EEPROM_ADDR;
 	addr = EEPROM_DATA_MODELNAME_POS;
+
 	sprintf(value, "%s%s", EEPROM_DATA_MODELNAME_ID, modelname);
+
 	len = EEPROM_DATA_MODELNAME_LEN;
 	alen = CONFIG_SYS_I2C_EEPROM_ADDR_LEN;
 
@@ -3081,6 +3134,7 @@ static int MM_Set_Model(int parameter)
 #if CONFIG_SYS_I2C_EEPROM
 
 	EEPROM_SetProfile();
+	EEPROM_SetHWFeature();
 
 	if (EEPROM_SetModelName(tmp))
 	{
