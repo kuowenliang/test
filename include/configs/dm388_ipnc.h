@@ -692,6 +692,7 @@ extern unsigned int boot_flash_type;
 #define CONFIG_SYS_I2C_BUS_SELECT		1
 #define CONFIG_DRIVER_TI81XX_I2C		1
 
+
 #if defined(VPORT06EC_2V)
 
 //#define CONFIG_RTC_ISL1208				1
@@ -732,6 +733,14 @@ extern unsigned int boot_flash_type;
 #define EEPROM_DATA_MPFLAG_ID  "=mf="
 #define EEPROM_DATA_MPFLAG_POS 98
 #define EEPROM_DATA_MPFLAG_LEN 6
+
+#define EEPROM_DATA_HWFEATURE_ID  "=hf="
+#define EEPROM_DATA_HWFEATURE_POS 104
+#define EEPROM_DATA_HWFEATURE_LEN 16
+
+#define CONFIG_HF_AUDIO_LINEIN		0
+#define CONFIG_HF_AUDIO_MICROPHONE	0
+#define CONFIG_HF_AUDIO_OUT			0
 
 #else
 
