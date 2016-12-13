@@ -124,14 +124,14 @@ int is_ddr3(void)
 	 * To use PG2.1 and DDR2 enable #define CONFIG_TI814X_EVM_DDR2
 	 * in "include/configs/ti8148_evm.h"
 	 */
-	if (PG2_1 <= get_cpu_rev())
+	//if (PG2_1 <= get_cpu_rev())
 		#ifdef CONFIG_TI814X_EVM_DDR2
 			return 0;
 		#else
 			return 1;
 		#endif
-	else
-		return 0;
+	//else
+	//	return 0;
 }
 
 static void pll_config(u32, u32, u32, u32, u32);
@@ -297,7 +297,7 @@ int board_init(void)
 	__raw_writel(0x4, RMII_REFCLK_SRC);
 #endif
 
-	if (PG2_1 <= get_cpu_rev()) {
+	//if (PG2_1 <= get_cpu_rev()) {
 #ifdef CONFIG_PHY_GMII_MODE
 		/*program GMII_SEL register for G/MII mode */
 		__raw_writel(0x00,GMII_SEL);
@@ -308,7 +308,7 @@ int board_init(void)
 		/*program GMII_SEL register for RGMII mode */
 		__raw_writel(0x30a,GMII_SEL);
 #endif
-	}
+	//}
 
 	/* Enable HW Watchdog. */
 	hw_watchdog_op(HWWD_INIT);
@@ -1394,13 +1394,15 @@ void set_muxconf_regs(void)
 {
 	u32 i, add, val;
 	u32 pad_conf[] = {
-#if defined(VPORT66) || defined(VPORTP66)
+#if defined(MODULE_VPORT66)
 #include "mux_vport66.h"
-#elif defined(VPORT56)
+#elif defined(MODULE_VPORTP66)
+#include "mux_vportp66.h"
+#elif defined(MODULE_VPORT56)
 #include "mux_vport56.h"
-#elif defined(VPORT36_2MP)
+#elif defined(MODULE_VPORT36_2MP)
 #include "mux_vport36_2mp.h"
-#elif defined(VPORT461A)
+#elif defined(MODULE_VPORT461A)
 #include "mux_vport461a.h"
 #endif
 	};
@@ -1423,7 +1425,7 @@ void set_muxconf_regs(void)
 /*
  * gpio init
  */
-#if defined(VPORT66) || defined(VPORTP66)
+#if defined(MODULE_VPORT66)
 void gpio_init(void)
 {
 	u32  add, val;
@@ -1505,7 +1507,87 @@ void gpio_init(void)
 	Audio_HW_Reset(0, 8);
 #endif
 }
-#elif defined(VPORT56)
+#elif defined(MODULE_VPORTP66)
+void gpio_init(void)
+{
+	u32  add, val;
+	/*
+	   GPIO0 base 0x48032000
+	   GPIO1 base 0x4804C000
+	   GPIO2 base 0x481AC000
+	   GPIO3 base 0x481AE000
+	*/
+
+	//GPIO0[] group
+	add=(GPIO0_BASE + GPIO_OE);			//GPIO_OE Output Enable Register
+	val = __raw_readl(add);
+	val &=~(1<<8);						//GP0[8] (OUT) AIC_RSTn
+	val &=~(1<<14); 					//GP0[14] (OUT) Fan_con output
+	val |= (1<<17); 					//GP0[17] (IN) Heatersys_int input
+	val &=~(1<<22); 					//GP0[22] (OUT) Heater_sys output
+	val &=~(1<<26); 					//GP0[26] (OUT) Heater_cam output
+	val |= (1<<29);						//GP0[29] (IN) SD1_WPn
+	val |= (1<<30);						//GP0[30] (IN) SD1_CDn
+	val &=~(1<<31);						//GP0[31] (OUT) SD1_EN
+	__raw_writel(val, add);
+	__raw_writel((1<<22), (GPIO0_BASE + GPIO_SETDATAOUT));	//GP0[22]-Heater_sys output high
+	__raw_writel((1<<26), (GPIO0_BASE + GPIO_SETDATAOUT));	//GP0[26]-Heater_cam output high
+	__raw_writel((1<<31), (GPIO0_BASE + GPIO_SETDATAOUT));	//GP0[31]-SD1_EN output high
+
+	//GPIO1[] group
+	add=(GPIO1_BASE + GPIO_OE);			//GPIO_OE Output Enable Register
+	val = __raw_readl(add);
+	val &=~(1<<0); 						//GP1[0] (OUT) FLASH_WP
+	val |= (1<<4);						//GP1[4] (IN) Heatercam_int
+	val |= (1<<7); 						//GP1[7] (IN) Fan_int
+	val &=~(1<<16); 					//GP1[16] (OUT) SPI_nCS0 (Lens Driver)
+	val |= (1<<18); 					//GP1[18] (IN) MOB1 (Lens Driver)
+	__raw_writel(val, add);
+
+	//GPIO2[] group
+	add=(GPIO2_BASE + GPIO_OE);			//GPIO_OE Output Enable Register
+	val = __raw_readl(add);
+	val &=~(1<<0);   					//GP2[0] (OUT) MCU_RST (P/T Motor Driver)
+	val &=~(1<<2);   					//GP2[2] (OUT) Z_PI (Lens motor PI)
+	val |= (1<<3);						//GP2[3] (IN) MOB2 (Lens Driver)
+	val &=~(1<<4);   					//GP2[4] (OUT) Motor_RST (Lens Driver)
+	val |= (1<<21);						//GP2[21] (IN) Reset button
+	val &=~(1<<22);						//GP2[22] (OUT) ENET_RSTn
+	val |= (1<<23);						//GP2[23] (IN) E_LINKSTS
+	val &=~(1<<25);						//GP2[25] (OUT) CAM_REST
+	val |= (1<<26);						//GP2[26] (IN) RTC_INTn
+	val |= (1<<27);						//GP2[27] (IN) F_PI (Lens motor PI)
+	__raw_writel(val, add);
+	/* reset ethernet */
+	__raw_writel((1<<22), (GPIO2_BASE + GPIO_SETDATAOUT));	//GP2[22]-ENET_RSTn output high
+	delay(30000);
+	__raw_writel((1<<22), (GPIO2_BASE + GPIO_CLEARDATAOUT));	//GP2[22]-ENET_RSTn output low
+	delay(5*30000);
+	__raw_writel((1<<22), (GPIO2_BASE + GPIO_SETDATAOUT));	//GP2[22]-ENET_RSTn output high
+	delay(30000);
+	__raw_writel((1<<0), (GPIO2_BASE + GPIO_SETDATAOUT));	//GP2[0]-MCU_RST output high
+	__raw_writel((1<<4), (GPIO2_BASE + GPIO_SETDATAOUT));	//GP2[4]-Motor_RST output high
+	__raw_writel((1<<25), (GPIO2_BASE + GPIO_SETDATAOUT));	//GP2[25]-CAM_RST output high
+
+	// GPIO3[] group
+	add=(GPIO3_BASE + GPIO_OE);	  		//GPIO_OE Output Enable Register
+	val = __raw_readl(add);
+    val |= (1<<7);						//GP3[7] (IN) ARM_IN
+    val &=~(1<<8);						//GP3[8] (OUT) ARM_OUT
+    val &=~(1<<12);						//GP3[12] (OUT) LED_G
+    val &=~(1<<13);						//GP3[13] (OUT) LED_R
+	__raw_writel(val, add);
+	__raw_writel((1<<8), (GPIO3_BASE + GPIO_CLEARDATAOUT));	//GP3[12]-ARM_OUT output low
+	__raw_writel((1<<12), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[12]-LED_G output high (OFF)
+	__raw_writel((1<<13), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[13]-LED_R output high (OFF)
+
+	while(__raw_readl(add) != val);
+
+#if defined(CONFIG_CODEC_AIC26) || defined(CONFIG_CODEC_AIC3104)
+	Audio_HW_Reset(0, 8);
+#endif
+}
+#elif defined(MODULE_VPORT56)
 void gpio_init(void)
 {
 	u32  add, val;
@@ -1579,7 +1661,7 @@ void gpio_init(void)
 	Audio_HW_Reset(0, 8);
 #endif
 }
-#elif defined(VPORT36_2MP)
+#elif defined(MODULE_VPORT36_2MP)
 void gpio_init(void)
 {
 	u32  add, val;
@@ -1670,7 +1752,7 @@ void gpio_init(void)
 	Audio_HW_Reset(0, 8);
 #endif
 }
-#elif defined(VPORT461A)
+#elif defined(MODULE_VPORT461A)
 void gpio_init(void)
 {
 	u32  add, val;
@@ -2122,11 +2204,11 @@ int board_eth_init(bd_t *bis)
 		printf("Caution:using static MACID!! Set <ethaddr> variable\n");
 	}
 
-#if defined(VPORT66) || defined(VPORTP66)
-	if (PG1_0 != get_cpu_rev()) {
+#if defined(MODULE_VPORT66) || defined(MODULE_VPORTP66)
+	//if (PG1_0 != get_cpu_rev()) {
 		cpsw_slaves[0].phy_id = 0;
 		cpsw_slaves[1].phy_id = 1;
-	}
+	//}
 #endif
 
 	return cpsw_register(&cpsw_data);

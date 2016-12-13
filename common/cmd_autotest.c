@@ -943,10 +943,10 @@ Bool Audio_test(void)
 #ifdef CONFIG_DM385
 		retVal = Aic3104_test();
 #else
-	if(PG2_1 == get_cpu_rev()){
-		printf("Chip 2.1 detected.\n");
+//	if(PG2_1 == get_cpu_rev()){
+//		printf("Chip 2.1 detected.\n");
 		retVal = Aic3104_test();
-	}
+//	}
 #endif /* #ifdef CONFIG_DM385 */
 #endif /* #ifdef CONFIG_CODEC_AIC3104 */
 #ifndef CONFIG_AUDIO_TEST
