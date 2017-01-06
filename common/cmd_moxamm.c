@@ -217,14 +217,14 @@ void sdcard_disable(void)
 void Heater_Sys_ON(void)
 {
 #ifdef GPIO_HEATER_SYS
-	GPIO_Out(GPIO_HEATER_SYS, GPIO_LOW);
+	GPIO_Out(GPIO_HEATER_SYS, GPIO_HIGH);
 #endif
 }
 
 void Heater_Sys_OFF(void)
 {
 #ifdef GPIO_HEATER_SYS
-	GPIO_Out(GPIO_HEATER_SYS, GPIO_HIGH);
+	GPIO_Out(GPIO_HEATER_SYS, GPIO_LOW);
 #endif
 }
 
@@ -5703,10 +5703,14 @@ static int gpio_read_func(int parameter)
 #ifdef GPIO_HEATERCAM_INT
 				printf(" Heatercam_Int ->%s\r", GPIO_In(GPIO_HEATERCAM_INT) ? "High" : "Low ");
 #endif
+
+
 				break;
 			case GPIO_READ_Heatersys_Int:
-#ifdef GPIO_HEATERCAM_INT
+#ifdef GPIO_HEATERSYS_INT
 				printf(" Heatersys_Int ->%s\r", GPIO_In(GPIO_HEATERSYS_INT) ? "High" : "Low ");
+#elif GPIO_HEATERSYS_STATUS
+				printf(" Heatersys status ->%s\r", GPIO_In(GPIO_HEATERSYS_STATUS) ? "On " : "Off");
 #endif
 				break;
 			case GPIO_READ_FAN_Int:
@@ -7793,6 +7797,7 @@ static int diag_get_Info(int parameter)
 	printf("Ver 	   : %s\n", version_string);
 #endif /* CONFIG_VERSION_VARIABLE */
 
+
 #if CONFIG_SYS_I2C_EEPROM
 	printf("Model name : %s\n", g_model_name);
 #else
@@ -8433,9 +8438,12 @@ static int BootPreProcessor(int parameter)
 			else printf("\nFailed to getenv 'bootcmd'!!\n");
 			break;
 	}
+	Heater_Sys_OFF();
+
 	LED_Set_Fault_Blink(0);
 	sys_led_R_ON();
 	sys_led_G_OFF();
+
 	while(1) Sleep(1); // will never return.
 
 	return DIAG_OK;
@@ -9178,7 +9186,8 @@ int do_moxamm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	//sys_led_RG_OFF();
 	sys_led_R_ON();
 
-	//Heater_Sys_OFF();
+	Heater_Sys_OFF();
+
 	//Heater_Cam_OFF();
 	printf("\n\n%s Starting ...", CONFIG_DUT_MODEL);
 #if defined(CONFIG_SD_BOOT) || defined(CONFIG_MMC_ENV)

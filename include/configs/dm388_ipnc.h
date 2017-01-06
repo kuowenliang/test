@@ -596,6 +596,8 @@ extern unsigned int boot_flash_type;
 #define GPIO_DI				GPIO_ARN_IN
 #if defined(VPORT06EC_2V)
 #define GPIO_DO				GPIO_IR_LED
+#define GPIO_HEATER_SYS		GPIO_MIC_SEL
+#define GPIO_HEATERSYS_STATUS	GPIO_LED_CONTROL
 #endif
 #define GPIO_SYSLED_GREEN	GPIO_LED_STATE
 #define GPIO_SYSLED_RED		GPIO_LED_SYS
