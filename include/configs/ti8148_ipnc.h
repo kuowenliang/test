@@ -418,7 +418,7 @@
 #define CONFIG_SYS_CLK_FREQ			20000000
 #define CONFIG_SYS_TIMERBASE		0x4802E000
 
-#if defined(MODULE_VPORT66) || defined(MODULE_VPORTP66)
+#if defined(MODULE_VPORT66) || defined(MODULE_VPORTP66) || defined(MODULE_VPORT46_2)
 #define CONFIG_TI814X_DSP_M			750			/* overwrite DSP_M in clocks_ti814x.h */
 #define CONFIG_TI814X_ISS_M			1120		/* overwrite ISS_M in clocks_ti814x.h */
 #define CONFIG_TPS65911_VDDCTRL_VAL VDD_1D35	/* force VDDCRTL setting */
@@ -586,7 +586,7 @@
 #define TEST_FLASH						DSP2_FLASH
 #define TEST_FLASH_SIZE					DSP2_SIZE
 
-#elif defined(MODULE_VPORT461A) || defined(MODULE_VPORT36_2MP) || defined(MODULE_VPORTP66)
+#elif defined(MODULE_VPORT461A) || defined(MODULE_VPORT36_2MP) || defined(MODULE_VPORTP66) || defined(MODULE_VPORT46_2)
 
 // locations in NAND flash
 #define UBL_FLASH						0x00000000
@@ -880,6 +880,29 @@ extern unsigned int boot_flash_type;
 #define GPIO_RTC_INTn		((2*32) + 26)	//GP2[26] (IN) RTC_INTn
 #define GPIO_MD_BUSY		((2*32) + 27)	//GP2[27] (IN) MD_BUSY/MON Motor Driver(Transfer Busy)
 #define GPIO_MD_POWER		((2*32) + 28)	//GP2[28] (OUT) MD_POWER
+#define GPIO_RS485_4W		((2*32) + 29)	//GP2[29] (OUT) RS485_4W
+#define GPIO_RS485_ENRn		((2*32) + 30)	//GP2[30] (OUT) RS485_ENRn
+#define GPIO_RS485_ENT		((2*32) + 31)	//GP2[31] (OUT) RS485_ENT
+#define GPIO_ARN_IN			((3*32) + 7)	//GP3[7] (IN) DI
+#define GPIO_ARN_OUT		((3*32) + 8)	//GP3[8] (OUT) DO
+#define GPIO_LED_STATE		((3*32) + 12)	//GP3[12] (OUT) LED_G
+#define GPIO_LED_SYS		((3*32) + 13)	//GP3[13] (OUT) LED_R
+#define GPIO_SYSBUTTON		GPIO_RE_SETING
+#define GPIO_DI				GPIO_ARN_IN
+#define GPIO_DO				GPIO_ARN_OUT
+#define GPIO_SYSLED_GREEN	GPIO_LED_STATE
+#define GPIO_SYSLED_RED		GPIO_LED_SYS
+#elif defined(MODULE_VPORT46_2)
+#define GPIO_AIC_RSTn		((0*32) + 8)	//GP0[8] (OUT) AIC_RSTn
+#define GPIO_SD_WP			((0*32) + 29)	//GP0[29) (IN) SD1_WPn
+#define GPIO_SD_CD			((0*32) + 30)	//GP0[30) (IN) SD1_CDn
+#define GPIO_SD_EN			((0*32) + 31)	//GP0[31) (OUT) SD1_EN
+#define GPIO_FLASH_WP		((1*32) + 0)	//GP1[0] (OUT) FLASH_WP
+#define GPIO_RE_SETING		((2*32) + 21)	//GP2[21] (IN) Reset button
+#define GPIO_PHY_RESET		((2*32) + 22)	//GP2[22] (OUT) ENET_RSTn
+#define GPIO_PHY_LINKSTAT	((2*32) + 23)	//GP2[23] (IN) E_LINKSTS
+#define GPIO_CAM_RST		((2*32) + 25)	//GP2[25] (OUT) CAM_REST
+#define GPIO_RTC_INTn		((2*32) + 26)	//GP2[26] (IN) RTC_INTn
 #define GPIO_RS485_4W		((2*32) + 29)	//GP2[29] (OUT) RS485_4W
 #define GPIO_RS485_ENRn		((2*32) + 30)	//GP2[30] (OUT) RS485_ENRn
 #define GPIO_RS485_ENT		((2*32) + 31)	//GP2[31] (OUT) RS485_ENT

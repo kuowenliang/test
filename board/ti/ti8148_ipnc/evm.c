@@ -1404,6 +1404,8 @@ void set_muxconf_regs(void)
 #include "mux_vport36_2mp.h"
 #elif defined(MODULE_VPORT461A)
 #include "mux_vport461a.h"
+#elif defined(MODULE_VPORT46_2)
+#include "mux_vport46-2.h"
 #endif
 	};
 
@@ -1820,6 +1822,69 @@ void gpio_init(void)
 	__raw_writel((1<<25), (GPIO2_BASE + GPIO_CLEARDATAOUT));  //GP2[25]-CAM_RST output low
 	delay(1000);
 	__raw_writel((1<<25), (GPIO2_BASE + GPIO_SETDATAOUT));  //GP2[25]-CAM_RST output high
+
+	while(__raw_readl(add) != val);
+
+#if defined(CONFIG_CODEC_AIC26) || defined(CONFIG_CODEC_AIC3104)
+	Audio_HW_Reset(0, 8);
+#endif
+}
+#elif defined(MODULE_VPORT46_2)
+void gpio_init(void)
+{
+	u32  add, val;
+	/*
+	   GPIO0 base 0x48032000
+	   GPIO1 base 0x4804C000
+	   GPIO2 base 0x481AC000
+	   GPIO3 base 0x481AE000
+	*/
+
+	//GPIO0[] group
+	add=(GPIO0_BASE + GPIO_OE);			//GPIO_OE Output Enable Register
+	val = __raw_readl(add);
+	val &=~(1<<8);						//GP0[8] (OUT) AIC_RSTn
+	val |= (1<<29);						//GP0[29] (IN) SD1_WPn
+	val |= (1<<30);						//GP0[30] (IN) SD1_CDn
+	val &=~(1<<31);						//GP0[31] (OUT) SD1_EN
+	__raw_writel(val, add);
+	__raw_writel((1<<31), (GPIO0_BASE + GPIO_SETDATAOUT));	//GP0[31]-SD1_EN output high
+
+	//GPIO1[] group
+	add=(GPIO1_BASE + GPIO_OE);			//GPIO_OE Output Enable Register
+	val = __raw_readl(add);
+	val &=~(1<<0); 						//GP1[0] (OUT) FLASH_WP
+	__raw_writel(val, add);
+
+	//GPIO2[] group
+	add=(GPIO2_BASE + GPIO_OE);			//GPIO_OE Output Enable Register
+	val = __raw_readl(add);
+	val |= (1<<21);						//GP2[21] (IN) Reset button
+	val &=~(1<<22);						//GP2[22] (OUT) ENET_RSTn
+	val |= (1<<23);						//GP2[23] (IN) E_LINKSTS
+	val &=~(1<<25);						//GP2[25] (OUT) CAM_REST
+	val |= (1<<26);						//GP2[26] (IN) RTC_INTn
+	__raw_writel(val, add);
+	/* reset ethernet */
+	__raw_writel((1<<22), (GPIO2_BASE + GPIO_SETDATAOUT));	//GP2[22]-ENET_RSTn output high
+	delay(30000);
+	__raw_writel((1<<22), (GPIO2_BASE + GPIO_CLEARDATAOUT));	//GP2[22]-ENET_RSTn output low
+	delay(5*30000);
+	__raw_writel((1<<22), (GPIO2_BASE + GPIO_SETDATAOUT));	//GP2[22]-ENET_RSTn output high
+	delay(30000);
+	__raw_writel((1<<25), (GPIO2_BASE + GPIO_SETDATAOUT));	//GP2[25]-CAM_RST output high
+
+	// GPIO3[] group
+	add=(GPIO3_BASE + GPIO_OE);	  		//GPIO_OE Output Enable Register
+	val = __raw_readl(add);
+    val |= (1<<7);						//GP3[7] (IN) ARM_IN
+    val &=~(1<<8);						//GP3[8] (OUT) ARM_OUT
+    val &=~(1<<12);						//GP3[12] (OUT) LED_G
+    val &=~(1<<13);						//GP3[13] (OUT) LED_R
+	__raw_writel(val, add);
+	__raw_writel((1<<8), (GPIO3_BASE + GPIO_CLEARDATAOUT));	//GP3[12]-ARM_OUT output low
+	__raw_writel((1<<12), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[12]-LED_G output high (OFF)
+	__raw_writel((1<<13), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[13]-LED_R output high (OFF)
 
 	while(__raw_readl(add) != val);
 
