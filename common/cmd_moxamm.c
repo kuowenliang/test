@@ -4608,7 +4608,7 @@ static int uart_test_cam_loopback(int parameter);
 static int uart_test_cam_set_baudrate(int parameter);
 static int uart_test_cam_send_command(int parameter);
 #endif
-#ifdef PTCTRL_NAME
+#if defined(PTCTRL_NAME) || defined(PTCTRL_HERMES_NAME)
 static int uart_test_pt_tx(int parameter);
 static int uart_test_pt_rx(int parameter);
 static int uart_test_pt_loopback(int parameter);
@@ -4629,7 +4629,7 @@ static DiagMenuTableStruct UARTTestMenuTable[] = {
 	{ '7', "Camera Port set baudrate",		0, uart_test_cam_set_baudrate,	NULL},
 	{ '8', "Camera Port send command",		0, uart_test_cam_send_command,	NULL},
 #endif
-#ifdef PTCTRL_NAME
+#if defined(PTCTRL_NAME) || defined(PTCTRL_HERMES_NAME)
 	{ 'a', "PT Port Tx",					0, uart_test_pt_tx,				NULL},
 	{ 'b', "PT Port Rx",					0, uart_test_pt_rx,				NULL},
 	{ 'c', "PT Port loopback",				0, uart_test_pt_loopback,		NULL},
@@ -5117,7 +5117,7 @@ static int uart_test_cam_send_command(int parameter)
 }
 #endif
 
-#ifdef PTCTRL_NAME
+#if defined(PTCTRL_NAME)
 static int uart_pt_baudrate = PTCTRL_BAUDRATE;
 int uart_set_pt_baudrate()
 {
@@ -5495,6 +5495,499 @@ U_BOOT_CMD(ptctrl, 3, 0, do_ptctrl,
 	ptctrl getdeg - Get Degree\n\
 	ptctrl test [all/pan/tilt] - Production Test Mode\n\
 	ptctrl ver - Get Firmware Version\n\
+	"
+);
+
+#elif defined(PTCTRL_HERMES_NAME)
+
+static int uart_pt_baudrate = PTCTRL_BAUDRATE;
+void uart_hermes_calc_checksum(char *cmd_str_p, int *cmd_len_p)
+{
+	unsigned char Sum = 0;
+	int i;
+
+	for (i = 0; i < *cmd_len_p; i++)
+	{
+		Sum += cmd_str_p[i];
+	}
+	if (Sum & 0x80)
+	{
+		Sum = (Sum & 0x7F) ^ 0x1;
+	}
+	cmd_str_p[(*cmd_len_p)++] = Sum;
+	cmd_str_p[(*cmd_len_p)++] = 0xFF;
+}
+
+int uart_hermes_check_checksum(char *cmd_str_p, int cmd_len)
+{
+	unsigned char Sum = 0;
+	int i;
+
+	for (i = 0; i < cmd_len - 2; i++)
+	{
+		Sum += cmd_str_p[i];
+	}
+	if (Sum & 0x80)
+	{
+		Sum = (Sum & 0x7F) ^ 0x1;
+	}
+	if((cmd_str_p[cmd_len - 2] == Sum) && (cmd_str_p[cmd_len - 1] == 0xFF)) return 0;
+	else return -1;
+}
+
+int uart_set_pt_baudrate()
+{
+	char tmp[32];
+	sprintf(tmp, "%d", uart_pt_baudrate);
+	if(setenv(PTCTRL_BAUDRATE_ITEM, tmp)) return DIAG_ERROR;
+	if(saveenv()) return DIAG_ERROR;
+	return DIAG_OK;
+}
+
+static int uart_test_pt_tx(int parameter)
+{
+	uart_set_pt_baudrate();
+	return uart_tx_test(PTCTRL_HERMES_NAME);
+}
+
+static int uart_test_pt_rx(int parameter)
+{
+	uart_set_pt_baudrate();
+	return uart_loopback_test(PTCTRL_HERMES_NAME);
+}
+
+static int uart_test_pt_loopback(int parameter)
+{
+	uart_set_pt_baudrate();
+	return uart_loopback_test(PTCTRL_HERMES_NAME);
+}
+
+static int uart_test_pt_set_baudrate(int parameter)
+{
+#if defined(PTCTRL_BAUDRATE_ITEM) && defined(PTCTRL_BAUDRATE) && (PTCTRL_BAUDRATE >= 0)
+	return uart_set_baudrate(PTCTRL_BAUDRATE_ITEM);
+#else
+	return DIAG_OK;
+#endif
+}
+
+#define DEFAULT_PAN_MIN 0
+#define DEFAULT_PAN_MAX 25599
+
+#define DEFAULT_TILT_MIN 0
+#define DEFAULT_TILT_MAX 4079
+
+typedef enum
+{
+	PTSCANNER_MAINCMD_TYPE_NONE = 0,
+	PTSCANNER_MAINCMD_TYPE_DOME,
+	PTSCANNER_MAINCMD_TYPE_SYSTEM,
+} PTSCANNER_MAINCMD_TYPE;
+
+typedef enum
+{
+	PTSCANNER_DOMECMD_SUBTYPE_NONE = 0,
+	PTSCANNER_DOMECMD_SUBTYPE_PAN,
+	PTSCANNER_DOMECMD_SUBTYPE_TILT,
+	PTSCANNER_DOMECMD_SUBTYPE_STOP,
+	PTSCANNER_DOMECMD_SUBTYPE_PRESET,
+	PTSCANNER_DOMECMD_SUBTYPE_PANLOCATION,
+	PTSCANNER_DOMECMD_SUBTYPE_TILTLOCATION,
+	PTSCANNER_DOMECMD_SUBTYPE_PANCONTINUOUS,
+	PTSCANNER_DOMECMD_SUBTYPE_TILTCONTINUOUS,
+	PTSCANNER_DOMECMD_SUBTYPE_EXCITATIONMODE,
+} PTSCANNER_DOMECMD_SUBTYPE;
+
+typedef enum
+{
+	PTSCANNER_SYSTEMCMD_SUBTYPE_NONE = 0,
+	PTSCANNER_SYSTEMCMD_SUBTYPE_RESPONSE,
+	PTSCANNER_SYSTEMCMD_SUBTYPE_GET_VERSION,
+} PTSCANNER_SYSTEMCMD_SUBTYPE;
+
+#define PTSCANNER_EXTRACMD_MODE_RELATIVE	0x00
+#define PTSCANNER_EXTRACMD_MODE_ABSOLUTE	0x40
+
+#define PTSCANNER_EXTRACMD_FORCEDIR_AUTO	0x00
+#define PTSCANNER_EXTRACMD_FORCEDIR_LEFT	0x20
+#define PTSCANNER_EXTRACMD_FORCEDIR_RIGHT	0x30
+
+#define PTSCANNER_EXTRACMD_RESPONSE			0x08
+#define PTSCANNER_EXTRACMD_HIGHSPEED		0x04
+
+#define SPEEDTABLE_MAX (8)
+static char highspeed_table[SPEEDTABLE_MAX] = {1,5,10,15,20,25,30,35};
+
+static char gPtCmdSet_Init[] = {0x03, 0x22, 0x22};
+static char gPtCmdSet_Right[] = {0x00, 0x00, PTSCANNER_MAINCMD_TYPE_DOME, PTSCANNER_DOMECMD_SUBTYPE_PANCONTINUOUS, PTSCANNER_EXTRACMD_FORCEDIR_RIGHT | PTSCANNER_EXTRACMD_HIGHSPEED}; //Right
+static char gPtCmdSet_Left[] = {0x00, 0x00, PTSCANNER_MAINCMD_TYPE_DOME, PTSCANNER_DOMECMD_SUBTYPE_PANCONTINUOUS, PTSCANNER_EXTRACMD_FORCEDIR_LEFT | PTSCANNER_EXTRACMD_HIGHSPEED}; //Left
+static char gPtCmdSet_Up[] = {0x00, 0x00, PTSCANNER_MAINCMD_TYPE_DOME, PTSCANNER_DOMECMD_SUBTYPE_TILTCONTINUOUS, PTSCANNER_EXTRACMD_FORCEDIR_LEFT | PTSCANNER_EXTRACMD_HIGHSPEED}; //Up
+static char gPtCmdSet_Down[] = {0x00, 0x00, PTSCANNER_MAINCMD_TYPE_DOME, PTSCANNER_DOMECMD_SUBTYPE_TILTCONTINUOUS, PTSCANNER_EXTRACMD_FORCEDIR_RIGHT | PTSCANNER_EXTRACMD_HIGHSPEED}; //Down
+#define PT_CMDSET_NOTE_Speed "Set Speed (0~7):"
+static char gPtCmdSet_Stop[] = {0x00, 0x00, PTSCANNER_MAINCMD_TYPE_DOME, PTSCANNER_DOMECMD_SUBTYPE_STOP}; //Stop
+static char gPtCmdSet_PanPos[] = {0x00, 0x00, PTSCANNER_MAINCMD_TYPE_DOME, PTSCANNER_DOMECMD_SUBTYPE_PAN, PTSCANNER_EXTRACMD_MODE_ABSOLUTE | PTSCANNER_EXTRACMD_HIGHSPEED}; //Set Pan position
+#define PT_CMDSET_NOTE_PanPos "Set Pan position (0~25599):"
+static char gPtCmdSet_TiltPos[] = {0x00, 0x00, PTSCANNER_MAINCMD_TYPE_DOME, PTSCANNER_DOMECMD_SUBTYPE_TILT, PTSCANNER_EXTRACMD_MODE_ABSOLUTE | PTSCANNER_EXTRACMD_HIGHSPEED}; //Set Tilt position
+#define PT_CMDSET_NOTE_TiltPos "Set Tilt position (0~4079):"
+static char gPtCmdSet_GetPanPos[] = {0x00, 0x00, PTSCANNER_MAINCMD_TYPE_DOME, PTSCANNER_DOMECMD_SUBTYPE_PANLOCATION}; //Get Pan position
+static char gPtCmdSet_GetTiltPos[] = {0x00, 0x00, PTSCANNER_MAINCMD_TYPE_DOME, PTSCANNER_DOMECMD_SUBTYPE_TILTLOCATION}; //Get Tilt position
+static char gPtCmdSet_GetVer[] = {0x00, 0x00, PTSCANNER_MAINCMD_TYPE_SYSTEM, PTSCANNER_SYSTEMCMD_SUBTYPE_GET_VERSION}; //Get Firmware Version
+
+static int curr_Speed = 0;
+int uart_PtCmd_SetSpeed(char *cmdStr, char *cmdBuff)
+{
+	int len = 0;
+	curr_Speed = (int)(simple_strtol(cmdStr, NULL, 10)) & 0xffff;
+	cmdBuff[len++] = ((highspeed_table[curr_Speed] >> 12) & 0x000f);
+	cmdBuff[len++] = ((highspeed_table[curr_Speed] >>  8) & 0x000f);
+	cmdBuff[len++] = ((highspeed_table[curr_Speed] >>  4) & 0x000f);
+	cmdBuff[len++] = ((highspeed_table[curr_Speed]      ) & 0x000f);
+	return len;
+}
+
+int uart_PtCmd_InputSpeed(char *cmdBuff)
+{
+	int ret = 0;
+	int len = 0;
+	char tmp[3];
+	printf("Set Speed (0~%d)(%d):", SPEEDTABLE_MAX-1, curr_Speed);
+	if(get_line(NULL, tmp, sizeof(tmp), -1, "01234567", NULL, NULL) > 0) curr_Speed = (int)(simple_strtoul(tmp, NULL, 10));
+	cmdBuff[len++] = ((highspeed_table[curr_Speed] >> 12) & 0x000f);
+	cmdBuff[len++] = ((highspeed_table[curr_Speed] >>  8) & 0x000f);
+	cmdBuff[len++] = ((highspeed_table[curr_Speed] >>  4) & 0x000f);
+	cmdBuff[len++] = ((highspeed_table[curr_Speed]      ) & 0x000f);
+	return len;
+}
+
+int uart_PtCmd_SetPTPos(char *cmdStr, char *cmdBuff)
+{
+	int len = 0;
+	int pos = (int)(simple_strtol(cmdStr, NULL, 10)) & 0xffff;
+	cmdBuff[len++] = ((pos >> 12) & 0x000f);
+	cmdBuff[len++] = ((pos >>  8) & 0x000f);
+	cmdBuff[len++] = ((pos >>  4) & 0x000f);
+	cmdBuff[len++] = ((pos      ) & 0x000f);
+	return len;
+}
+
+int uart_PtCmd_InputPanPos(char *cmdBuff)
+{
+	int pos = 0;
+	int len = 0;
+	char tmp[7];
+	printf("Set Pan position (%d~%d):", DEFAULT_PAN_MIN, DEFAULT_PAN_MAX);
+	if(get_line(NULL, tmp, sizeof(tmp), -1, "0123456789", NULL, NULL) > 0){
+		len = uart_PtCmd_SetPTPos(tmp, cmdBuff);
+	}
+	return len;
+}
+
+int uart_PtCmd_InputTiltPos(char *cmdBuff)
+{
+	int pos = 0;
+	int len = 0;
+	char tmp[6];
+	printf("Set Tilt position (%d~%d):", DEFAULT_TILT_MIN, DEFAULT_TILT_MAX);
+	if(get_line(NULL, tmp, sizeof(tmp), -1, "0123456789", NULL, NULL) > 0){
+		len = uart_PtCmd_SetPTPos(tmp, cmdBuff);
+	}
+	return len;
+}
+
+void uart_Display_PanPos(char *rx_buff)
+{
+	unsigned short pan_pos = (unsigned short)((rx_buff[4] << 12) + (rx_buff[5] << 8) + (rx_buff[6] << 4) + (rx_buff[7]));
+	printf("tilt_pos=%u\n", pan_pos);
+}
+
+void uart_Display_TiltPos(char *rx_buff)
+{
+	unsigned short tilt_pos = (unsigned short)((rx_buff[4] << 12) + (rx_buff[5] << 8) + (rx_buff[6] << 4) + (rx_buff[7]));
+	printf("pan_pos=%u\n", tilt_pos);
+}
+
+void uart_Display_Version(char *rx_buff)
+{
+	printf("Firmware Version:%u.%u\n", (rx_buff[4] << 4) + (rx_buff[5]), (rx_buff[6] << 4) + (rx_buff[7]));
+}
+
+int uart_pt_send_command(char *name, char *tx_buff, char *rx_buff, int tx_len, int rx_len, int *len, int rec_len, int timeout)
+{
+	int i = 0, j = 0;
+	int timeout_msec = timeout;
+	char sum = 0;
+
+	if(uart_set_pt_baudrate()) return DIAG_ERROR;
+
+	struct serial_device *dev;
+	dev = get_serial_device_by_name(name);
+	if(dev == NULL) return DIAG_ERROR;
+	dev->init();
+
+	if(((*len) + 1) > tx_len) return DIAG_ERROR;
+
+	printf("Message(size=%d)->\n", (*len));
+	print_buffer(0, (void*)tx_buff, 1, (*len), 0);
+
+	for(i = 0; i < (*len); i++){
+		dev->putc(tx_buff[i]);
+	}
+	if(rec_len > 0){
+		memset(rx_buff, 0, rx_len);
+		timeout_msec = timeout;
+		j = 0;
+		while(j < rx_len){
+			if(dev->tstc()) {
+				timeout_msec = timeout;
+				rx_buff[j] = (char)dev->getc();
+				j++;
+				if(j >= rec_len) break;
+			}
+			if(timeout_msec-- <= 0) { printf("Rx Time out!!\n"); return DIAG_ERROR; }
+			udelay(1000);
+		}
+		printf("Response(size=%d)->\n", j);
+		print_buffer(0, (void*)rx_buff, 1, j, 0);
+		if(uart_hermes_check_checksum(rx_buff, j)){
+			printf("Checksum Error!!(%X)\n", sum);
+			return DIAG_ERROR;
+		}
+	}
+
+	return DIAG_OK;
+}
+
+#define TEST_PAN 0x01
+#define TEST_TILT 0x02
+static int uart_test_pt_send_command(int parameter)
+{
+	int len = 0;
+	int ret = 0;
+	int rec_len = 0;
+	int step = 0;
+	char cmd = 0;
+	char tx_buff[UART_MAX_TEST_LEN];
+	char rx_buff[UART_MAX_TEST_LEN];
+	char commandBuff[UART_MAX_TEST_LEN * 3 + 2];
+
+	while(1){
+
+		printf("\n");
+		printf("Select command set:\n");
+		printf("  [0]Init\n");
+		printf("  [1]Right.\n");
+		printf("  [2]Left.\n");
+		printf("  [3]Up.\n");
+		printf("  [4]Down.\n");
+		printf("  [5]Stop.\n");
+		printf("  [6]Set Pan position.\n");
+		printf("  [7]Set Tilt position.\n");
+		printf("  [8]Get Pan position.\n");
+		printf("  [9]Get Tilt position.\n");
+		printf("  [a]Get Firmware Version.\n");
+		printf("  [ESC]Exit.\n");
+		printf("->");
+		cmd = getc();
+		printf("\n");
+
+		memset(commandBuff, 0, sizeof(commandBuff));
+		memset(tx_buff, 0, sizeof(tx_buff));
+		rec_len = 0;
+		switch(cmd){
+			case '0': //Init
+				len = sizeof(gPtCmdSet_Init); memcpy(tx_buff, gPtCmdSet_Init, len);
+				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) break;
+				break;
+			case '1': //Right
+				len = sizeof(gPtCmdSet_Right); memcpy(tx_buff, gPtCmdSet_Right, len);
+				len += uart_PtCmd_InputSpeed(tx_buff+len);	//Speed
+				uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
+				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) break;
+				break;
+			case '2': //Left
+				len = sizeof(gPtCmdSet_Left); memcpy(tx_buff, gPtCmdSet_Left, len);
+				len += uart_PtCmd_InputSpeed(tx_buff+len);	//Speed
+				uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
+				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) break;
+				break;
+			case '3': //Up
+				len = sizeof(gPtCmdSet_Up); memcpy(tx_buff, gPtCmdSet_Up, len);
+				len += uart_PtCmd_InputSpeed(tx_buff+len);	//Speed
+				uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
+				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) break;
+				break;
+			case '4': //Down
+				len = sizeof(gPtCmdSet_Down); memcpy(tx_buff, gPtCmdSet_Down, len);
+				len += uart_PtCmd_InputSpeed(tx_buff+len);	//Speed
+				uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
+				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) break;
+				break;
+			case '5': //Stop
+				len = sizeof(gPtCmdSet_Stop); memcpy(tx_buff, gPtCmdSet_Stop, len);
+				uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
+				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) break;
+				break;
+			case '6': //Set PanPos
+				len = sizeof(gPtCmdSet_PanPos); memcpy(tx_buff, gPtCmdSet_PanPos, len);
+				len += uart_PtCmd_InputSpeed(tx_buff+len);	//Speed
+				len += uart_PtCmd_InputPanPos(tx_buff+len);	//Position
+				uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
+				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) break;
+				break;
+			case '7': //Set TiltPos
+				len = sizeof(gPtCmdSet_TiltPos); memcpy(tx_buff, gPtCmdSet_TiltPos, len);
+				len += uart_PtCmd_InputSpeed(tx_buff+len);	//Speed
+				len += uart_PtCmd_InputTiltPos(tx_buff+len);	//Position
+				uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
+				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) break;
+				break;
+			case '8': //Get PanPos
+				len = sizeof(gPtCmdSet_GetPanPos); memcpy(tx_buff, gPtCmdSet_GetPanPos, len); rec_len = 10;
+				uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
+				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) break;
+				uart_Display_PanPos(rx_buff);
+				break;
+			case '9': //Get TiltPos
+				len = sizeof(gPtCmdSet_GetTiltPos); memcpy(tx_buff, gPtCmdSet_GetTiltPos, len); rec_len = 10;
+				uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
+				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) break;
+				uart_Display_TiltPos(rx_buff);
+				break;
+			case 'a': // Get Version
+				len = sizeof(gPtCmdSet_GetVer); memcpy(tx_buff, gPtCmdSet_GetVer, len); rec_len = 10;
+				uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
+				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) break;
+				uart_Display_Version(rx_buff);
+				break;
+			case 0x1B:
+				return DIAG_OK;
+				break;
+			default:
+				continue;
+		}
+	}
+	return DIAG_OK;
+}
+
+int do_ptctrl (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+{
+	int len = 0;
+	int rec_len = 0;
+	int step = 0;
+	char tx_buff[UART_MAX_TEST_LEN];
+	char rx_buff[UART_MAX_TEST_LEN];
+	char *pos;
+	char *speed = "7";
+
+	if (argc < 2){
+		printf ("Usage:\n%s\n", cmdtp->usage);
+		return -1;
+	}else{
+		memset(tx_buff, 0, sizeof(tx_buff));
+		if(strcmp(argv[1], "init") == 0){
+			len = sizeof(gPtCmdSet_Init); memcpy(tx_buff, gPtCmdSet_Init, len);
+			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
+		}else
+		if(strcmp(argv[1], "right") == 0){
+			if(argv[2] != NULL) speed = argv[2];
+			len = sizeof(gPtCmdSet_Right); memcpy(tx_buff, gPtCmdSet_Right, len);
+			len += uart_PtCmd_SetSpeed(speed, tx_buff+len);	//Speed
+			uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
+			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
+		}else
+		if(strcmp(argv[1], "left") == 0){
+			if(argv[2] != NULL) speed = argv[2];
+			len = sizeof(gPtCmdSet_Left); memcpy(tx_buff, gPtCmdSet_Left, len);
+			len += uart_PtCmd_SetSpeed(speed, tx_buff+len);	//Speed
+			uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
+			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
+		}else
+		if(strcmp(argv[1], "up") == 0){
+			if(argv[2] != NULL) speed = argv[2];
+			len = sizeof(gPtCmdSet_Up); memcpy(tx_buff, gPtCmdSet_Up, len);
+			len += uart_PtCmd_SetSpeed(speed, tx_buff+len);	//Speed
+			uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
+			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
+		}else
+		if(strcmp(argv[1], "down") == 0){
+			if(argv[2] != NULL) speed = argv[2];
+			len = sizeof(gPtCmdSet_Down); memcpy(tx_buff, gPtCmdSet_Down, len);
+			len += uart_PtCmd_SetSpeed(speed, tx_buff+len);	//Speed
+			uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
+			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
+		}else
+		if(strcmp(argv[1], "stop") == 0){
+			len = sizeof(gPtCmdSet_Stop); memcpy(tx_buff, gPtCmdSet_Stop, len);
+			uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
+			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
+		}else
+		if(strcmp(argv[1], "panpos") == 0){
+			if(argc < 3){
+				printf ("Usage:\n%s\n", cmdtp->usage);
+				return -1;
+			}
+			if(argv[2] != NULL) pos = argv[2];
+			if(argv[3] != NULL) speed = argv[3];
+			len = sizeof(gPtCmdSet_PanPos); memcpy(tx_buff, gPtCmdSet_PanPos, len);
+			len += uart_PtCmd_SetSpeed(speed, tx_buff+len);	//Speed
+			len += uart_PtCmd_SetPTPos(pos, tx_buff+len); //Position
+			uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
+			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
+		}else
+		if(strcmp(argv[1], "tiltpos") == 0){
+			if(argc < 3){
+				printf ("Usage:\n%s\n", cmdtp->usage);
+				return -1;
+			}
+			if(argv[2] != NULL) pos = argv[2];
+			if(argv[3] != NULL) speed = argv[3];
+			len = sizeof(gPtCmdSet_TiltPos); memcpy(tx_buff, gPtCmdSet_TiltPos, len);
+			len += uart_PtCmd_SetSpeed(speed, tx_buff+len);	//Speed
+			len += uart_PtCmd_SetPTPos(pos, tx_buff+len); //Position
+			uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
+			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
+		}else
+		if(strcmp(argv[1], "getpanpos") == 0){
+			len = sizeof(gPtCmdSet_GetPanPos); memcpy(tx_buff, gPtCmdSet_GetPanPos, len); rec_len = 10;
+			uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
+			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
+			uart_Display_PanPos(rx_buff);
+		}else
+		if(strcmp(argv[1], "gettiltpos") == 0){
+			len = sizeof(gPtCmdSet_GetTiltPos); memcpy(tx_buff, gPtCmdSet_GetTiltPos, len); rec_len = 10;
+			uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
+			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
+			uart_Display_TiltPos(rx_buff);
+		}else
+		if(strcmp(argv[1], "ver") == 0){
+			len = sizeof(gPtCmdSet_GetVer); memcpy(tx_buff, gPtCmdSet_GetVer, len); rec_len = 10;
+			uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
+			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
+			uart_Display_Version(rx_buff);
+		}else{
+			printf ("Usage:\n%s\n", cmdtp->usage);
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+U_BOOT_CMD(ptctrl, 3, 0, do_ptctrl,
+	"Pan/Tilt control",
+	"Pan/Tilt control\n\
+	ptctrl init - MCU Initial\n\
+	ptctrl right [speed*] - Pan right\n\
+	ptctrl left [speed*] - Pan left\n\
+	ptctrl up [speed*] - Tilt up\n\
+	ptctrl down [speed*] - Tilt down\n\
+	ptctrl stop - Pan/Tilt stop\n\
+	ptctrl panpos [pos][speed*] - Set Pan position\n\
+	ptctrl tiltpos [pos][speed*] - Set Tilt position\n\
+	ptctrl getpanpos - Get Pan position\n\
+	ptctrl gettiltpos - Get Tilt position\n\
+	ptctrl ver - Get Firmware Version\n\
+	'*': Optional.\n\
 	"
 );
 #endif

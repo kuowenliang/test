@@ -463,13 +463,18 @@
 
 
 #define DEFAULT_NAME				"serial"
-#if defined(MODULE_VPORT66) || defined(MODULE_VPORTP66)
+#if defined(MODULE_VPORT66)
 #define CAMERA_NAME					"eserial2"
 #define CAMERA_BAUDRATE_ITEM		CONFIG_BAUDRATE_2_ITEM
 #define CAMERA_BAUDRATE				38400	// for Zoom camera module (MH310/MH322/MH326/MN330)
 #define PTCTRL_NAME					"eserial2"
 #define PTCTRL_BAUDRATE_ITEM		CONFIG_BAUDRATE_2_ITEM
 #define PTCTRL_BAUDRATE				19200	// for MCU (PT ctrl)
+#elif defined(MODULE_VPORTP66)
+#undef PTCTRL_NAME
+#define PTCTRL_HERMES_NAME			"eserial2"
+#define PTCTRL_BAUDRATE_ITEM		CONFIG_BAUDRATE_2_ITEM
+#define PTCTRL_BAUDRATE				115200	// for MCU (PT ctrl)
 #else
 #define RS485_NAME					"eserial1"
 #define RS485_BAUDRATE_ITEM			CONFIG_BAUDRATE_1_ITEM
@@ -504,7 +509,7 @@
 #define CONFIG_NET_RETRY_COUNT			10
 #define CONFIG_NET_MULTI
 #define CONFIG_PHY_GMII_MODE
-#if defined(MODULE_VPORT66) || defined(MODULE_VPORTP66)
+#if defined(MODULE_VPORT66)
 #define CONFIG_PHY_GIGE
 #undef CONFIG_PHY_GMII_MODE
 #endif
@@ -805,7 +810,7 @@ extern unsigned int boot_flash_type;
 #define GPIO_FAN_CON		((0*32) + 14)	//GP0[14] (OUT) FAN_CON
 #define GPIO_HEATERSYS_INT	((0*32) + 17)	//GP0[17] (IN) HEATERSYS_INT
 #define GPIO_HEATER_SYS		((0*32) + 22)	//GP0[22] (OUT) HEATER_SYS
-#define GPIO_HEATER_CAM		((0*32) + 26)	//GP0[26] (OUT) HEATER_CAM
+//#define GPIO_HEATER_CAM		((0*32) + 26)	//GP0[26] (OUT) HEATER_CAM
 #define GPIO_SD_WP			((0*32) + 29)	//GP0[29) (IN) SD1_WPn
 #define GPIO_SD_CD			((0*32) + 30)	//GP0[30) (IN) SD1_CDn
 #define GPIO_SD_EN			((0*32) + 31)	//GP0[31) (OUT) SD1_EN
@@ -1034,6 +1039,17 @@ extern unsigned int boot_flash_type;
 
 #define CONFIG_RTC_ISL1208				1
 #define CONFIG_SYS_I2C_RTC_ADDR			0x6f
+
+#if defined(MODULE_VPORTP66) || defined(MODULE_VPORT46_2)
+#undef CONFIG_RTC_ISL1208				1
+#define CONFIG_RTC_MCP7941X				1
+#define CONFIG_SYS_I2C_RTC_ADDR			0x6f
+#define CONFIG_RTC_CALIBRATION			0
+#define RTC_REG_CALIBRATION				0x08
+#define RTC_REG_VBT						0x03
+//#define DEBUG_RTC
+#endif
+
 
 /* EEPROM definitions */
 #define CONFIG_SYS_I2C_EEPROM_ADDR_LEN			3

@@ -1527,13 +1527,13 @@ void gpio_init(void)
 	val &=~(1<<14); 					//GP0[14] (OUT) Fan_con output
 	val |= (1<<17); 					//GP0[17] (IN) Heatersys_int input
 	val &=~(1<<22); 					//GP0[22] (OUT) Heater_sys output
-	val &=~(1<<26); 					//GP0[26] (OUT) Heater_cam output
+//	val &=~(1<<26); 					//GP0[26] (OUT) Heater_cam output
 	val |= (1<<29);						//GP0[29] (IN) SD1_WPn
 	val |= (1<<30);						//GP0[30] (IN) SD1_CDn
 	val &=~(1<<31);						//GP0[31] (OUT) SD1_EN
 	__raw_writel(val, add);
 	__raw_writel((1<<22), (GPIO0_BASE + GPIO_SETDATAOUT));	//GP0[22]-Heater_sys output high
-	__raw_writel((1<<26), (GPIO0_BASE + GPIO_SETDATAOUT));	//GP0[26]-Heater_cam output high
+//	__raw_writel((1<<26), (GPIO0_BASE + GPIO_SETDATAOUT));	//GP0[26]-Heater_cam output high
 	__raw_writel((1<<31), (GPIO0_BASE + GPIO_SETDATAOUT));	//GP0[31]-SD1_EN output high
 
 	//GPIO1[] group
@@ -2269,7 +2269,7 @@ int board_eth_init(bd_t *bis)
 		printf("Caution:using static MACID!! Set <ethaddr> variable\n");
 	}
 
-#if defined(MODULE_VPORT66) || defined(MODULE_VPORTP66)
+#if defined(MODULE_VPORT66) 
 	//if (PG1_0 != get_cpu_rev()) {
 		cpsw_slaves[0].phy_id = 0;
 		cpsw_slaves[1].phy_id = 1;
