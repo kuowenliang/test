@@ -518,6 +518,12 @@
 #define CONFIG_PHY_RMII_MODE
 #undef CONFIG_PHY_GMII_MODE
 #endif
+#if defined(MODULE_VPORT464)
+#define CONFIG_PHY_GIGE
+//Use rgmii
+#undef CONFIG_PHY_GMII_MODE
+#endif
+
 /* increase network receive packet buffer count for reliable TFTP */
 #define CONFIG_SYS_RX_ETH_BUFFER		16
 #endif
@@ -598,6 +604,73 @@
 #define UBOOT_FLASH						0x00020000
 #define ENV1_FLASH						0x00240000
 #define ENV2_FLASH						0x00260000
+#define KERNEL_FLASH					0x00280000
+#define ROOTFS_FLASH					0x006C0000
+#define KERNEL2_FLASH					0x047C0000
+#define ROOTFS2_FLASH					0x04C00000
+#define DATA1_FLASH						0x08D00000
+#define MPKERNEL_FLASH					0x094C0000
+#define MPROOTFS_FLASH					0x09900000
+#define MPDATA_FLASH					0x0CD80000
+#define CONFIG_FLASH					0x0D980000
+#define CONFIG2_FLASH					0x0DC80000
+#define LOG_FLASH						0x0DF80000
+#define LOG2_FLASH						0x0E280000
+#define BACKUP_FLASH					0x0E580000
+#define RESERVE_FLASH					0x0EB80000
+
+// max. sizes
+#define UBL_SIZE						(1 * SZ_128K)
+#define UBOOT_SIZE						(17 * SZ_128K)
+#define ENV1_SIZE						(1 * SZ_128K)
+#define ENV2_SIZE						(1 * SZ_128K)
+#define KERNEL_SIZE						(34 * SZ_128K)
+#define ROOTFS_SIZE						(520 * SZ_128K)
+#define KERNEL2_SIZE					(34 * SZ_128K)
+#define ROOTFS2_SIZE					(520 * SZ_128K)
+#define DATA1_SIZE						(62 * SZ_128K)
+#define MPKERNEL_SIZE					(34 * SZ_128K)
+#define MPROOTFS_SIZE					(420 * SZ_128K)
+#define MPDATA_SIZE						(96 * SZ_128K)
+#define CONFIG_SIZE						(24 * SZ_128K)
+#define CONFIG2_SIZE					(24 * SZ_128K)
+#define LOG_SIZE						(24 * SZ_128K)
+#define LOG2_SIZE						(24 * SZ_128K)
+#define BACKUP_SIZE						(24 * SZ_128K)
+#define RESERVE_SIZE					(188 * SZ_128K)
+
+#define TEST_FLASH						RESERVE_FLASH
+#define TEST_FLASH_SIZE					RESERVE_SIZE
+
+#define CONFIG_SYS_REDUNDAND_ENVIRONMENT
+
+#define MTDPARTS_DEFAULT "mtdparts=nand0:"\
+	"0x00020000@0x00000000(ubl),"\
+	"0x00220000@0x00020000(u-boot),"\
+	"0x00020000@0x00240000(env),"\
+	"0x00020000@0x00260000(env2),"\
+	"0x00440000@0x00280000(kernel),"\
+	"0x04100000@0x006C0000(rootfs),"\
+	"0x00440000@0x047C0000(kernel2),"\
+	"0x04100000@0x04C00000(rootfs2),"\
+	"0x007C0000@0x08D00000(data),"\
+	"0x00440000@0x094C0000(mpkernel),"\
+	"0x03480000@0x09900000(mprootfs),"\
+	"0x00C00000@0x0CD80000(mpdata),"\
+	"0x00300000@0x0D980000(config),"\
+	"0x00300000@0x0DC80000(config2),"\
+	"0x00300000@0x0DF80000(log),"\
+	"0x00300000@0x0E280000(log2),"\
+	"0x00300000@0x0E580000(backup),"\
+	"-(reserved)"
+
+#elif defined(MODULE_VPORT464)
+
+// locations in NAND flash
+#define UBL_FLASH						0x00000000
+#define UBOOT_FLASH						0x00020000
+#define ENV1_FLASH						0x00240000
+#define ENV2_FLASH						0x0C380000
 #define KERNEL_FLASH					0x00280000
 #define ROOTFS_FLASH					0x006C0000
 #define KERNEL2_FLASH					0x047C0000
@@ -921,6 +994,31 @@ extern unsigned int boot_flash_type;
 #define GPIO_SYSLED_GREEN	GPIO_LED_STATE
 #define GPIO_SYSLED_RED		GPIO_LED_SYS
 #elif defined(MODULE_VPORT461A)
+#define GPIO_AIC_RSTn		((0*32) + 8)	//GP0[8] (OUT) AIC_RSTn
+#define GPIO_SD_WP			((0*32) + 29)	//GP0[29) (IN) SD1_WPn
+#define GPIO_SD_CD			((0*32) + 30)	//GP0[30) (IN) SD1_CDn
+#define GPIO_SD_EN			((0*32) + 31)	//GP0[31) (OUT) SD1_EN
+#define GPIO_FLASH_WP		((1*32) + 0)	//GP1[0] (OUT) FLASH_WP
+#define GPIO_RE_SETING		((2*32) + 21)	//GP2[21] (IN) RE_SETING
+#define GPIO_CAM_RST		((2*32) + 25)	//GP2[25] (OUT) CAM_REST
+#define GPIO_RTC_INTn		((2*32) + 26)	//GP2[26] (IN) RTC_INTn
+#define GPIO_PHY_LINKSTAT	((3*32) + 7)	//GP3[7] (IN) E_LINKSTS
+#define GPIO_PHY_RESET		((3*32) + 8)	//GP3[8] (OUT) ENET_RSTn
+#define GPIO_LED_SD			((3*32) + 9)	//GP3[9] (OUT) SD_LEDn
+#define GPIO_LED_PTZ		((3*32) + 10)	//GP3[10] (OUT) PTZ_LEDn
+#define GPIO_LED_VIDEO		((3*32) + 11)	//GP3[11] (OUT) VIDEO_LEDn
+#define GPIO_LED_STAT_G		((3*32) + 12)	//GP3[12] (OUT) STAT_GLEDn
+#define GPIO_LED_STAT_R		((3*32) + 13)	//GP3[13] (OUT) STAT_RLEDn
+#define GPIO_LED_FAIL		((3*32) + 14)	//GP3[14] (OUT) FAIL_LEDn
+#define GPIO_SYSBUTTON		GPIO_RE_SETING
+#define GPIO_SYSLED_GREEN	GPIO_LED_STAT_G
+#define GPIO_SYSLED_RED		GPIO_LED_STAT_R
+#undef GPIO_SYSBUTTON_ON
+#undef GPIO_SYSBUTTON_OFF
+#define GPIO_SYSBUTTON_ON	0
+#define GPIO_SYSBUTTON_OFF	1
+#define TEST_LED_BLINK_ON_MEM_TEST
+#elif defined(MODULE_VPORT464)
 #define GPIO_AIC_RSTn		((0*32) + 8)	//GP0[8] (OUT) AIC_RSTn
 #define GPIO_SD_WP			((0*32) + 29)	//GP0[29) (IN) SD1_WPn
 #define GPIO_SD_CD			((0*32) + 30)	//GP0[30) (IN) SD1_CDn

@@ -305,8 +305,13 @@ int board_init(void)
 		/*program GMII_SEL register for RMII mode */
 		__raw_writel(0x05,GMII_SEL);
 #else
-		/*program GMII_SEL register for RGMII mode */
-		__raw_writel(0x30a,GMII_SEL);
+		#if defined(MODULE_VPORT464)
+			//Henry: Enable RGMII internal delay, otherwise giga doesn't work?
+			__raw_writel(0x33a,GMII_SEL);
+		#else
+			/*program GMII_SEL register for RGMII mode */
+			__raw_writel(0x30a,GMII_SEL);
+		#endif
 #endif
 	//}
 
@@ -1290,7 +1295,7 @@ static void cpsw_pad_config()
 		val = PAD247_CNTRL; /*rgmii0_txd[1]*/
 		PAD247_CNTRL = (volatile unsigned int) BIT(0);
 #endif
-#if 0 /* switch off second RGMII to save power */
+#if defined(MODULE_VPORT464)
 		val = PAD248_CNTRL; /*rgmii1_rxd[1]*/
 		PAD248_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
 		val = PAD249_CNTRL; /*rgmii1_rxc*/
@@ -1406,6 +1411,8 @@ void set_muxconf_regs(void)
 #include "mux_vport461a.h"
 #elif defined(MODULE_VPORT46_2)
 #include "mux_vport46-2.h"
+#elif defined(MODULE_VPORT464)
+#include "mux_vport464.h"
 #endif
 	};
 
@@ -1892,6 +1899,82 @@ void gpio_init(void)
 	Audio_HW_Reset(0, 8);
 #endif
 }
+#elif defined(MODULE_VPORT464)
+void gpio_init(void)
+{
+	u32  add, val;
+	/*
+	   GPIO0 base 0x48032000
+	   GPIO1 base 0x4804C000
+	   GPIO2 base 0x481AC000
+	   GPIO3 base 0x481AE000
+	*/
+
+	//GPIO0[] group
+	add=(GPIO0_BASE + GPIO_OE); 		//GPIO_OE Output Enable Register
+	val = __raw_readl(add);
+	val &=~(1<<8);						//GP0[8] (OUT) AIC_RSTn
+	val |= (1<<29); 					//GP0[29] (IN) SD1_WPn
+	val |= (1<<30); 					//GP0[30] (IN) SD1_CDn
+	val &=~(1<<31); 					//GP0[31] (OUT) SD1_EN
+	__raw_writel(val, add);
+	__raw_writel((1<<31), (GPIO0_BASE + GPIO_SETDATAOUT));	//GP0[31]-SD1_EN output high
+
+	//GPIO1[] group
+	add=(GPIO1_BASE + GPIO_OE); 		//GPIO_OE Output Enable Register
+	val = __raw_readl(add);
+	val &=~(1<<0);						//GP1[0] (OUT) FLASH_WP
+	__raw_writel(val, add);
+
+	//GPIO2[] group
+	add=(GPIO2_BASE + GPIO_OE); 		//GPIO_OE Output Enable Register
+	val = __raw_readl(add);
+	val |= (1<<21); 					//GP2[21] (IN) Reset button
+	val |= (1<<24); 					//GP2[24] (IN) INT_TW9910n
+	val &=~(1<<25); 					//GP2[25] (OUT) CAM_REST
+	val |= (1<<26); 					//GP2[26] (IN) RTC_INTn
+	val |= (1<<27); 					//GP2[27] (IN) INTR_CPLD
+	__raw_writel(val, add);
+
+	// GPIO3[] group
+	add=(GPIO3_BASE + GPIO_OE); 		//GPIO_OE Output Enable Register
+	val = __raw_readl(add);
+	val |= (1<<7);						//GP3[7] (IN) E_LINKSTS
+	val &=~(1<<8);						//GP3[8] (OUT) ENET_RSTn
+	val &=~(1<<9);						//GP3[9] (OUT) SD_LEDn
+	val &=~(1<<10); 					//GP3[10] (OUT) PTZ_LEDn
+	val &=~(1<<11); 					//GP3[11] (OUT) VIDEO_LEDn
+	val &=~(1<<12); 					//GP3[12] (OUT) STAT_RLEDn
+	val &=~(1<<13); 					//GP3[13] (OUT) STAT_GLEDn
+	val &=~(1<<14); 					//GP3[14] (OUT) FAIL_LEDn
+	__raw_writel(val, add);
+	__raw_writel((1<<9), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[9]-SD_LEDn output high (OFF)
+	__raw_writel((1<<10), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[10]-PTZ_LEDn output high (OFF)
+	__raw_writel((1<<11), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[11]-VIDEO_LEDn output high (OFF)
+	__raw_writel((1<<12), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[12]-STAT_RLEDn output high (OFF)
+	__raw_writel((1<<13), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[13]-STAT_GLEDn output high (OFF)
+	__raw_writel((1<<14), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[14]-FAIL_LEDn output high (OFF)
+	/* reset ethernet */
+	__raw_writel((1<<8), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[8]-ENET_RSTn output high
+	delay(30000);
+	__raw_writel((1<<8), (GPIO3_BASE + GPIO_CLEARDATAOUT)); //GP3[8]-ENET_RSTn output low
+	delay(5*30000);
+	__raw_writel((1<<8), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[8]-ENET_RSTn output high
+	delay(30000);
+	/* reset sensor */
+	__raw_writel((1<<25), (GPIO2_BASE + GPIO_SETDATAOUT));	//GP2[25]-CAM_RST output high
+	delay(1000);
+	__raw_writel((1<<25), (GPIO2_BASE + GPIO_CLEARDATAOUT));  //GP2[25]-CAM_RST output low
+	delay(1000);
+	__raw_writel((1<<25), (GPIO2_BASE + GPIO_SETDATAOUT));	//GP2[25]-CAM_RST output high
+
+	while(__raw_readl(add) != val);
+
+#if defined(CONFIG_CODEC_AIC26) || defined(CONFIG_CODEC_AIC3104)
+	Audio_HW_Reset(0, 8);
+#endif
+}
+
 #else
 void gpio_init(void)
 {
@@ -2214,6 +2297,8 @@ static struct cpsw_platform_data cpsw_data = {
 	.cpdma_sram_ofs         = 0x200,
 #ifdef CONFIG_MV88E6063_SWITCH
 	.slaves 				= 2,
+#elif defined(MODULE_VPORT464)
+	.slaves 				= 2,
 #else
 	.slaves                 = 1,
 #endif
@@ -2274,6 +2359,11 @@ int board_eth_init(bd_t *bis)
 		cpsw_slaves[0].phy_id = 0;
 		cpsw_slaves[1].phy_id = 1;
 	//}
+#endif
+
+#if defined(MODULE_VPORT464)
+	cpsw_slaves[0].phy_id = 1;
+	cpsw_slaves[1].phy_id = 2;
 #endif
 
 	return cpsw_register(&cpsw_data);
