@@ -338,6 +338,9 @@ int board_init(void)
 
 	/* mach type passed to kernel */
 	gd->bd->bi_arch_number = MACH_TYPE_TI8148IPNC;
+#if defined(MODULE_VPORT464)
+	gd->bd->bi_arch_number = MACH_TYPE_TI8148EVM;
+#endif
 
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_DRAM_1 + 0x100;
