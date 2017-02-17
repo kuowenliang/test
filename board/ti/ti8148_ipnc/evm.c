@@ -1298,7 +1298,7 @@ static void cpsw_pad_config()
 		val = PAD247_CNTRL; /*rgmii0_txd[1]*/
 		PAD247_CNTRL = (volatile unsigned int) BIT(0);
 #endif
-#if defined(MODULE_VPORT464)
+#if defined(CONFIG_PHY_RGMII_PORT1_ENABLE)
 		val = PAD248_CNTRL; /*rgmii1_rxd[1]*/
 		PAD248_CNTRL = (volatile unsigned int) (BIT(18) | BIT(0));
 		val = PAD249_CNTRL; /*rgmii1_rxc*/
@@ -1412,7 +1412,7 @@ void set_muxconf_regs(void)
 #include "mux_vport36_2mp.h"
 #elif defined(MODULE_VPORT461A)
 #include "mux_vport461a.h"
-#elif defined(MODULE_VPORT46_2)
+#elif defined(MODULE_VPORT46_2L)
 #include "mux_vport46-2.h"
 #elif defined(MODULE_VPORT464)
 #include "mux_vport464.h"
@@ -1537,13 +1537,11 @@ void gpio_init(void)
 	val &=~(1<<14); 					//GP0[14] (OUT) Fan_con output
 	val |= (1<<17); 					//GP0[17] (IN) Heatersys_int input
 	val &=~(1<<22); 					//GP0[22] (OUT) Heater_sys output
-//	val &=~(1<<26); 					//GP0[26] (OUT) Heater_cam output
 	val |= (1<<29);						//GP0[29] (IN) SD1_WPn
 	val |= (1<<30);						//GP0[30] (IN) SD1_CDn
 	val &=~(1<<31);						//GP0[31] (OUT) SD1_EN
 	__raw_writel(val, add);
 	__raw_writel((1<<22), (GPIO0_BASE + GPIO_SETDATAOUT));	//GP0[22]-Heater_sys output high
-//	__raw_writel((1<<26), (GPIO0_BASE + GPIO_SETDATAOUT));	//GP0[26]-Heater_cam output high
 	__raw_writel((1<<31), (GPIO0_BASE + GPIO_SETDATAOUT));	//GP0[31]-SD1_EN output high
 
 	//GPIO1[] group
@@ -1839,7 +1837,7 @@ void gpio_init(void)
 	Audio_HW_Reset(0, 8);
 #endif
 }
-#elif defined(MODULE_VPORT46_2)
+#elif defined(MODULE_VPORT46_2L)
 void gpio_init(void)
 {
 	u32  add, val;
@@ -2268,12 +2266,12 @@ static struct cpsw_slave_data cpsw_slaves[] = {
 	{
 		.slave_reg_ofs  = 0x50,
 		.sliver_reg_ofs = 0x700,
-		.phy_id         = 0x10,
+		.phy_id         = CPSW_SLAVES_PHY_ID_0,
 	},
 	{
 		.slave_reg_ofs	= 0x50,
 		.sliver_reg_ofs = 0x700,
-		.phy_id         = 0x11,
+		.phy_id         = CPSW_SLAVES_PHY_ID_1,
 	},
 };
 #else
@@ -2281,12 +2279,12 @@ static struct cpsw_slave_data cpsw_slaves[] = {
 	{
 		.slave_reg_ofs  = 0x50,
 		.sliver_reg_ofs = 0x700,
-		.phy_id         = 1,
+		.phy_id         = CPSW_SLAVES_PHY_ID_0,
 	},
 	{
 		.slave_reg_ofs  = 0x90,
 		.sliver_reg_ofs = 0x740,
-		.phy_id         = 0,
+		.phy_id         = CPSW_SLAVES_PHY_ID_1,
 	},
 };
 #endif
@@ -2298,13 +2296,14 @@ static struct cpsw_platform_data cpsw_data = {
 	.channels               = 8,
 	.cpdma_reg_ofs          = 0x100,
 	.cpdma_sram_ofs         = 0x200,
-#ifdef CONFIG_MV88E6063_SWITCH
-	.slaves 				= 2,
-#elif defined(MODULE_VPORT464)
-	.slaves 				= 2,
-#else
-	.slaves                 = 1,
-#endif
+//#ifdef CONFIG_MV88E6063_SWITCH
+//	.slaves 				= 2,
+//#elif defined(MODULE_VPORT464)
+//	.slaves 				= 2,
+//#else
+//	.slaves                 = 1,
+//#endif
+	.slaves                 = CPSW_DATA_SLAVES_NUM,
 	.slave_data             = cpsw_slaves,
 	.ale_reg_ofs            = 0x600,
 	.ale_entries            = 1024,
@@ -2357,17 +2356,21 @@ int board_eth_init(bd_t *bis)
 		printf("Caution:using static MACID!! Set <ethaddr> variable\n");
 	}
 
-#if defined(MODULE_VPORT66) 
-	//if (PG1_0 != get_cpu_rev()) {
-		cpsw_slaves[0].phy_id = 0;
-		cpsw_slaves[1].phy_id = 1;
-	//}
-#endif
+/* Bobby -- Use following define in ti8148_ipnc.h to replace it.
+#define CPSW_SLAVES_PHY_ID_0	1
+#define CPSW_SLAVES_PHY_ID_1	2
+*/
+//#if defined(MODULE_VPORT66) 
+//	//if (PG1_0 != get_cpu_rev()) {
+//		cpsw_slaves[0].phy_id = 0;
+//		cpsw_slaves[1].phy_id = 1;
+//	//}
+//#endif
 
-#if defined(MODULE_VPORT464)
-	cpsw_slaves[0].phy_id = 1;
-	cpsw_slaves[1].phy_id = 2;
-#endif
+//#if defined(MODULE_VPORT464)
+//	cpsw_slaves[0].phy_id = 1;
+//	cpsw_slaves[1].phy_id = 2;
+//#endif
 
 	return cpsw_register(&cpsw_data);
 }

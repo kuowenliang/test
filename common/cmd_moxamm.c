@@ -217,28 +217,28 @@ void sdcard_disable(void)
 void Heater_Sys_ON(void)
 {
 #ifdef GPIO_HEATER_SYS
-	GPIO_Out(GPIO_HEATER_SYS, GPIO_HIGH);
+	GPIO_Out(GPIO_HEATER_SYS, GPIO_HEATER_ON);
 #endif
 }
 
 void Heater_Sys_OFF(void)
 {
 #ifdef GPIO_HEATER_SYS
-	GPIO_Out(GPIO_HEATER_SYS, GPIO_LOW);
+	GPIO_Out(GPIO_HEATER_SYS, GPIO_HEATER_OFF);
 #endif
 }
 
 void Heater_Cam_ON(void)
 {
 #ifdef GPIO_HEATER_CAM
-	GPIO_Out(GPIO_HEATER_CAM, GPIO_LOW);
+	GPIO_Out(GPIO_HEATER_CAM, GPIO_HEATER_ON);
 #endif
 }
 
 void Heater_Cam_OFF(void)
 {
 #ifdef GPIO_HEATER_CAM
-	GPIO_Out(GPIO_HEATER_CAM, GPIO_HIGH);
+	GPIO_Out(GPIO_HEATER_CAM, GPIO_HEATER_OFF);
 #endif
 }
 
@@ -5221,7 +5221,7 @@ int uart_pt_send_command(char *name, char *tx_buff, char *rx_buff, int tx_len, i
 	for(i = 1; i < (*len); i++) sum += (tx_buff[i]);
 	tx_buff[(*len)] = sum; (*len)++; //Checksum Byte
 
-	printf("Message(size=%d)->\n", (*len));
+	printf("Transmit(size=%d)->\n", (*len));
 	print_buffer(0, (void*)tx_buff, 1, (*len), 0);
 
 	for(i = 0; i < (*len); i++){
@@ -5523,6 +5523,8 @@ int uart_hermes_check_checksum(char *cmd_str_p, int cmd_len)
 	unsigned char Sum = 0;
 	int i;
 
+	if(cmd_len < 2) return DIAG_ERROR;
+
 	for (i = 0; i < cmd_len - 2; i++)
 	{
 		Sum += cmd_str_p[i];
@@ -5531,17 +5533,43 @@ int uart_hermes_check_checksum(char *cmd_str_p, int cmd_len)
 	{
 		Sum = (Sum & 0x7F) ^ 0x1;
 	}
-	if((cmd_str_p[cmd_len - 2] == Sum) && (cmd_str_p[cmd_len - 1] == 0xFF)) return 0;
-	else return -1;
+	if((cmd_str_p[cmd_len - 2] == Sum) && (cmd_str_p[cmd_len - 1] == 0xFF)){
+		return DIAG_OK;
+	}else{
+		printf("Checksum Error!!(%02X)\n", Sum);
+		return DIAG_ERROR;
+	}
+}
+
+int uart_hermes_check_ack(char *cmd_str_p, int cmd_len)
+{
+	if(cmd_len >= 2)
+	{
+		if((cmd_str_p[0] == 0x00) && (cmd_str_p[1] == 0xCC))
+		{
+			return DIAG_OK;
+		}
+		printf("NOT ACK:0x%02X 0x%02X\n", cmd_str_p[0], cmd_str_p[1]);
+	}
+	return DIAG_ERROR;
 }
 
 int uart_set_pt_baudrate()
 {
 	char tmp[32];
-	sprintf(tmp, "%d", uart_pt_baudrate);
-	if(setenv(PTCTRL_BAUDRATE_ITEM, tmp)) return DIAG_ERROR;
-	if(saveenv()) return DIAG_ERROR;
-	return DIAG_OK;
+	int baudrate = 0;
+	
+	if((baudrate = (int)simple_strtoul(getenv(PTCTRL_BAUDRATE_ITEM), NULL, 10)) <= 0){
+		printf("Error: getenv(%s)\n", PTCTRL_BAUDRATE_ITEM);
+		return DIAG_ERROR;
+	}else{
+		if(baudrate != uart_pt_baudrate){
+			sprintf(tmp, "%d", uart_pt_baudrate);
+			if(setenv(PTCTRL_BAUDRATE_ITEM, tmp)) return DIAG_ERROR;
+			if(saveenv()) return DIAG_ERROR;
+		}
+		return DIAG_OK;
+	}
 }
 
 static int uart_test_pt_tx(int parameter)
@@ -5570,6 +5598,21 @@ static int uart_test_pt_set_baudrate(int parameter)
 	return DIAG_OK;
 #endif
 }
+
+#define MCU_LIB_STD_TIMEOUT		UART_TIMEOUT_MSEC
+#define DOWNLOAD_ADDRESS 		0x4000
+#define TRANSMIT_STEP			12
+#define MCU_STATUS_OK			0x40
+
+
+#define TYPE_BYTE				2
+#define SUBTYPE_BYTE			3
+#define LOCATION_BYTE			4
+#define CHECKSUM_BYTE			8
+
+#define TYPE_DOME				0x01
+#define SUBTYPE_LOCATION_PAN	0x05
+#define SUBTYPE_LOCATION_TILT	0x06	
 
 #define DEFAULT_PAN_MIN 0
 #define DEFAULT_PAN_MAX 25599
@@ -5623,12 +5666,9 @@ static char gPtCmdSet_Right[] = {0x00, 0x00, PTSCANNER_MAINCMD_TYPE_DOME, PTSCAN
 static char gPtCmdSet_Left[] = {0x00, 0x00, PTSCANNER_MAINCMD_TYPE_DOME, PTSCANNER_DOMECMD_SUBTYPE_PANCONTINUOUS, PTSCANNER_EXTRACMD_FORCEDIR_LEFT | PTSCANNER_EXTRACMD_HIGHSPEED}; //Left
 static char gPtCmdSet_Up[] = {0x00, 0x00, PTSCANNER_MAINCMD_TYPE_DOME, PTSCANNER_DOMECMD_SUBTYPE_TILTCONTINUOUS, PTSCANNER_EXTRACMD_FORCEDIR_LEFT | PTSCANNER_EXTRACMD_HIGHSPEED}; //Up
 static char gPtCmdSet_Down[] = {0x00, 0x00, PTSCANNER_MAINCMD_TYPE_DOME, PTSCANNER_DOMECMD_SUBTYPE_TILTCONTINUOUS, PTSCANNER_EXTRACMD_FORCEDIR_RIGHT | PTSCANNER_EXTRACMD_HIGHSPEED}; //Down
-#define PT_CMDSET_NOTE_Speed "Set Speed (0~7):"
 static char gPtCmdSet_Stop[] = {0x00, 0x00, PTSCANNER_MAINCMD_TYPE_DOME, PTSCANNER_DOMECMD_SUBTYPE_STOP}; //Stop
 static char gPtCmdSet_PanPos[] = {0x00, 0x00, PTSCANNER_MAINCMD_TYPE_DOME, PTSCANNER_DOMECMD_SUBTYPE_PAN, PTSCANNER_EXTRACMD_MODE_ABSOLUTE | PTSCANNER_EXTRACMD_HIGHSPEED}; //Set Pan position
-#define PT_CMDSET_NOTE_PanPos "Set Pan position (0~25599):"
 static char gPtCmdSet_TiltPos[] = {0x00, 0x00, PTSCANNER_MAINCMD_TYPE_DOME, PTSCANNER_DOMECMD_SUBTYPE_TILT, PTSCANNER_EXTRACMD_MODE_ABSOLUTE | PTSCANNER_EXTRACMD_HIGHSPEED}; //Set Tilt position
-#define PT_CMDSET_NOTE_TiltPos "Set Tilt position (0~4079):"
 static char gPtCmdSet_GetPanPos[] = {0x00, 0x00, PTSCANNER_MAINCMD_TYPE_DOME, PTSCANNER_DOMECMD_SUBTYPE_PANLOCATION}; //Get Pan position
 static char gPtCmdSet_GetTiltPos[] = {0x00, 0x00, PTSCANNER_MAINCMD_TYPE_DOME, PTSCANNER_DOMECMD_SUBTYPE_TILTLOCATION}; //Get Tilt position
 static char gPtCmdSet_GetVer[] = {0x00, 0x00, PTSCANNER_MAINCMD_TYPE_SYSTEM, PTSCANNER_SYSTEMCMD_SUBTYPE_GET_VERSION}; //Get Firmware Version
@@ -5711,11 +5751,10 @@ void uart_Display_Version(char *rx_buff)
 	printf("Firmware Version:%u.%u\n", (rx_buff[4] << 4) + (rx_buff[5]), (rx_buff[6] << 4) + (rx_buff[7]));
 }
 
-int uart_pt_send_command(char *name, char *tx_buff, char *rx_buff, int tx_len, int rx_len, int *len, int rec_len, int timeout)
+int uart_pt_send_command(char *name, char *tx_buff, char *rx_buff, int tx_len, int rx_len, int *len, int *rec_len, int timeout)
 {
 	int i = 0, j = 0;
 	int timeout_msec = timeout;
-	char sum = 0;
 
 	if(uart_set_pt_baudrate()) return DIAG_ERROR;
 
@@ -5726,13 +5765,13 @@ int uart_pt_send_command(char *name, char *tx_buff, char *rx_buff, int tx_len, i
 
 	if(((*len) + 1) > tx_len) return DIAG_ERROR;
 
-	printf("Message(size=%d)->\n", (*len));
+	printf("Transmit(size=%d)->\n", (*len));
 	print_buffer(0, (void*)tx_buff, 1, (*len), 0);
 
 	for(i = 0; i < (*len); i++){
 		dev->putc(tx_buff[i]);
 	}
-	if(rec_len > 0){
+	if((rx_buff != NULL) && (rx_len > 0) && (rec_len != NULL) && ((*rec_len) > 0)){
 		memset(rx_buff, 0, rx_len);
 		timeout_msec = timeout;
 		j = 0;
@@ -5741,24 +5780,41 @@ int uart_pt_send_command(char *name, char *tx_buff, char *rx_buff, int tx_len, i
 				timeout_msec = timeout;
 				rx_buff[j] = (char)dev->getc();
 				j++;
-				if(j >= rec_len) break;
+				if(j >= (*rec_len)) break;
 			}
 			if(timeout_msec-- <= 0) { printf("Rx Time out!!\n"); return DIAG_ERROR; }
 			udelay(1000);
 		}
 		printf("Response(size=%d)->\n", j);
 		print_buffer(0, (void*)rx_buff, 1, j, 0);
-		if(uart_hermes_check_checksum(rx_buff, j)){
-			printf("Checksum Error!!(%X)\n", sum);
-			return DIAG_ERROR;
-		}
+		(*rec_len) = j;
 	}
 
 	return DIAG_OK;
 }
 
-#define TEST_PAN 0x01
-#define TEST_TILT 0x02
+void MCU_Reset()
+{
+#ifdef GPIO_MCU_RST
+	GPIO_Out(GPIO_MCU_RST, GPIO_HIGH);
+	udelay(500000);
+	GPIO_Out(GPIO_MCU_RST, GPIO_LOW);
+	udelay(500000);
+	GPIO_Out(GPIO_MCU_RST, GPIO_HIGH);
+	udelay(500000);
+#endif
+}
+
+int MCU_FW_Go()
+{
+	int len = 0;
+	int rec_len = 0;
+	char tx_buff[UART_MAX_TEST_LEN];
+	len = sizeof(gPtCmdSet_Init); memcpy(tx_buff, gPtCmdSet_Init, len);
+	if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, NULL, sizeof(tx_buff), 0, &len, NULL, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
+	return DIAG_OK;
+}
+
 static int uart_test_pt_send_command(int parameter)
 {
 	int len = 0;
@@ -5785,6 +5841,7 @@ static int uart_test_pt_send_command(int parameter)
 		printf("  [8]Get Pan position.\n");
 		printf("  [9]Get Tilt position.\n");
 		printf("  [a]Get Firmware Version.\n");
+		printf("  [r]Reset MCU\n");
 		printf("  [ESC]Exit.\n");
 		printf("->");
 		cmd = getc();
@@ -5795,69 +5852,73 @@ static int uart_test_pt_send_command(int parameter)
 		rec_len = 0;
 		switch(cmd){
 			case '0': //Init
-				len = sizeof(gPtCmdSet_Init); memcpy(tx_buff, gPtCmdSet_Init, len);
-				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) break;
+				MCU_FW_Go();
 				break;
 			case '1': //Right
 				len = sizeof(gPtCmdSet_Right); memcpy(tx_buff, gPtCmdSet_Right, len);
 				len += uart_PtCmd_InputSpeed(tx_buff+len);	//Speed
 				uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
-				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) break;
+				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, &rec_len, UART_TIMEOUT_MSEC)) break;
 				break;
 			case '2': //Left
 				len = sizeof(gPtCmdSet_Left); memcpy(tx_buff, gPtCmdSet_Left, len);
 				len += uart_PtCmd_InputSpeed(tx_buff+len);	//Speed
 				uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
-				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) break;
+				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, &rec_len, UART_TIMEOUT_MSEC)) break;
 				break;
 			case '3': //Up
 				len = sizeof(gPtCmdSet_Up); memcpy(tx_buff, gPtCmdSet_Up, len);
 				len += uart_PtCmd_InputSpeed(tx_buff+len);	//Speed
 				uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
-				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) break;
+				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, &rec_len, UART_TIMEOUT_MSEC)) break;
 				break;
 			case '4': //Down
 				len = sizeof(gPtCmdSet_Down); memcpy(tx_buff, gPtCmdSet_Down, len);
 				len += uart_PtCmd_InputSpeed(tx_buff+len);	//Speed
 				uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
-				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) break;
+				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, &rec_len, UART_TIMEOUT_MSEC)) break;
 				break;
 			case '5': //Stop
 				len = sizeof(gPtCmdSet_Stop); memcpy(tx_buff, gPtCmdSet_Stop, len);
 				uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
-				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) break;
+				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, &rec_len, UART_TIMEOUT_MSEC)) break;
 				break;
 			case '6': //Set PanPos
 				len = sizeof(gPtCmdSet_PanPos); memcpy(tx_buff, gPtCmdSet_PanPos, len);
 				len += uart_PtCmd_InputSpeed(tx_buff+len);	//Speed
 				len += uart_PtCmd_InputPanPos(tx_buff+len);	//Position
 				uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
-				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) break;
+				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, &rec_len, UART_TIMEOUT_MSEC)) break;
 				break;
 			case '7': //Set TiltPos
 				len = sizeof(gPtCmdSet_TiltPos); memcpy(tx_buff, gPtCmdSet_TiltPos, len);
 				len += uart_PtCmd_InputSpeed(tx_buff+len);	//Speed
 				len += uart_PtCmd_InputTiltPos(tx_buff+len);	//Position
 				uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
-				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) break;
+				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, &rec_len, UART_TIMEOUT_MSEC)) break;
 				break;
 			case '8': //Get PanPos
 				len = sizeof(gPtCmdSet_GetPanPos); memcpy(tx_buff, gPtCmdSet_GetPanPos, len); rec_len = 10;
 				uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
-				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) break;
-				uart_Display_PanPos(rx_buff);
+				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, &rec_len, UART_TIMEOUT_MSEC)) break;
+				if(uart_hermes_check_checksum(rx_buff, rec_len)) break;
+				else uart_Display_PanPos(rx_buff);
 				break;
 			case '9': //Get TiltPos
 				len = sizeof(gPtCmdSet_GetTiltPos); memcpy(tx_buff, gPtCmdSet_GetTiltPos, len); rec_len = 10;
 				uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
-				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) break;
+				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, &rec_len, UART_TIMEOUT_MSEC)) break;
 				uart_Display_TiltPos(rx_buff);
 				break;
 			case 'a': // Get Version
 				len = sizeof(gPtCmdSet_GetVer); memcpy(tx_buff, gPtCmdSet_GetVer, len); rec_len = 10;
 				uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
-				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) break;
-				uart_Display_Version(rx_buff);
+				if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, &rec_len, UART_TIMEOUT_MSEC)) break;
+				if(uart_hermes_check_checksum(rx_buff, rec_len)) break;
+				else uart_Display_Version(rx_buff);
+				break;
+			case 'r': //Reset MCU
+				MCU_Reset();
 				break;
 			case 0x1B:
 				return DIAG_OK;
@@ -5884,42 +5945,44 @@ int do_ptctrl (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		return -1;
 	}else{
 		memset(tx_buff, 0, sizeof(tx_buff));
+		if(strcmp(argv[1], "reset") == 0){
+			MCU_Reset();
+		}else
 		if(strcmp(argv[1], "init") == 0){
-			len = sizeof(gPtCmdSet_Init); memcpy(tx_buff, gPtCmdSet_Init, len);
-			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
+			return MCU_FW_Go();
 		}else
 		if(strcmp(argv[1], "right") == 0){
 			if(argv[2] != NULL) speed = argv[2];
 			len = sizeof(gPtCmdSet_Right); memcpy(tx_buff, gPtCmdSet_Right, len);
 			len += uart_PtCmd_SetSpeed(speed, tx_buff+len);	//Speed
 			uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
-			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
+			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, &rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
 		}else
 		if(strcmp(argv[1], "left") == 0){
 			if(argv[2] != NULL) speed = argv[2];
 			len = sizeof(gPtCmdSet_Left); memcpy(tx_buff, gPtCmdSet_Left, len);
 			len += uart_PtCmd_SetSpeed(speed, tx_buff+len);	//Speed
 			uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
-			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
+			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, &rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
 		}else
 		if(strcmp(argv[1], "up") == 0){
 			if(argv[2] != NULL) speed = argv[2];
 			len = sizeof(gPtCmdSet_Up); memcpy(tx_buff, gPtCmdSet_Up, len);
 			len += uart_PtCmd_SetSpeed(speed, tx_buff+len);	//Speed
 			uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
-			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
+			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, &rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
 		}else
 		if(strcmp(argv[1], "down") == 0){
 			if(argv[2] != NULL) speed = argv[2];
 			len = sizeof(gPtCmdSet_Down); memcpy(tx_buff, gPtCmdSet_Down, len);
 			len += uart_PtCmd_SetSpeed(speed, tx_buff+len);	//Speed
 			uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
-			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
+			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, &rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
 		}else
 		if(strcmp(argv[1], "stop") == 0){
 			len = sizeof(gPtCmdSet_Stop); memcpy(tx_buff, gPtCmdSet_Stop, len);
 			uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
-			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
+			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, &rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
 		}else
 		if(strcmp(argv[1], "panpos") == 0){
 			if(argc < 3){
@@ -5932,7 +5995,7 @@ int do_ptctrl (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 			len += uart_PtCmd_SetSpeed(speed, tx_buff+len);	//Speed
 			len += uart_PtCmd_SetPTPos(pos, tx_buff+len); //Position
 			uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
-			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
+			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, &rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
 		}else
 		if(strcmp(argv[1], "tiltpos") == 0){
 			if(argc < 3){
@@ -5945,37 +6008,41 @@ int do_ptctrl (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 			len += uart_PtCmd_SetSpeed(speed, tx_buff+len);	//Speed
 			len += uart_PtCmd_SetPTPos(pos, tx_buff+len); //Position
 			uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
-			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
+			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, &rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
 		}else
 		if(strcmp(argv[1], "getpanpos") == 0){
 			len = sizeof(gPtCmdSet_GetPanPos); memcpy(tx_buff, gPtCmdSet_GetPanPos, len); rec_len = 10;
 			uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
-			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
-			uart_Display_PanPos(rx_buff);
+			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, &rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
+			if(uart_hermes_check_checksum(rx_buff, rec_len)) return DIAG_ERROR;
+			else uart_Display_PanPos(rx_buff);
 		}else
 		if(strcmp(argv[1], "gettiltpos") == 0){
 			len = sizeof(gPtCmdSet_GetTiltPos); memcpy(tx_buff, gPtCmdSet_GetTiltPos, len); rec_len = 10;
 			uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
-			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
-			uart_Display_TiltPos(rx_buff);
+			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, &rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
+			if(uart_hermes_check_checksum(rx_buff, rec_len)) return DIAG_ERROR;
+			else uart_Display_TiltPos(rx_buff);
 		}else
 		if(strcmp(argv[1], "ver") == 0){
 			len = sizeof(gPtCmdSet_GetVer); memcpy(tx_buff, gPtCmdSet_GetVer, len); rec_len = 10;
 			uart_hermes_calc_checksum(tx_buff, &len);	//Add Checksum Byte & Tail Bye
-			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
-			uart_Display_Version(rx_buff);
+			if(uart_pt_send_command(PTCTRL_HERMES_NAME, tx_buff, rx_buff, sizeof(tx_buff), sizeof(rx_buff), &len, &rec_len, UART_TIMEOUT_MSEC)) return DIAG_ERROR;
+			if(uart_hermes_check_checksum(rx_buff, rec_len)) return DIAG_ERROR;
+			else uart_Display_Version(rx_buff);
 		}else{
 			printf ("Usage:\n%s\n", cmdtp->usage);
 			return -1;
 		}
 	}
 
-	return 0;
+	return DIAG_OK;
 }
 
 U_BOOT_CMD(ptctrl, 3, 0, do_ptctrl,
 	"Pan/Tilt control",
 	"Pan/Tilt control\n\
+	ptctrl reset - MCU Reset\n\
 	ptctrl init - MCU Initial\n\
 	ptctrl right [speed*] - Pan right\n\
 	ptctrl left [speed*] - Pan left\n\
@@ -5990,6 +6057,328 @@ U_BOOT_CMD(ptctrl, 3, 0, do_ptctrl,
 	'*': Optional.\n\
 	"
 );
+
+#define HERMES_ACK_LEN 2
+#define HERMES_STATUS_LEN 3
+static char gPtCmdSet_Ping[] = {0x03, 0x20, 0x20};
+static char gPtCmdSet_DownloadMode[] = {0x0B, 0x21, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+static char gPtCmdSet_Status[] = {0x03, 0x23, 0x23};
+static char gPtCmdSet_Ack[] = {0x00, 0xCC};
+
+int uart_write(struct serial_device *dev, char *buf, int size)
+{
+	int i = 0;
+
+	//printf("uart_write(size=%d)->\n", size); print_buffer(0, (void*)buf, 1, size, 0);
+	for(i = 0; i < size; i++){
+		dev->putc(buf[i]);
+	}
+
+	return DIAG_OK;
+}
+
+
+int uart_read_buff(struct serial_device *dev, char *buf, int *size, int timeout)
+{
+	int i = 0;
+	int rec_len = (*size);
+	int timeout_msec = timeout;
+
+	if(rec_len > 0){
+		memset(buf, 0, rec_len);
+		timeout_msec = timeout;
+		i = 0;
+		while(i < rec_len){
+			if(dev->tstc()) {
+				timeout_msec = timeout;
+				buf[i] = (char)dev->getc();
+				i++;
+				if(i >= rec_len) break;
+			}
+			if(timeout_msec-- <= 0) { printf("Rx Time out!!\n"); return DIAG_ERROR; }
+			udelay(1000);
+		}
+		//printf("\nuart_read_buff(size=%d)->\n", i); print_buffer(0, (void*)buf, 1, i, 0);
+		(*size) = i;
+	}
+
+	return DIAG_OK;
+}
+
+int MCU_Ack(struct serial_device *dev, int timeout)
+{
+	int recv;
+	char buf[UART_MAX_TEST_LEN];
+
+	recv = HERMES_ACK_LEN;
+	if(uart_read_buff(dev, buf, &recv, timeout) == DIAG_OK){
+		if(recv >= HERMES_ACK_LEN)
+		{
+			if( (buf[0] == 0x00) && (buf[1] == 0xCC) )
+			{
+				//printf("ACK:0x%02X 0x%02X\n", buf[0], buf[1]);
+				return 1;
+			}
+			printf("NOT ACK:0x%02X 0x%02X\n", buf[0], buf[1]);
+		}
+	}
+
+	return 0;
+}
+
+void Send_Ack(struct serial_device *dev)
+{
+	char buf[UART_MAX_TEST_LEN];
+	memset(buf, 0, sizeof(buf));
+	buf[0] = 0x00;
+	buf[1] = 0xCC;
+	uart_write(dev, buf, 2);
+}
+
+char Get_Status(struct serial_device *dev, int timeout)
+{
+	int len = 0;
+	int recv;
+	char status = 0;
+	char buf[UART_MAX_TEST_LEN];
+
+	memset(buf, 0, sizeof(buf));
+	len = sizeof(gPtCmdSet_Status); memcpy(buf, gPtCmdSet_Status, len); recv = HERMES_ACK_LEN + HERMES_STATUS_LEN;
+	uart_write(dev, buf, len);
+
+	memset(buf, 0, sizeof(buf));
+	if(uart_read_buff(dev, buf, &recv, timeout) == DIAG_OK){
+		if(uart_hermes_check_ack(buf, recv)) return DIAG_ERROR;
+		
+		status = buf[4];
+		//printf("Status = 0x%02X\n", status);
+		Send_Ack(dev);
+	}
+
+	return status;
+}
+
+static int Ping_MCU(struct serial_device *dev)
+{
+	unsigned char buf[UART_MAX_TEST_LEN];
+	
+	memset(buf, 0, sizeof(buf));
+	buf[0] = 0x03;
+	buf[1] = 0x20;
+	buf[2] = 0x20;
+	uart_write(dev, buf, 3);
+
+	return MCU_Ack(dev, MCU_LIB_STD_TIMEOUT);
+}
+
+static char Gen_CheckSum(char *data_ptr, int length)
+{
+	unsigned int tmp;
+	
+	tmp = 0;
+	while(length)
+	{
+		tmp += data_ptr[length-1];
+		length--;
+	}
+	tmp &= 0xFF;
+
+	return (char)(tmp);
+}
+
+static int Download_Mode(struct serial_device *dev, int fw_size)
+{
+	char buf[UART_MAX_TEST_LEN];
+	
+	memset(buf, 0, sizeof(buf));
+	buf[ 0] = 0x0B;
+	buf[ 2] = 0x21;
+	buf[ 3] = (DOWNLOAD_ADDRESS >> 24)&0xFF;
+	buf[ 4] = (DOWNLOAD_ADDRESS >> 16)&0xFF;
+	buf[ 5] = (DOWNLOAD_ADDRESS >>  8)&0xFF;
+	buf[ 6] = (DOWNLOAD_ADDRESS >>  0)&0xFF;
+	buf[ 7] = (fw_size >> 24)&0xFF;
+	buf[ 8] = (fw_size >> 16)&0xFF;
+	buf[ 9] = (fw_size >> 8)&0xFF;
+	buf[10] = (fw_size >> 0)&0xFF;
+	buf[1] = Gen_CheckSum(buf+2, 9);
+	
+	uart_write(dev, buf, 11);
+	if( MCU_Ack(dev, MCU_LIB_STD_TIMEOUT) != 1)
+	{
+		return -1;
+	}
+	return 1;
+}
+
+static int Transmit_Data(struct serial_device *dev, char *fw_ptr, int size)
+{
+	int transmit;
+	char buf[UART_MAX_TEST_LEN];
+	char status;
+	
+	transmit = 0;
+	while(size != 0)
+	{
+		memset(buf, 0, sizeof(buf));
+		buf[2] = 0x24;
+		if(size >= TRANSMIT_STEP)
+		{
+			buf[0] = TRANSMIT_STEP + 3;
+			memcpy(buf+3, fw_ptr+transmit, TRANSMIT_STEP);
+			buf[1] = Gen_CheckSum(buf+2, TRANSMIT_STEP + 1);
+			uart_write(dev, buf, buf[0]);
+			transmit += TRANSMIT_STEP;
+			size -= TRANSMIT_STEP;
+		}
+		else
+		{
+			buf[0] = size + 3;
+			memcpy(buf+3, fw_ptr+transmit, size);
+			buf[1] = Gen_CheckSum(buf+2, size + 1);
+			uart_write(dev, buf, buf[0]);
+			transmit += size;
+			size -= size;
+		}
+		if(MCU_Ack(dev, MCU_LIB_STD_TIMEOUT) != 1)
+		{
+			return -1;
+		}
+		else
+		{
+			status = Get_Status(dev, MCU_LIB_STD_TIMEOUT);
+			if(status != MCU_STATUS_OK)
+			{
+				printf("\nTransfer fail. Status 0x%02X", status);
+				return -1;
+			}
+			printf("\r%d bytes transfered.", transmit);
+			continue;
+		}
+	}
+	printf("\ntransfer %d byte(s)\n", transmit);
+	return 1;
+}
+
+int MCU_FW_Upload(char *fw_ptr, int size)
+{
+	struct serial_device *dev;
+
+	dev = get_serial_device_by_name(PTCTRL_HERMES_NAME);
+	if(dev == NULL) return DIAG_ERROR;
+	dev->init();
+
+	if( Ping_MCU(dev) != 1)
+	{
+		printf("Ping to MCU fail\n");
+		return DIAG_ERROR;
+	}
+	if( Download_Mode(dev, size) != 1)
+	{
+		printf("MCU set download mode not ack\n");
+		return DIAG_ERROR;
+	}
+	if( Get_Status(dev, UART_TIMEOUT_MSEC) != MCU_STATUS_OK)
+	{
+		printf("MCU set download mode fail\n");
+		return DIAG_ERROR;
+	}
+	if(Transmit_Data(dev, fw_ptr, size) != 1)
+	{
+		printf("MCU fw upload fail\n");
+		return DIAG_ERROR;
+	}
+	
+	return DIAG_OK;
+}
+
+int do_loadmcu (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+{
+	long size = 0;
+	char* FileBuffer = (char*)CONFIG_SYS_LOAD_ADDR;
+
+	if( (argc < 2) || ( (argc < 3) && (strcmp(argv[1], "tftp") == 0))){
+		printf ("Usage:\n%s\n", cmdtp->usage);
+		return DIAG_ERROR;
+	}
+
+	if((size = load_image(cmdtp, flag, argv[1], argc < 3 ? NULL : argv[2], CONFIG_SYS_LOAD_ADDR)) <= 0){
+		return DIAG_ERROR;
+	}
+	printf ("size:%lu\n", size);
+
+	MCU_Reset();
+	Sleep(1);
+
+	if(MCU_FW_Upload(FileBuffer, (int)size) == DIAG_OK)
+	{
+		printf("Success!\n");
+		MCU_FW_Go();
+	}
+	else
+	{
+		printf("ERROR!\n");
+	}
+
+	return DIAG_OK;
+}
+
+U_BOOT_CMD(
+	loadmcu, 3, 0,	do_loadmcu,
+	"Load P/T MCU firmware",
+	"Load P/T MCU firmware\n\
+	loadmcu [kermit/xymodem/tftp/mmc(dev[:part])][filename]"
+);
+
+static int diag_download_MCU(int parameter)
+{
+	int rcode = 0;
+	int ret = 0;
+	char cmd[3];
+	cmd_tbl_t cmd_tmp;
+	memset(cmd, 0, sizeof(cmd));
+	memset(&cmd_tmp, 0, sizeof(cmd_tbl_t));
+
+	if(get_line("Download 'MCU' image from serial[0] / tftp[1]* / mmc[2]:", cmd, sizeof(cmd), -1, "012", NULL, "1") < 0) return -1;
+
+	if(cmd[0] == '0'){
+		char *args[2];
+		args[0] = "loadmcu";
+		args[1] = "xymodem";
+		if(do_loadmcu(&cmd_tmp, 0, 2, args) == 0){
+			printf("Download image successed.\n");
+		}else{
+			printf("Download image failed.\n");
+			rcode = -1;
+		}
+	}else
+	if((cmd[0] == '1') || (cmd[0] == '2')){
+		char* d4file = D4_HERMES_FILE_NAME;
+		char tmp[CFG_CBSIZE];
+		memset(tmp, 0, sizeof(tmp));
+		char *args[3];
+		args[0] = "loadmcu";
+		if(cmd[0] == '1') args[1] = "tftp";
+		else if(cmd[0] == '2'){
+			char mmc[5];
+			if(get_line("Enter mmc partition(>1):", tmp, 5, -1, str_number_dec, NULL, "1") < 0) return -1;
+			sprintf(mmc, "mmc(0:%s)", tmp);
+			args[1] = mmc;
+		}else args[1] = "tftp";
+		printf("[%s] Download file name(%s):", args[1], d4file);
+		if((ret = get_line(NULL, tmp, sizeof(tmp), -1, NULL, NULL, d4file)) >= 0 ){
+			args[2] = tmp;
+			if(do_loadmcu(&cmd_tmp, 0, 3, args) == 0){
+				printf("Download file %s successed.\n", tmp);
+			}else{
+				printf("Download file %s failed.\n", tmp);
+				rcode = -1;
+			}
+		}
+	}
+	return rcode;
+}
+
 #endif
 
 //GPIO Test ---------------------------------------------------------------------------
@@ -6410,9 +6799,9 @@ int do_fan (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		return -1;
 	}else{
 		if(strcmp(argv[1], "on") == 0){
-			GPIO_Out(GPIO_FAN_CON, GPIO_HIGH);
+			GPIO_Out(GPIO_FAN_CON, GPIO_FAN_ON);
 		}else if(strcmp(argv[1], "off") == 0){
-			GPIO_Out(GPIO_FAN_CON, GPIO_LOW);
+			GPIO_Out(GPIO_FAN_CON, GPIO_FAN_OFF);
 		}else if(strcmp(argv[1], "speed") == 0){
 			reset_timer();
 			start = get_timer(0);
@@ -8237,13 +8626,13 @@ void init_version_env(void)
 	char tmp[80];
 	int s = 0;
 
-#ifdef CONFIG_HW_VER
-	sprintf(tmp, "%s", MK_STR(CONFIG_HW_VER));
-	if(strcmp(tmp, getenv("hw_ver")) != 0){
-		setenv("hw_ver", tmp);
-		s = 1;
-	}
-#endif
+//#ifdef CONFIG_HW_VER
+//	sprintf(tmp, "%s", MK_STR(CONFIG_HW_VER));
+//	if(strcmp(tmp, getenv("hw_ver")) != 0){
+//		setenv("hw_ver", tmp);
+//		s = 1;
+//	}
+//#endif
 
 #ifdef CONFIG_UBL_VER
 	sprintf(tmp, "%s", MK_STR(CONFIG_UBL_VER));
@@ -9468,6 +9857,9 @@ static DiagMenuTableStruct NewDownloadMenuTable[] = {
 	{ '5',	"Filesystem",			0,	NULL,					 	&DownloadFilesystemMenu},
 	{ '6',	"Kernel",				0,	NULL,						&DownloadKernelMenu},
 	{ '7',	"Erase Flash",			0,	NULL,						&EraseFlashMenu},
+#ifdef PTCTRL_HERMES_NAME
+	{ '8',	"MCU Firmware",			0,	diag_download_MCU,			NULL},
+#endif
 	{ '9',	"Download setting",		0,	diag_setup_download,		NULL},
 #ifdef DATA1_FLASH
 	{ 'a',	"Erase Data 1",			0,	diag_erase_Data1,			NULL},
@@ -9716,3 +10108,4 @@ U_BOOT_CMD(
 );
 
 #endif /* CONFIG_CMD_MOXAMM */
+                                                                                                                                                                                                                                                                                                                                                                                                              

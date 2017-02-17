@@ -86,21 +86,21 @@
 			BIT(0), /* 71-UART0_TXD (Console port) */
 			BIT(1), /* 72-UART4_RXD */
 			BIT(1), /* 73-UART4_TXD */
-			BIT(7), /* 74-(GP1_2) */
-			BIT(7), /* 75-(GP1_3) */
+			BIT(5), /* 74-I2C[2]_SCL */
+			BIT(5), /* 75-I2C[2]_SDA */
 			BIT(7), /* 76-Heatercam_int (GP1_4, I) */
 			BIT(0), /* 77 */
 			BIT(0), /* 78-I2C[1]_SCL */
 			BIT(0), /* 79-I2C[1]_SDA */
-			BIT(7), /* 80-SPI_CSC (GP1_6, O) */
+			BIT(6), /* 80-Motor_IRIS_DC (TIM4_IO) */
 			BIT(0), /* 81 */
 			BIT(0), /* 82 */
 			BIT(0), /* 83 */
 			BIT(0), /* 84 */
 			BIT(7), /* 85-SPI_nCS0 (Lens Driver)(GP1_16, O)*/
-			BIT(7), /* 86-(GP1_17) */
+			BIT(0), /* 86-(SPI[1]_SCLK) */
 			BIT(7), /* 87-MOB1 (Lens Driver) (GP1_18, I) */
-			BIT(7), /* 88-x (GP1_26, O) */
+			BIT(0), /* 88-(SPI[1]_D[0]) */
 			BIT(0), BIT(0), BIT(0), BIT(0), /* 89-92 */
 			BIT(0), BIT(0), BIT(0), BIT(0), /* 93-96 */
 			BIT(0), BIT(0), BIT(0), BIT(0), /* 97-100 */
@@ -230,7 +230,7 @@
 			BIT(0), BIT(0), BIT(0), BIT(0), /* 248-251 */
 			BIT(0), BIT(0), BIT(0), BIT(0), /* 252-255 */
 			BIT(0), BIT(0), BIT(0), 		/* 256-258 */
-			BIT(0), /* 259 */
+			BIT(6), /* 259-Motor_IRIS_Video (TIM3_IO) */
 			BIT(0), /* 260 */
 			BIT(0), /* 261 */
 			BIT(0), /* 262 */

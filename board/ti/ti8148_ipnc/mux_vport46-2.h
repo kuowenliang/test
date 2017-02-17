@@ -19,7 +19,7 @@
 			BIT(0), /* 4-SD1_DAT[1]_SDIRQ */
 			BIT(0), /* 5-SD1_DAT[2]_SDRW */
 			BIT(0), /* 6-SD1_DAT[3] */
-			BIT(7), /* 7-Fan_int (GP1_7, I) */
+			BIT(7), /* 7-(GP1_7) */
 			BIT(0), /* 8 */
 			BIT(0), /* 9 */
 			BIT(0), /* 10 */
@@ -55,20 +55,20 @@
 			BIT(0), /* 40 */
 			BIT(0), /* 41 */
 			BIT(0), /* 42 */
-			BIT(7), /* 43-Fan_con (GP0_14, O) */
+			BIT(7), /* 43-(GP0_14) */
 			BIT(0), /* 44 */
 			BIT(0), /* 45 */
 			BIT(7), /* 46-Heatersys_int (GP0_17, I) */
 			BIT(0), /* 47 */
-			BIT(0), /* 48 */
+			BIT(6), /* 48-DIM1 (TIM5_IO) */
 			BIT(0), /* 49 */
 			BIT(0), /* 50 */
 			BIT(0), /* 51 */
 			BIT(7), /* 52-Heater_sys (GP0_22, O) */
 			BIT(0), /* 53 */
-			BIT(0), /* 54 */
+			BIT(6), /* 54-DIM2 (TIM6_IO) */
 			BIT(0), /* 55 */
-			BIT(7), /* 56-Heater_cam (GP0_26, O) */
+			BIT(7), /* 56-(GP0_26) */
 			BIT(0), /* 57 */
 			BIT(0), /* 58 */
 			BIT(7), /* 59-SD1_WPn (GP0_29, I) */
@@ -86,21 +86,21 @@
 			BIT(0), /* 71-UART0_TXD (Console port) */
 			BIT(0), /* 72-UART0_CTS */
 			BIT(0), /* 73-UART0_RTS */
-			BIT(0), /* 74-UART0_DCD */
-			BIT(0), /* 75-UART0_DSR */
-			BIT(7), /* 76-Heatercam_int (GP1_4, I) */
-			BIT(0), /* 77 */
+			BIT(5), /* 74-I2C[2]_SCL */
+			BIT(5), /* 75-I2C[2]_SDA */
+			BIT(2), /* 76-UART1_TXD (RS-485 PTZ port) */
+			BIT(2), /* 77-UART1_RXD (RS-485 PTZ port) */
 			BIT(0), /* 78-I2C[1]_SCL */
 			BIT(0), /* 79-I2C[1]_SDA */
-			BIT(7), /* 80-SPI_CSC (GP1_6, O) */
+			BIT(6), /* 80-Motor_IRIS_DC (TIM4_IO) */
 			BIT(0), /* 81 */
 			BIT(0), /* 82 */
 			BIT(0), /* 83 */
 			BIT(0), /* 84 */
-			BIT(0), /* 85 */
-			BIT(7), /* 86-x (GP1_17, O) */
-			BIT(7), /* 87-x (GP1_18, O) */
-			BIT(7), /* 88-x (GP1_26, O) */
+			BIT(7), /* 85-Motor_CS (GP1_16, O) */
+			BIT(0), /* 86-(SPI[1]_SCLK) */
+			BIT(0), /* 87-(SPI[1]_D[1]) */
+			BIT(0), /* 88-(SPI[1]_D[0]) */
 			BIT(0), BIT(0), BIT(0), BIT(0), /* 89-92 */
 			BIT(0), BIT(0), BIT(0), BIT(0), /* 93-96 */
 			BIT(0), BIT(0), BIT(0), BIT(0), /* 97-100 */
@@ -121,10 +121,10 @@
 			BIT(0), /* 133 */
 			BIT(5), /* 134-CLKOUT0 */
 			BIT(7), /* 135-MCU_RST (GP2_0, O) */
-			BIT(7), /* 136-FPGA_RST (GP2_1, O) */
-			BIT(0), /* 137 */
-			BIT(0), /* 138 */
-			BIT(0), /* 139 */
+			BIT(7), /* 136-(GP2_1) */
+			BIT(7), /* 137-Z_PI (Lens motor PI) (GP2_2, O) */
+			BIT(7), /* 138-EXT1 (Focus detaction) (GP2_3, I) */
+			BIT(7), /* 139-Motor_RST (Lens Driver) (GP2_4, O) */
 /*
 	140~155-VIN[0]A_D[0]~VIN[0]A_D[15]
 
@@ -176,7 +176,7 @@
 			BIT(0), /* 185 */
 			BIT(0), /* 186 */
 			BIT(0), /* 187 */
-			BIT(7), /* 188-CMOS_OE (GP2_24, O) */
+			BIT(7), /* 188-(GP2_24) */
 			BIT(7), /* 189-CAM_REST (GP2_25, O) */
 			BIT(0), /* 190 */
 			BIT(0), /* 191 */
@@ -185,17 +185,17 @@
 			BIT(0), /* 194 */
 			BIT(0), /* 195 */
 			BIT(7), /* 196-RTC_INTn (GP2_26, I) */
-			BIT(7), /* 197-HD_CLK (GP2_27, O) */
+			BIT(7), /* 197-F_PI (Lens motor PI) (GP2_27, I) */
 			BIT(0), /* 198 */
 			BIT(0), /* 199 */
 			BIT(0), /* 200 */
 			BIT(0), /* 201 */
 			BIT(0), /* 202 */
 			BIT(0), /* 203 */
-			BIT(0), /* 204 */
-			BIT(0), /* 205 */
-			BIT(7), /* 206-CAMERA_POWER (GP2_30, O) */
-			BIT(7), /* 207-THERMAL_SOUT (GP2_31, I) */
+			BIT(7), /* 204-(GP2_28) */
+			BIT(7), /* 205-RS485_4W (GP2_29, O) */
+			BIT(7), /* 206-RS485_ENRn (GP2_30, O) */
+			BIT(7), /* 207-RS485_ENT (GP2_31, O) */
 			BIT(0), /* 208 */
 			BIT(0), /* 209 */
 			BIT(0), /* 210 */
@@ -213,7 +213,7 @@
 			BIT(0), /* 222 */
 			BIT(0), /* 223 */
 			BIT(0), /* 224 */
-			BIT(7), /* 225-FPGA_PROG (GP3_17, O) */
+			BIT(7), /* 225-(GP3_17) */
 			BIT(0), /* 226 */
 			BIT(0), /* 227 */
 			BIT(0), /* 228 */
@@ -230,7 +230,7 @@
 			BIT(0), BIT(0), BIT(0), BIT(0), /* 248-251 */
 			BIT(0), BIT(0), BIT(0), BIT(0), /* 252-255 */
 			BIT(0), BIT(0), BIT(0), 		/* 256-258 */
-			BIT(0), /* 259 */
+			BIT(6), /* 259-Motor_IRIS_Video (TIM3_IO) */
 			BIT(0), /* 260 */
 			BIT(0), /* 261 */
 			BIT(0), /* 262 */
