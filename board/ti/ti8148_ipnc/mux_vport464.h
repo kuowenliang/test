@@ -202,15 +202,15 @@
 			BIT(5), /* 211-CAMERA_TX (UART3_RXD) */
 			BIT(5), /* 212-CAMERA_RX (UART3_TXD) */
 			BIT(0), /* 213 */
-			BIT(0), /* 214 */
-			BIT(7), /* 215-ARM_IN (GP3_7, I) */
-			BIT(7), /* 216-ARM_OUT (GP3_8, O) */
-			BIT(0), /* 217 */
-			BIT(0), /* 218 */
-			BIT(0), /* 219 */
-			BIT(7), /* 220-LED_G (GP3_12, O) */
-			BIT(7), /* 221-LED_R (GP3_13, O) */
-			BIT(0), /* 222 */
+			BIT(7), /* 214-GP3_6 (V1_LEDn)*/
+			BIT(7), /* 215-GP3_7 (V2_LEDn) */
+			BIT(7), /* 216-GP3_8 (V3_LEDn) */
+			BIT(7), /* 217-GP3_9 (V4_LEDn) */
+			BIT(7), /* 218-GP3_10 (SD_LEDn)*/
+			BIT(7), /* 219-GP3_11 (PTZ_LEDn)*/
+			BIT(7), /* 220-GP3_12 (LED_G) */
+			BIT(7), /* 221-GP3_13 (LED_R) */
+			BIT(7), /* 222-GP3_14 (FAIL_LEDn) */
 			BIT(0), /* 223 */
 			BIT(0), /* 224 */
 			BIT(0), /* 225 */

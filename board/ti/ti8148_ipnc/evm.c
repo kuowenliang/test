@@ -1940,11 +1940,12 @@ void gpio_init(void)
 	// GPIO3[] group
 	add=(GPIO3_BASE + GPIO_OE); 		//GPIO_OE Output Enable Register
 	val = __raw_readl(add);
-	val |= (1<<7);						//GP3[7] (IN) E_LINKSTS
-	val &=~(1<<8);						//GP3[8] (OUT) ENET_RSTn
-	val &=~(1<<9);						//GP3[9] (OUT) SD_LEDn
-	val &=~(1<<10); 					//GP3[10] (OUT) PTZ_LEDn
-	val &=~(1<<11); 					//GP3[11] (OUT) VIDEO_LEDn
+	val &=~(1<<6);						//GP3[6] (OUT) V1_LEDn
+	val &=~(1<<7);						//GP3[7] (OUT) V2_LEDn
+	val &=~(1<<8);						//GP3[8] (OUT) V3_LEDn
+	val &=~(1<<9);						//GP3[9] (OUT) V4_LEDn
+	val &=~(1<<10); 					//GP3[10] (OUT) SD_LEDn
+	val &=~(1<<11); 					//GP3[11] (OUT) PTZ_LEDn
 	val &=~(1<<12); 					//GP3[12] (OUT) STAT_RLEDn
 	val &=~(1<<13); 					//GP3[13] (OUT) STAT_GLEDn
 	val &=~(1<<14); 					//GP3[14] (OUT) FAIL_LEDn
