@@ -548,6 +548,97 @@ static void cpsw_set_slave_mac(struct cpsw_slave *slave,
 	__raw_writel(mac_lo(priv->dev->enetaddr), &slave->regs->sa_lo);
 }
 
+#if defined(MODULE_VPORT464)
+static void setOOBInRgmiiMode(struct cpsw_slave *slave, struct cpsw_priv *priv, 
+	char enable)
+{
+	char *name = priv->dev->name;
+	int phy_id = slave->data->phy_id;
+	unsigned short reg;
+
+	miiphy_write(name, phy_id, 0x18, 0x7007);
+	miiphy_read(name, phy_id, 0x18, &reg);
+
+	if(enable)
+		reg &= 0xFFDF;
+	else
+		reg |= 0x0020;
+
+	// Write shadow: 111
+	reg |= 0xF007;
+	miiphy_write(name, phy_id, 0x18, reg);
+	
+	return;
+}
+
+static void setLEDActivityMode(struct cpsw_slave *slave, struct cpsw_priv *priv)
+{
+	char *name = priv->dev->name;
+	int phy_id = slave->data->phy_id;
+	unsigned short reg;
+
+	miiphy_write(name, phy_id, 0x1c, 0xB413);
+
+	miiphy_write(name, phy_id, 0x1c, 0xA418);
+	
+	return;
+}
+
+static void cpsw_slave_update_link(struct cpsw_slave *slave,
+				   struct cpsw_priv *priv, int *link)
+{
+	char *name = priv->dev->name;
+	int phy_id = slave->data->phy_id;
+	int speed = 0, duplex = 0;
+	unsigned short reg;
+	u32 mac_control = 0;
+
+	if (miiphy_read(name, phy_id, PHY_BMSR, &reg))
+		return; /* could not read, assume no link */
+
+	if (reg & PHY_BMSR_LS) { /* link up */
+		speed = miiphy_speed(name, phy_id);
+		duplex = miiphy_duplex(name, phy_id);
+
+		*link = 1;
+		mac_control = priv->data.mac_control;
+		if (speed == 10)
+		{
+			mac_control |= BIT(18);	/* In-Band Mode */
+			setOOBInRgmiiMode(slave, priv, 1);
+		}	
+		else if (speed == 100)
+		{	
+			mac_control |= BIT(15);	/* RMII/RGMII Gasket Control */
+			setOOBInRgmiiMode(slave, priv, 0);
+		}	
+		else if (speed == 1000)
+		{	
+			mac_control |= BIT(7);	/* GIGABITEN	*/
+			setOOBInRgmiiMode(slave, priv, 0);
+		}	
+		if (duplex == FULL)
+			mac_control |= BIT(0);	/* FULLDUPLEXEN	*/
+	}
+
+	if (mac_control == slave->mac_control)
+		return;
+
+	if (mac_control) {
+		printf("link up on port %d, speed %d, %s duplex\n",
+				slave->slave_num, speed,
+				(duplex == FULL) ?  "full" : "half");
+	} else {
+		printf("link down on port %d\n", slave->slave_num);
+	}
+
+	setLEDActivityMode(slave, priv);
+		
+	__raw_writel(mac_control, &slave->sliver->mac_control);
+	slave->mac_control = mac_control;
+	priv->mdio_link |= __raw_readl(&mdio_regs->link) & (1 << phy_id);
+}
+#else
 static void cpsw_slave_update_link(struct cpsw_slave *slave,
 				   struct cpsw_priv *priv, int *link)
 {
@@ -591,6 +682,7 @@ static void cpsw_slave_update_link(struct cpsw_slave *slave,
 	slave->mac_control = mac_control;
 	priv->mdio_link |= __raw_readl(&mdio_regs->link) & (1 << phy_id);
 }
+#endif
 
 static int cpsw_update_link(struct cpsw_priv *priv)
 {
