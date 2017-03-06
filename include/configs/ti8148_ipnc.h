@@ -685,21 +685,21 @@
 #define UBL_FLASH						0x00000000
 #define UBOOT_FLASH						0x00020000
 #define ENV1_FLASH						0x00240000
-#define ENV2_FLASH						0x0C380000
 #define KERNEL_FLASH					0x00280000
 #define ROOTFS_FLASH					0x006C0000
-#define KERNEL2_FLASH					0x047C0000
-#define ROOTFS2_FLASH					0x04C00000
-#define DATA1_FLASH						0x08D00000
-#define MPKERNEL_FLASH					0x094C0000
-#define MPROOTFS_FLASH					0x09900000
-#define MPDATA_FLASH					0x0CD80000
-#define CONFIG_FLASH					0x0D980000
-#define CONFIG2_FLASH					0x0DC80000
-#define LOG_FLASH						0x0DF80000
-#define LOG2_FLASH						0x0E280000
-#define BACKUP_FLASH					0x0E580000
-#define RESERVE_FLASH					0x0EB80000
+#define KERNEL2_FLASH					0x03B40000
+#define ROOTFS2_FLASH					0x03F80000
+#define DATA1_FLASH						0x07400000
+#define MPKERNEL_FLASH					0x07BC0000
+#define MPROOTFS_FLASH					0x08000000
+#define MPDATA_FLASH					0x0B480000
+#define CONFIG_FLASH					0x0C080000
+#define ENV2_FLASH						0x0C380000
+#define CONFIG2_FLASH					0x0C9A0000
+#define LOG_FLASH						0x0CDA0000
+#define LOG2_FLASH						0x0D1A0000
+#define BACKUP_FLASH					0x0C3A0000
+#define RESERVE_FLASH					0x0D5A0000
 
 // max. sizes
 #define UBL_SIZE						(1 * SZ_128K)
@@ -707,18 +707,18 @@
 #define ENV1_SIZE						(1 * SZ_128K)
 #define ENV2_SIZE						(1 * SZ_128K)
 #define KERNEL_SIZE						(34 * SZ_128K)
-#define ROOTFS_SIZE						(520 * SZ_128K)
+#define ROOTFS_SIZE						(420 * SZ_128K)
 #define KERNEL2_SIZE					(34 * SZ_128K)
-#define ROOTFS2_SIZE					(520 * SZ_128K)
+#define ROOTFS2_SIZE					(420 * SZ_128K)
 #define DATA1_SIZE						(62 * SZ_128K)
 #define MPKERNEL_SIZE					(34 * SZ_128K)
 #define MPROOTFS_SIZE					(420 * SZ_128K)
 #define MPDATA_SIZE						(96 * SZ_128K)
 #define CONFIG_SIZE						(24 * SZ_128K)
-#define CONFIG2_SIZE					(24 * SZ_128K)
-#define LOG_SIZE						(24 * SZ_128K)
-#define LOG2_SIZE						(24 * SZ_128K)
-#define BACKUP_SIZE						(24 * SZ_128K)
+#define CONFIG2_SIZE					(32 * SZ_128K)
+#define LOG_SIZE						(32 * SZ_128K)
+#define LOG2_SIZE						(32 * SZ_128K)
+#define BACKUP_SIZE						(48 * SZ_128K)
 #define RESERVE_SIZE					(188 * SZ_128K)
 
 #define TEST_FLASH						RESERVE_FLASH
@@ -730,22 +730,22 @@
 	"0x00020000@0x00000000(ubl),"\
 	"0x00220000@0x00020000(u-boot),"\
 	"0x00020000@0x00240000(env),"\
-	"0x00020000@0x00260000(env2),"\
 	"0x00440000@0x00280000(kernel),"\
-	"0x04100000@0x006C0000(rootfs),"\
-	"0x00440000@0x047C0000(kernel2),"\
-	"0x04100000@0x04C00000(rootfs2),"\
-	"0x007C0000@0x08D00000(data),"\
-	"0x00440000@0x094C0000(mpkernel),"\
-	"0x03480000@0x09900000(mprootfs),"\
-	"0x00C00000@0x0CD80000(mpdata),"\
-	"0x00300000@0x0D980000(config),"\
-	"0x00300000@0x0DC80000(config2),"\
-	"0x00300000@0x0DF80000(log),"\
-	"0x00300000@0x0E280000(log2),"\
-	"0x00300000@0x0E580000(backup),"\
+	"0x03480000@0x006C0000(rootfs),"\
+	"0x00440000@0x03B40000(kernel2),"\
+	"0x03480000@0x03F80000(rootfs2),"\
+	"0x007C0000@0x07400000(data),"\
+	"0x00440000@0x07BC0000(mpkernel),"\
+	"0x03480000@0x08000000(mprootfs),"\
+	"0x00C00000@0x0B480000(mpdata),"\
+	"0x00300000@0x0C080000(config),"\
+	"0x00020000@0x0C380000(env2),"\
+	"0x00600000@0x0C3A0000(backup),"\
+	"0x00400000@0x0C9A0000(config2),"\
+	"0x00400000@0x0CDA0000(log),"\
+	"0x00400000@0x0D1A0000(log2),"\
 	"-(reserved)"
-
+	
 #else
 
 // locations in NAND flash
