@@ -1950,9 +1950,8 @@ void gpio_init(void)
 	val &=~(1<<13); 					//GP3[13] (OUT) STAT_GLEDn
 	val &=~(1<<14); 					//GP3[14] (OUT) FAIL_LEDn
 	__raw_writel(val, add);
-	__raw_writel((1<<9), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[9]-SD_LEDn output high (OFF)
-	__raw_writel((1<<10), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[10]-PTZ_LEDn output high (OFF)
-	__raw_writel((1<<11), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[11]-VIDEO_LEDn output high (OFF)
+	__raw_writel((1<<10), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[10]-SD_LEDn output high (OFF)
+	__raw_writel((1<<11), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[11]-PTZ_LEDn output high (OFF)
 	__raw_writel((1<<12), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[12]-STAT_RLEDn output high (OFF)
 	__raw_writel((1<<13), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[13]-STAT_GLEDn output high (OFF)
 	__raw_writel((1<<14), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[14]-FAIL_LEDn output high (OFF)
