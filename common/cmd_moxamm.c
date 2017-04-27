@@ -626,6 +626,36 @@ U_BOOT_CMD(
 
 #if CONFIG_SYS_I2C_EEPROM
 //wensen for VPort06EC-2
+int EEPROM_Clear(void)
+{
+	uchar chip;
+	uint addr;
+	int alen = 1;
+	uchar value[EEPROM_DATA_PAGE_SIZE];
+	int len;
+	int i, j;
+
+	alen = CONFIG_SYS_I2C_EEPROM_ADDR_LEN;
+	chip = CONFIG_SYS_I2C_EEPROM_ADDR;
+	addr = EEPROM_DATA_MODELNAME_POS;
+	len = EEPROM_DATA_TOTAL_SIZE;
+
+	memset(value, 0xff, EEPROM_DATA_PAGE_SIZE);
+	for (i = 0; i < (EEPROM_DATA_TOTAL_SIZE / EEPROM_DATA_PAGE_SIZE); i++)
+	{
+		addr = (i * EEPROM_DATA_PAGE_SIZE);
+		if (i2c_write(chip, addr, alen, &value[0], EEPROM_DATA_PAGE_SIZE))
+		{
+			printf("Failed to write I2C bus.\n");
+			return DIAG_ERROR;
+		}
+
+		udelay(1000);
+	}
+
+	return DIAG_OK;
+}
+
 int EEPROM_Dump(void)
 {
 	uchar chip;
@@ -7752,6 +7782,9 @@ static DiagMenuTableStruct DiagnosticMenuTable[] = {
 	{ 'p',	"Ping test",				0,	ping_test_func,			NULL},
 	{ 'r',	"DI/DO Test",				0,	NULL,					&DIDOTestMenu},
 	{ 't',	"UART test",				0,	NULL,					&UARTTestMenu},
+#if CONFIG_SYS_I2C_EEPROM
+	{ 's',	"EEPROM clear",				0,	EEPROM_Clear, 			NULL},
+#endif
 //	{ 'u',	"PRTCIF Read/Write",		0,	NULL,					&PRTCIFMenu},
 };
 static DiagMenuStruct DiagnosticMenu = {
@@ -10072,6 +10105,22 @@ int do_moxamm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	sys_led_R_ON();
 
 	Heater_Sys_OFF();
+
+
+#if CONFIG_SYS_I2C_EEPROM
+	{
+		unsigned short check_mp_flag = 0;
+
+		EEPROM_GetMpFlag(&check_mp_flag);
+		if (check_mp_flag == 0xffff)
+		{
+			printf("EEPROM(Default) MP Flag : 0x%x\n", check_mp_flag);
+			check_mp_flag = 0;
+			EEPROM_SetMpFlag(check_mp_flag);
+		}
+	}
+#endif
+
 
 	//Heater_Cam_OFF();
 	printf("\n\n%s Starting ...", CONFIG_DUT_MODEL);
