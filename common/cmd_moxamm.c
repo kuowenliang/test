@@ -214,6 +214,35 @@ void sdcard_disable(void)
 #endif
 }
 
+#if defined(VPORT06EC_2V)
+void Heater_Sys_ON(void)
+{
+#ifdef GPIO_HEATER_SYS
+	GPIO_Out(GPIO_HEATER_SYS, GPIO_HIGH);
+#endif
+}
+
+void Heater_Sys_OFF(void)
+{
+#ifdef GPIO_HEATER_SYS
+	GPIO_Out(GPIO_HEATER_SYS, GPIO_LOW);
+#endif
+}
+
+void Heater_Cam_ON(void)
+{
+#ifdef GPIO_HEATER_CAM
+	GPIO_Out(GPIO_HEATER_CAM, GPIO_LOW);
+#endif
+}
+
+void Heater_Cam_OFF(void)
+{
+#ifdef GPIO_HEATER_CAM
+	GPIO_Out(GPIO_HEATER_CAM, GPIO_HIGH);
+#endif
+}
+#else
 void Heater_Sys_ON(void)
 {
 #ifdef GPIO_HEATER_SYS
@@ -241,6 +270,10 @@ void Heater_Cam_OFF(void)
 	GPIO_Out(GPIO_HEATER_CAM, GPIO_HEATER_OFF);
 #endif
 }
+
+#endif
+
+
 
 #ifdef CONFIG_ETHADDR
 #if !CONFIG_SYS_I2C_EEPROM
