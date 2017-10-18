@@ -211,6 +211,27 @@
 
 #else
 /* TI814X DDR3 PHY CFG parameters   <emif0 : emif 1> */
+#if defined(CONFIG_TI814X_DDR3_533)
+#define DDR3_PHY_RD_DQS_CS0_BYTE0		((emif == 0) ? 0x3c : 0x39) 
+#define DDR3_PHY_RD_DQS_CS0_BYTE1		((emif == 0) ? 0x3f : 0x3b) 
+#define DDR3_PHY_RD_DQS_CS0_BYTE2		((emif == 0) ? 0x31 : 0x35) 
+#define DDR3_PHY_RD_DQS_CS0_BYTE3		((emif == 0) ? 0x31 : 0x32) 
+
+#define DDR3_PHY_WR_DQS_CS0_BYTE0		((emif == 0) ? 0x4d : 0x49) 
+#define DDR3_PHY_WR_DQS_CS0_BYTE1		((emif == 0) ? 0x4f : 0x48) 
+#define DDR3_PHY_WR_DQS_CS0_BYTE2		((emif == 0) ? 0x51 : 0x4b) 
+#define DDR3_PHY_WR_DQS_CS0_BYTE3		((emif == 0) ? 0x53 : 0x49) 
+
+#define DDR3_PHY_RD_DQS_GATE_CS0_BYTE0		((emif == 0) ? 0xb7 : 0xa9) 
+#define DDR3_PHY_RD_DQS_GATE_CS0_BYTE1		((emif == 0) ? 0xb9 : 0xac) 
+#define DDR3_PHY_RD_DQS_GATE_CS0_BYTE2		((emif == 0) ? 0xd4 : 0xc3) 
+#define DDR3_PHY_RD_DQS_GATE_CS0_BYTE3		((emif == 0) ? 0xce : 0xc5) 
+
+#define DDR3_PHY_WR_DATA_CS0_BYTE0		((emif == 0) ? 0x82 : 0x80) 
+#define DDR3_PHY_WR_DATA_CS0_BYTE1		((emif == 0) ? 0x84 : 0x7d) 
+#define DDR3_PHY_WR_DATA_CS0_BYTE2		((emif == 0) ? 0x7f : 0x80) 
+#define DDR3_PHY_WR_DATA_CS0_BYTE3		((emif == 0) ? 0x87 : 0x82) 
+#else /* CONFIG_TI814X_DDR3_533 */
 #define DDR3_PHY_RD_DQS_CS0_BYTE0		((emif == 0) ? 0x3d : 0x39) //((emif == 0) ? 0x30 : 0x30)
 #define DDR3_PHY_RD_DQS_CS0_BYTE1		((emif == 0) ? 0x3c : 0x3c) //((emif == 0) ? 0x30 : 0x30)
 #define DDR3_PHY_RD_DQS_CS0_BYTE2		((emif == 0) ? 0x3e : 0x3c) //((emif == 0) ? 0x30 : 0x30)
@@ -230,6 +251,7 @@
 #define DDR3_PHY_WR_DATA_CS0_BYTE1		((emif == 0) ? 0x7f : 0x7b) //((emif == 0) ? 0x44 : 0x44)
 #define DDR3_PHY_WR_DATA_CS0_BYTE2		((emif == 0) ? 0x7f : 0x7b) //((emif == 0) ? 0x44 : 0x44)
 #define DDR3_PHY_WR_DATA_CS0_BYTE3		((emif == 0) ? 0x80 : 0x7e) //((emif == 0) ? 0x44 : 0x44)
+#endif /* CONFIG_TI814X_DDR3_533 */
 
 #define DDR3_PHY_CTRL_SLAVE_RATIO_CS0_DEFINE	0x80
 #endif
@@ -395,9 +417,37 @@
 /*===================================================================================================*/
 #else	
 /*===================================================================================================*/
-
+#if defined(CONFIG_TI814X_DDR3_533)
+/* TI814X DDR3 EMIF CFG Registers values 533MHz */
+#if defined(CONFIG_TI814X_DDR3_MICRON_4Gb)
+#define DDR3_EMIF_READ_LATENCY		0x00170207      //->DDRPHYCR //RD_ODT=0x2, IDLE_ODT=0x0, Dynamic power_down enabled
+#define DDR3_EMIF_TIM1				0x0EEF36F3
+#define DDR3_EMIF_TIM2				0x308F7FDA
+#define DDR3_EMIF_TIM3				0x507F88AF
+#define DDR3_EMIF_REF_CTRL			0x0000103D 
+#define DDR3_EMIF_SDRAM_CONFIG		0x61C12332
+#define DDR3_EMIF_SDRAM_ZQCR		0x00170209
+#else
+#define DDR3_EMIF_READ_LATENCY		0x00170208      //->DDRPHYCR //RD_ODT=0x2, IDLE_ODT=0x0, Dynamic power_down enabled
+#define DDR3_EMIF_TIM1				0x0CCF36A3
+#define DDR3_EMIF_TIM2				0x308F7FDA
+#define DDR3_EMIF_TIM3				0x507F88AF
+#define DDR3_EMIF_REF_CTRL			0x0000103D
+#define DDR3_EMIF_SDRAM_CONFIG		0x61C11B32
+#define DDR3_EMIF_SDRAM_ZQCR		0x50074BE1
+#endif
+#else /* CONFIG_TI814X_DDR3_533 */
 /* TI814X DDR3 EMIF CFG Registers values 400MHz */
 #if defined(CONFIG_TI814X_DDR3_4Gb)
+#if defined(CONFIG_TI814X_DDR3_MICRON_4Gb)
+#define DDR3_EMIF_READ_LATENCY		0x00170207      //->DDRPHYCR //RD_ODT=0x2, IDLE_ODT=0x0, Dynamic power_down enabled
+#define DDR3_EMIF_TIM1				0x0AAAE523
+#define DDR3_EMIF_TIM2				0x206B7FDA
+#define DDR3_EMIF_TIM3				0x507F867F
+#define DDR3_EMIF_REF_CTRL			0x00000C30
+#define DDR3_EMIF_SDRAM_CONFIG		0x61C01332
+#define DDR3_EMIF_SDRAM_ZQCR		0x500742C6
+#else
 #define DDR3_EMIF_READ_LATENCY		0x00170208		//RD_ODT=0x2, IDLE_ODT=0x0, Dynamic power_down enabled
 #define DDR3_EMIF_TIM1				0x0AAAD4DB
 #define DDR3_EMIF_TIM2				0x682F7FDA
@@ -405,6 +455,7 @@
 #define DDR3_EMIF_REF_CTRL			0x00000C30
 #define DDR3_EMIF_SDRAM_CONFIG		0x61C011B2
 #define DDR3_EMIF_SDRAM_ZQCR		0x50074BE1
+#endif
 #elif defined(CONFIG_TI814X_DDR3_2Gb)
 #define DDR3_EMIF_READ_LATENCY		0x00170208		//RD_ODT=0x2, IDLE_ODT=0x0, Dynamic power_down enabled
 #define DDR3_EMIF_TIM1				0x0AAAD4DB
@@ -422,6 +473,7 @@
 #define DDR3_EMIF_SDRAM_CONFIG		0x61C011B2
 #define DDR3_EMIF_SDRAM_ZQCR		0x50074BE1
 #endif
+#endif /* CONFIG_TI814X_DDR3_533 */
 
 /*===================================================================================================*/
 #endif	

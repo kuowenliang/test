@@ -41,10 +41,14 @@
 #define AUDIO_CLKCTRL	0x801
 
 #define MODENA_N	0x1
+#if defined(CONFIG_TI814X_MODENA_M)
+#define MODENA_M	CONFIG_TI814X_MODENA_M
+#else
 #ifdef CONFIG_TI813X
 #define MODENA_M	(opp_val_ti813x(0x3C, 0x3C))
 #else
 #define MODENA_M	(opp_val_dm385(0x3C, 0x3C))
+#endif
 #endif
 #define MODENA_M2	1
 #define MODENA_CLKCTRL	0x1
@@ -77,7 +81,11 @@
 #define DDR_M	(opp_val_dm385(800, 800))
 #endif
 #else
+#if defined(CONFIG_TI814X_DDR3_533)
+#define DDR_M	(pg_val_ti814x(1066, 1066))
+#else
 #define DDR_M	(pg_val_ti814x(800, 800))
+#endif
 #endif
 #define DDR_M2		2
 #define DDR_CLKCTRL	0x801

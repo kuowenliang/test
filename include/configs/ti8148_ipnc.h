@@ -418,11 +418,19 @@
 #define CONFIG_SYS_CLK_FREQ			20000000
 #define CONFIG_SYS_TIMERBASE		0x4802E000
 
-#if defined(MODULE_VPORT66) || defined(MODULE_VPORTP66) || defined(MODULE_VPORT46_2L)
+#if defined(MODULE_VPORT66) || defined(MODULE_VPORTP66) || defined(MODULE_VPORT46_2L) //|| defined(MODULE_VPORT464)
+//#define CONFIG_TI814X_MODENA_M		0x64		/* overwrite MODENA_M in clocks_ti814x.h */
 #define CONFIG_TI814X_DSP_M			750			/* overwrite DSP_M in clocks_ti814x.h */
 #define CONFIG_TI814X_ISS_M			1120		/* overwrite ISS_M in clocks_ti814x.h */
+#define CONFIG_TPS65911_VDD1_VAL 	VDD_1D35	/* force VDD1 setting */
 #define CONFIG_TPS65911_VDDCTRL_VAL VDD_1D35	/* force VDDCRTL setting */
 #define CONFIG_TPS62355_VAL			0xf0		/*  CORE_DSP voltage, 0xf0:1.35V */
+//#define CONFIG_TI814X_DDR3_533 					/* Values supported 400,533 */
+#define CONFIG_TI814X_DDR3_MICRON_4Gb
+#endif
+
+#if defined(MODULE_VPORT464)
+#define NOCONFIG_TPS65911_VDD1_VAL	/* Bobby Chen - 20170823: Skip setting VDD1 to avoid Power-on failed issue */
 #endif
 
 
@@ -695,17 +703,16 @@
 #define MPDATA_FLASH					0x0B480000
 #define CONFIG_FLASH					0x0C080000
 #define ENV2_FLASH						0x0C380000
+#define BACKUP_FLASH					0x0C3A0000
 #define CONFIG2_FLASH					0x0C9A0000
 #define LOG_FLASH						0x0CDA0000
 #define LOG2_FLASH						0x0D1A0000
-#define BACKUP_FLASH					0x0C3A0000
 #define RESERVE_FLASH					0x0D5A0000
 
 // max. sizes
 #define UBL_SIZE						(1 * SZ_128K)
 #define UBOOT_SIZE						(17 * SZ_128K)
 #define ENV1_SIZE						(1 * SZ_128K)
-#define ENV2_SIZE						(1 * SZ_128K)
 #define KERNEL_SIZE						(34 * SZ_128K)
 #define ROOTFS_SIZE						(420 * SZ_128K)
 #define KERNEL2_SIZE					(34 * SZ_128K)
@@ -715,11 +722,12 @@
 #define MPROOTFS_SIZE					(420 * SZ_128K)
 #define MPDATA_SIZE						(96 * SZ_128K)
 #define CONFIG_SIZE						(24 * SZ_128K)
+#define ENV2_SIZE						(1 * SZ_128K)
+#define BACKUP_SIZE						(48 * SZ_128K)
 #define CONFIG2_SIZE					(32 * SZ_128K)
 #define LOG_SIZE						(32 * SZ_128K)
 #define LOG2_SIZE						(32 * SZ_128K)
-#define BACKUP_SIZE						(48 * SZ_128K)
-#define RESERVE_SIZE					(188 * SZ_128K)
+#define RESERVE_SIZE					(340 * SZ_128K)
 
 #define TEST_FLASH						RESERVE_FLASH
 #define TEST_FLASH_SIZE					RESERVE_SIZE
@@ -1058,11 +1066,17 @@ extern unsigned int boot_flash_type;
 #define GPIO_RE_SETING		((2*32) + 21)	//GP2[21] (IN) RE_SETING
 #define GPIO_CAM_RST		((2*32) + 25)	//GP2[25] (OUT) CAM_REST
 #define GPIO_RTC_INTn		((2*32) + 26)	//GP2[26] (IN) RTC_INTn
-#define GPIO_PHY_LINKSTAT	((3*32) + 7)	//GP3[7] (IN) E_LINKSTS
-#define GPIO_PHY_RESET		((3*32) + 8)	//GP3[8] (OUT) ENET_RSTn
-#define GPIO_LED_SD			((3*32) + 9)	//GP3[9] (OUT) SD_LEDn
+#define GPIO_LINKSP_0		((3*32) + 0)	//GP3[0] (OUT) Linksp_0 (LED)
+#define GPIO_LINKSP_1		((3*32) + 1)	//GP3[1] (OUT) Linksp_1 (LED)
+#define GPIO_INTR0			((3*32) + 2)	//GP3[2] (OUT) INTR0
+#define GPIO_INTR1			((3*32) + 3)	//GP3[3] (OUT) INTR1
+#define GPIO_BCM5482S_RESET	((3*32) + 4)	//GP3[4] (OUT) BCM5482S_RESET
+#define GPIO_LED_V1			((3*32) + 6)	//GP3[6] (OUT) V1_LEDn
+#define GPIO_LED_V2			((3*32) + 7)	//GP3[7] (OUT) V2_LEDn
+#define GPIO_LED_V3			((3*32) + 8)	//GP3[8] (OUT) V3_LEDn
+#define GPIO_LED_V4			((3*32) + 9)	//GP3[9] (OUT) V4_LEDn
 #define GPIO_LED_PTZ		((3*32) + 10)	//GP3[10] (OUT) PTZ_LEDn
-#define GPIO_LED_VIDEO		((3*32) + 11)	//GP3[11] (OUT) VIDEO_LEDn
+#define GPIO_LED_SD			((3*32) + 11)	//GP3[11] (OUT) SD_LEDn
 #define GPIO_LED_STAT_G		((3*32) + 12)	//GP3[12] (OUT) STAT_GLEDn
 #define GPIO_LED_STAT_R		((3*32) + 13)	//GP3[13] (OUT) STAT_RLEDn
 #define GPIO_LED_FAIL		((3*32) + 14)	//GP3[14] (OUT) FAIL_LEDn
@@ -1074,6 +1088,8 @@ extern unsigned int boot_flash_type;
 #define GPIO_SYSBUTTON_ON	0
 #define GPIO_SYSBUTTON_OFF	1
 #define TEST_LED_BLINK_ON_MEM_TEST
+#define TEST_LED_BLINK_ON_T1BIOS
+#define TEST_LINKSP_LED_BLINK_ON_T1BIOS
 #endif
 
 #ifndef CONFIG_TI814X_OPTI_CONFIG
@@ -1155,7 +1171,7 @@ extern unsigned int boot_flash_type;
 #define CONFIG_CMD_DATE
 #define CONFIG_I2C_MULTI_BUS
 #define CONFIG_SYS_RTC_BUS_NUM			0
-#define CONFIG_TPS65911_I2C				1
+//#define CONFIG_TPS65911_I2C				1	//20170830 - bobby test for VPort464 I2C issue
 //# define CONFIG_RTC_TPS65911			1
 #define CONFIG_CODEC_AIC3104			1
 #define CONFIG_SENSOR_MT9J003			1

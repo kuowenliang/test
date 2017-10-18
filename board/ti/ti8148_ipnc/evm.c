@@ -1940,6 +1940,11 @@ void gpio_init(void)
 	// GPIO3[] group
 	add=(GPIO3_BASE + GPIO_OE); 		//GPIO_OE Output Enable Register
 	val = __raw_readl(add);
+	val &=~(1<<0);						//GP3[0] (OUT) Linksp_0
+	val &=~(1<<1);						//GP3[1] (OUT) Linksp_1
+	val |= (1<<2);						//GP3[2] (IN) INTR0
+	val |= (1<<3);						//GP3[3] (IN) INTR0
+	val &=~(1<<4);						//GP3[4] (OUT) BCM5482S_RESET
 	val &=~(1<<6);						//GP3[6] (OUT) V1_LEDn
 	val &=~(1<<7);						//GP3[7] (OUT) V2_LEDn
 	val &=~(1<<8);						//GP3[8] (OUT) V3_LEDn
@@ -1950,17 +1955,21 @@ void gpio_init(void)
 	val &=~(1<<13); 					//GP3[13] (OUT) STAT_GLEDn
 	val &=~(1<<14); 					//GP3[14] (OUT) FAIL_LEDn
 	__raw_writel(val, add);
+	__raw_writel((1<<6), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[6]-V1_LEDn output high (OFF)
+	__raw_writel((1<<7), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[7]-V2_LEDn output high (OFF)
+	__raw_writel((1<<8), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[8]-V3_LEDn output high (OFF)
+	__raw_writel((1<<9), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[9]-V4_LEDn output high (OFF)
 	__raw_writel((1<<10), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[10]-SD_LEDn output high (OFF)
 	__raw_writel((1<<11), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[11]-PTZ_LEDn output high (OFF)
 	__raw_writel((1<<12), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[12]-STAT_RLEDn output high (OFF)
 	__raw_writel((1<<13), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[13]-STAT_GLEDn output high (OFF)
 	__raw_writel((1<<14), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[14]-FAIL_LEDn output high (OFF)
 	/* reset ethernet */
-	__raw_writel((1<<8), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[8]-ENET_RSTn output high
+	__raw_writel((1<<4), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[4]-BCM5482S_RESET output high
 	delay(30000);
-	__raw_writel((1<<8), (GPIO3_BASE + GPIO_CLEARDATAOUT)); //GP3[8]-ENET_RSTn output low
+	__raw_writel((1<<4), (GPIO3_BASE + GPIO_CLEARDATAOUT)); //GP3[4]-BCM5482S_RESET output low
 	delay(5*30000);
-	__raw_writel((1<<8), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[8]-ENET_RSTn output high
+	__raw_writel((1<<4), (GPIO3_BASE + GPIO_SETDATAOUT));	//GP3[4]-BCM5482S_RESET output high
 	delay(30000);
 	/* reset sensor */
 	__raw_writel((1<<25), (GPIO2_BASE + GPIO_SETDATAOUT));	//GP2[25]-CAM_RST output high
@@ -2076,17 +2085,30 @@ static void power_control(void)
 
 	tps65911_init();
 
+#ifdef CONFIG_TPS65911_VDD1_VAL
+	vdd1_val	= CONFIG_TPS65911_VDD1_VAL;
+#else
 	vdd1_val 	= (arm_freq>720)? VDD_1D35:((arm_freq>600)? VDD_1D2:VDD_1D1);
+#endif
+
+#ifdef CONFIG_TPS65911_VDD2_VAL
+	vdd2_val	= CONFIG_TPS65911_VDD2_VAL;
+#else
 	vdd2_val 	= (iva_freq>306)? VDD_1D35:((iva_freq>266)?VDD_1D2:VDD_1D1);
+#endif
+
 #ifdef CONFIG_TPS65911_VDDCTRL_VAL
 	vddctrl_val = CONFIG_TPS65911_VDDCTRL_VAL;
 #else
 	vddctrl_val = ((iss_freq>400)||(ddr_freq>400))?VDD_1D35:VDD_1D2;
 #endif
 
-	tps65911_config(VDD1_OP_REG   	, vdd1_val);
-	tps65911_config(VDD2_OP_REG   	, vdd2_val);/*VDD_1D35*/
 	tps65911_config(VDDCRTL_OP_REG	, vddctrl_val);
+	delay(10000);
+#ifndef NOCONFIG_TPS65911_VDD1_VAL
+	tps65911_config(VDD1_OP_REG   	, vdd1_val);
+#endif
+	tps65911_config(VDD2_OP_REG   	, vdd2_val);/*VDD_1D35*/
 	tps65911_config(BBCH_REG      	, BBCHEN | BBSEL_3D15V);
 
 #ifdef CONFIG_TPS62355_VAL

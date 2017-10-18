@@ -19,7 +19,7 @@
 			BIT(0), /* 4-SD1_DAT[1]_SDIRQ */
 			BIT(0), /* 5-SD1_DAT[2]_SDRW */
 			BIT(0), /* 6-SD1_DAT[3] */
-			BIT(7), /* 7-SPI_nCS1 to Motor Drive (GP1_7, O) */
+			BIT(7), /* 7-x (GP1_7) */
 			BIT(0), /* 8 */
 			BIT(0), /* 9 */
 			BIT(0), /* 10 */
@@ -97,7 +97,7 @@
 			BIT(0), /* 82 */
 			BIT(0), /* 83 */
 			BIT(0), /* 84 */
-			BIT(7), /* 85-SPI_nCS0 to MN34041 (GP1_16, O) */
+			BIT(7), /* 85-x (GP1_16) */
 			BIT(0), /* 86-(SPI[1]_SCLK) */
 			BIT(0), /* 87-(SPI[1]_D[1]) */
 			BIT(0), /* 88-(SPI[1]_D[0]) */
@@ -122,9 +122,9 @@
 			BIT(5), /* 134-CLKOUT0 */
 			BIT(7), /* 135-x(GP2_0) */
 			BIT(7), /* 136-x(GP2_1) */
-			BIT(7), /* 137-MD_ADIN7B (GP2_2, O)  */
+			BIT(7), /* 137-x (GP2_2)  */
 			BIT(7), /* 138-x(GP2_3) */
-			BIT(7), /* 139-MD_ADIN7A (GP2_4, O) */
+			BIT(7), /* 139-x (GP2_4) */
 /*
 	140~155-VIN[0]A_D[0]~VIN[0]A_D[15]
 
@@ -168,15 +168,15 @@
 			BIT(0), /* 177 */
 			BIT(0), /* 178 */
 			BIT(7), /* 179-RE_SETING (GP2_21, I) */
-			BIT(7), /* 180-ENET_RSTn (GP2_22, O) (PHY reset) */
-			BIT(7), /* 181-E_LINKSTS (GP2_23, I) */
+			BIT(7), /* 180-x (GP2_22) */
+			BIT(7), /* 181-x (GP2_23) */
 			BIT(0), /* 182 */
 			BIT(0), /* 183 */
 			BIT(0), /* 184 */
 			BIT(0), /* 185 */
 			BIT(0), /* 186 */
 			BIT(0), /* 187 */
-			BIT(7), /* 188-MD_RESET Motor Driver Reset (GP2_24, O) */
+			BIT(7), /* 188-x (GP2_24) */
 			BIT(7), /* 189-CAM_REST (GP2_25, O) */
 			BIT(0), /* 190 */
 			BIT(0), /* 191 */
@@ -185,7 +185,7 @@
 			BIT(0), /* 194 */
 			BIT(0), /* 195 */
 			BIT(7), /* 196-RTC_INTn (GP2_26, I) */
-			BIT(7), /* 197-MD_BUSY/MON (GP2_27, I) */
+			BIT(7), /* 197-x (GP2_27) */
 			BIT(0), /* 198 */
 			BIT(0), /* 199 */
 			BIT(0), /* 200 */
@@ -196,12 +196,12 @@
 			BIT(7), /* 205-RS485_4W (GP2_29, O) */
 			BIT(7), /* 206-RS485_ENRn (GP2_30, O) */
 			BIT(7), /* 207-RS485_ENT (GP2_31, O) */
-			BIT(0), /* 208 */
-			BIT(0), /* 209 */
-			BIT(0), /* 210 */
-			BIT(5), /* 211-CAMERA_TX (UART3_RXD) */
-			BIT(5), /* 212-CAMERA_RX (UART3_TXD) */
-			BIT(0), /* 213 */
+			BIT(7), /* 208-Linksp_0 (GP3_0, O) */
+			BIT(7), /* 209-Linksp_1 (GP3_1, O) */
+			BIT(7), /* 210-INTR0 (GP3_2, I) */
+			BIT(7), /* 211-INTR1 (GP3_3, I) */
+			BIT(7), /* 212-BCM5482S_RESET (GP3_4, O) */
+			BIT(7), /* 213 */
 			BIT(7), /* 214-GP3_6 (V1_LEDn)*/
 			BIT(7), /* 215-GP3_7 (V2_LEDn) */
 			BIT(7), /* 216-GP3_8 (V3_LEDn) */
@@ -211,11 +211,11 @@
 			BIT(7), /* 220-GP3_12 (LED_G) */
 			BIT(7), /* 221-GP3_13 (LED_R) */
 			BIT(7), /* 222-GP3_14 (FAIL_LEDn) */
-			BIT(0), /* 223 */
-			BIT(0), /* 224 */
-			BIT(0), /* 225 */
-			BIT(0), /* 226 */
-			BIT(0), /* 227 */
+			BIT(7), /* 223-TP1 */
+			BIT(7), /* 224-TP18 */
+			BIT(7), /* 225-TP32 */
+			BIT(7), /* 226-TP25 */
+			BIT(7), /* 227-TP29 */
 			BIT(0), /* 228 */
 			BIT(0), /* 229 */
 			BIT(0), /* 230 */

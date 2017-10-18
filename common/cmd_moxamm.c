@@ -1267,7 +1267,10 @@ int _erase_flash(cmd_tbl_t *cmdtp, int flag, ulong nand_addr, ulong size)
 	char imageLen[11];//0xffffffff
 
 	sprintf(nandAddr, "0x%08lx", nand_addr);
-	sprintf(imageLen, "0x%08lx", size);
+	if(size == 0)
+		sprintf(imageLen, "");
+	else
+		sprintf(imageLen, "0x%08lx", size);
 
 	args[0] = "nand";
 	args[1] = "erase";
@@ -1519,7 +1522,9 @@ int get_ubl_info(int *majorVer, int *minorVer, int *cvVer, int *ubootIdx)
 
 int do_loadfw (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
+	char cmd[3];
 	long size = 0;
+	long data_size = 0;
 	if( (argc < 2) || ( (argc < 3) && (strcmp(argv[1], "tftp") == 0))){
 		printf ("Usage:\n%s\n", cmdtp->usage);
 		return -1;
@@ -1528,7 +1533,7 @@ int do_loadfw (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	if((size = load_image(cmdtp, flag, argv[1], argc < 3 ? NULL : argv[2], CONFIG_SYS_LOAD_ADDR)) <= 0){
 		return -1;
 	}
-	printf ("size:%lu\n", size);
+	printf ("File size:%lu\n", size);
 
 	char* FileBuffer = (char*)CONFIG_SYS_LOAD_ADDR;
 	ulong FileBuffer_Len = size;
@@ -1558,6 +1563,13 @@ int do_loadfw (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	printf("   Version      : %d.%d.%d\r\n", firmHead.version.part.major, firmHead.version.part.minor, firmHead.version.part.oem);
 	printf("   CheckSum     : 0x%08lX \r\n", firmHead.checksum);
 	printf("=====================================================\r\n");
+
+	//check Firmware Length
+	data_size = size - sizeof(firmware_header_t);
+	if(data_size != firmHead.totallength){
+		printf("Firmware Length Error!(%lu)\r\n", data_size);
+		return -1;
+	}
 
 #ifdef CONFIG_IVA_FLAG
 	//check IVA Flag
@@ -1723,7 +1735,7 @@ int do_loadfw (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		}
 
 		//cumulate crc32 checksum
-		lCRC = crc32(lCRC, data_addr, erase_size);
+		lCRC = crc32(lCRC, (unsigned char *)(&FileBuffer[FileBuffer_ptr]), erase_size);
 		printf("File CheckSum: 0x%08lX\r\n", lCRC);
 
 		printf("Upgrade file %s successed.\n", curr->fileheader.fis_info.name);
@@ -4637,6 +4649,24 @@ static DiagMenuTableStruct LEDTestMenuTable[] = {
 #endif
 #ifdef GPIO_SYSLED_CONTROL
 	{ '6',	"CONTROL LED", 			GPIO_SYSLED_CONTROL,	led_test,		NULL},
+#endif
+#ifdef GPIO_LED_V1
+	{ '7',	"VIDEO 1 LED",			GPIO_LED_V1,			led_test,		NULL},
+#endif
+#ifdef GPIO_LED_V2
+	{ '8',	"VIDEO 2 LED",			GPIO_LED_V2,			led_test,		NULL},
+#endif
+#ifdef GPIO_LED_V3
+	{ '9',	"VIDEO 3 LED",			GPIO_LED_V3,			led_test,		NULL},
+#endif
+#ifdef GPIO_LED_V4
+	{ 'a',	"VIDEO 4 LED",			GPIO_LED_V4,			led_test,		NULL},
+#endif
+#ifdef GPIO_LINKSP_0
+	{ 'b',	"LINKSP 0 LED",			GPIO_LINKSP_0,			led_test,		NULL},
+#endif
+#ifdef GPIO_LINKSP_1
+	{ 'c',	"LINKSP 1 LED",			GPIO_LINKSP_1,			led_test,		NULL},
 #endif
 };
 static DiagMenuStruct LedTestMenu = {
@@ -8795,11 +8825,17 @@ static int diag_get_Info(int parameter)
 	_PRINT_FIRST(tmp, i, j);
 	sprintf(tmp, "MP Ver.    : %s ", getenv("mp_ver"));
 	_PRINT_SECOND(tmp, j);
-
+#if 1
+	sprintf(tmp, "BIOS Ver.  : %s ", getenv("uboot_ver"));
+	_PRINT_FIRST(tmp, i, j);
+	sprintf(tmp, "HW Ver.    : %s ", getenv("hw_ver"));
+	_PRINT_SECOND(tmp, j);
+#else
 	sprintf(tmp, "UBL Ver.   : %s ", getenv("ubl_ver"));
 	_PRINT_FIRST(tmp, i, j);
 	sprintf(tmp, "UBoot Ver. : %s ", getenv("uboot_ver"));
 	_PRINT_SECOND(tmp, j);
+#endif
 
 #if CONFIG_SYS_I2C_EEPROM
 	sprintf(tmp, "MP Flag    : 0x%03x ", g_mp_flag);
@@ -9024,6 +9060,18 @@ void LED_All_ON()
 #ifdef GPIO_LED_PTZ
 	GPIO_Out(GPIO_LED_PTZ, GPIO_LED_ON);
 #endif
+#ifdef GPIO_LED_V1
+	GPIO_Out(GPIO_LED_V1, GPIO_LED_ON);
+#endif
+#ifdef GPIO_LED_V2
+	GPIO_Out(GPIO_LED_V2, GPIO_LED_ON);
+#endif
+#ifdef GPIO_LED_V3
+	GPIO_Out(GPIO_LED_V3, GPIO_LED_ON);
+#endif
+#ifdef GPIO_LED_V4
+	GPIO_Out(GPIO_LED_V4, GPIO_LED_ON);
+#endif
 #ifdef GPIO_LED_VIDEO
 	GPIO_Out(GPIO_LED_VIDEO, GPIO_LED_ON);
 #endif
@@ -9049,6 +9097,18 @@ void LED_All_OFF()
 #ifdef GPIO_LED_SD
 	GPIO_Out(GPIO_LED_SD, GPIO_LED_OFF);
 #endif
+#ifdef GPIO_LED_V1
+	GPIO_Out(GPIO_LED_V1, GPIO_LED_OFF);
+#endif
+#ifdef GPIO_LED_V2
+	GPIO_Out(GPIO_LED_V2, GPIO_LED_OFF);
+#endif
+#ifdef GPIO_LED_V3
+	GPIO_Out(GPIO_LED_V3, GPIO_LED_OFF);
+#endif
+#ifdef GPIO_LED_V4
+	GPIO_Out(GPIO_LED_V4, GPIO_LED_OFF);
+#endif
 #ifdef GPIO_LED_PTZ
 	GPIO_Out(GPIO_LED_PTZ, GPIO_LED_OFF);
 #endif
@@ -9066,6 +9126,42 @@ void LED_All_OFF()
 #endif
 }
 
+/*
+mii write 1 1c b40f
+mii write 2 1c b40f
+*/
+int setLinkSpeedLed()
+{
+	unsigned char	addr, reg;
+	unsigned short	data;
+	int		rcode = 0;
+	char		*devname;
+#if defined(CONFIG_MII_INIT)
+	mii_init ();
+#endif
+	/* use current device */
+	devname = miiphy_get_current_dev();
+	if(devname == NULL){
+		printf("Error miiphy_get_current_dev!\n");
+		return -1;
+	}
+	addr = 1;
+	reg = 0x1c;
+	data = 0xb40f;
+	if (miiphy_write (devname, addr, reg, data) != 0) {
+		printf("Error writing to the PHY addr=%02x reg=%02x\n", addr, reg);
+		rcode = 1;
+	}
+	addr = 2;
+	reg = 0x1c;
+	data = 0xb40f;
+	if (miiphy_write (devname, addr, reg, data) != 0) {
+		printf("Error writing to the PHY addr=%02x reg=%02x\n", addr, reg);
+		rcode = 1;
+	}
+	return rcode;
+}
+
 void wait_reset_button()
 {
 #if defined(TEST_LED_BLINK_ON_T1BIOS) && defined(GPIO_LED_STAT_G) && defined(GPIO_LED_STAT_R)
@@ -9073,11 +9169,21 @@ void wait_reset_button()
 	GPIO_Out(GPIO_LED_STAT_R, GPIO_LED_OFF);
 #endif
 
+#if defined(TEST_LINKSP_LED_BLINK_ON_T1BIOS) && defined(GPIO_LINKSP_0) && defined(GPIO_LINKSP_1)
+	GPIO_Out(GPIO_LINKSP_0, 0);
+	GPIO_Out(GPIO_LINKSP_1, 0);
+	setLinkSpeedLed();
+#endif
+
 	while(!resetkey_state())
 	{
 #if defined(TEST_LED_BLINK_ON_T1BIOS) && defined(GPIO_LED_STAT_G) && defined(GPIO_LED_STAT_R)
 		LED_Reverse(GPIO_LED_STAT_G);
 		LED_Reverse(GPIO_LED_STAT_R);
+#endif
+#if defined(TEST_LINKSP_LED_BLINK_ON_T1BIOS) && defined(GPIO_LINKSP_0) && defined(GPIO_LINKSP_1)
+		LED_Reverse(GPIO_LINKSP_0);
+		LED_Reverse(GPIO_LINKSP_1);
 #endif
 		udelay(500000);
 	}
