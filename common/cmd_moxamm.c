@@ -9185,7 +9185,7 @@ void wait_reset_button()
 		LED_Reverse(GPIO_LINKSP_0);
 		LED_Reverse(GPIO_LINKSP_1);
 #endif
-		udelay(500000);
+		udelay(1 * 1000 * 1000);
 	}
 }
 
