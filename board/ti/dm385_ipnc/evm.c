@@ -328,7 +328,15 @@ int board_init(void)
 	gd->bd->bi_boot_params = PHYS_DRAM_1 + 0x100;
 	gpmc_init();
 #ifdef CONFIG_TPS65911_I2C
+
+#if defined(VPORT06_2MP_EC)
+	//wensen : shall mark the function for new 2mp ec
+	//power_control();
+#else
 	power_control();
+#endif
+
+
 #endif
 
 #ifndef CONFIG_NOR

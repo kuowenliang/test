@@ -2799,14 +2799,24 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
 			break;
 	}
 
+
+	printk(KERN_INFO "NAND device: Manufacturer ID:"
+		   " 0x%02x, Chip ID: 0x%02x (%s %s)\n", *maf_id,
+		   dev_id, nand_manuf_ids[maf_idx].name, mtd->name);
+
+	printk(KERN_INFO "Current HW detect bus %d mode\n", busw ? 16 : 8);
+	//printk(KERN_INFO "mtd->writesize=%d\n", mtd->writesize);
+	//printk(KERN_INFO "mtd->oobsize=%d\n", mtd->oobsize);
+
+
 	/*
 	 * Check, if buswidth is correct. Hardware drivers should set
 	 * chip correct !
 	 */
 	if (busw != (chip->options & NAND_BUSWIDTH_16)) {
-		printk(KERN_INFO "NAND device: Manufacturer ID:"
-		       " 0x%02x, Chip ID: 0x%02x (%s %s)\n", *maf_id,
-		       dev_id, nand_manuf_ids[maf_idx].name, mtd->name);
+		//printk(KERN_INFO "NAND device: Manufacturer ID:"
+		//       " 0x%02x, Chip ID: 0x%02x (%s %s)\n", *maf_id,
+		//       dev_id, nand_manuf_ids[maf_idx].name, mtd->name);
 		printk(KERN_WARNING "NAND bus width %d instead %d bit\n",
 		       (chip->options & NAND_BUSWIDTH_16) ? 16 : 8,
 		       busw ? 16 : 8);
