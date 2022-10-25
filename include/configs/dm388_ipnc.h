@@ -322,6 +322,7 @@
 #define CONFIG_MP_FLAG_T0_BIOS		0x000
 #define CONFIG_MP_FLAG_T1_BIOS		0x001
 #define CONFIG_MP_FLAG_T1_MP		0x011
+#define CONFIG_MP_FLAG_T1_2_MP		0x012
 #define CONFIG_MP_FLAG_T2_MP		0x002
 #define CONFIG_MP_FLAG_T2_MP_ERR	0x021
 #define CONFIG_MP_FLAG_T3_BIOS		0x003
@@ -776,4 +777,3 @@ extern unsigned int boot_flash_type;
 #undef CONFIG_USE_IRQ
 
 #endif	  /* ! __CONFIG_DM385_IPNC_H */
-

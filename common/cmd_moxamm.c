@@ -2798,6 +2798,7 @@ char* Get_MP_Flag_String(int mpFlag)
 		case CONFIG_MP_FLAG_T0_BIOS: sprintf(buf, "%s", "T0"); break;
 		case CONFIG_MP_FLAG_T1_BIOS: sprintf(buf, "%s", "T1-BIOS"); break;
 		case CONFIG_MP_FLAG_T1_MP: sprintf(buf, "%s", "T1"); break;
+		case CONFIG_MP_FLAG_T1_2_MP: sprintf(buf, "%s", "T1-2"); break;
 		case CONFIG_MP_FLAG_T2_MP: sprintf(buf, "%s", "T2"); break;
 		case CONFIG_MP_FLAG_T2_MP_ERR: sprintf(buf, "%s", "T2-Dump"); break;
 		case CONFIG_MP_FLAG_T3_BIOS: sprintf(buf, "%s", "T3"); break;
@@ -5651,7 +5652,7 @@ int uart_set_pt_baudrate()
 {
 	char tmp[32];
 	int baudrate = 0;
-	
+
 	if((baudrate = (int)simple_strtoul(getenv(PTCTRL_BAUDRATE_ITEM), NULL, 10)) <= 0){
 		printf("Error: getenv(%s)\n", PTCTRL_BAUDRATE_ITEM);
 		return DIAG_ERROR;
@@ -5705,7 +5706,7 @@ static int uart_test_pt_set_baudrate(int parameter)
 
 #define TYPE_DOME				0x01
 #define SUBTYPE_LOCATION_PAN	0x05
-#define SUBTYPE_LOCATION_TILT	0x06	
+#define SUBTYPE_LOCATION_TILT	0x06
 
 #define DEFAULT_PAN_MIN 0
 #define DEFAULT_PAN_MAX 25599
@@ -6242,7 +6243,7 @@ char Get_Status(struct serial_device *dev, int timeout)
 	memset(buf, 0, sizeof(buf));
 	if(uart_read_buff(dev, buf, &recv, timeout) == DIAG_OK){
 		if(uart_hermes_check_ack(buf, recv)) return DIAG_ERROR;
-		
+
 		status = buf[4];
 		//printf("Status = 0x%02X\n", status);
 		Send_Ack(dev);
@@ -6254,7 +6255,7 @@ char Get_Status(struct serial_device *dev, int timeout)
 static int Ping_MCU(struct serial_device *dev)
 {
 	unsigned char buf[UART_MAX_TEST_LEN];
-	
+
 	memset(buf, 0, sizeof(buf));
 	buf[0] = 0x03;
 	buf[1] = 0x20;
@@ -6267,7 +6268,7 @@ static int Ping_MCU(struct serial_device *dev)
 static char Gen_CheckSum(char *data_ptr, int length)
 {
 	unsigned int tmp;
-	
+
 	tmp = 0;
 	while(length)
 	{
@@ -6282,7 +6283,7 @@ static char Gen_CheckSum(char *data_ptr, int length)
 static int Download_Mode(struct serial_device *dev, int fw_size)
 {
 	char buf[UART_MAX_TEST_LEN];
-	
+
 	memset(buf, 0, sizeof(buf));
 	buf[ 0] = 0x0B;
 	buf[ 2] = 0x21;
@@ -6295,7 +6296,7 @@ static int Download_Mode(struct serial_device *dev, int fw_size)
 	buf[ 9] = (fw_size >> 8)&0xFF;
 	buf[10] = (fw_size >> 0)&0xFF;
 	buf[1] = Gen_CheckSum(buf+2, 9);
-	
+
 	uart_write(dev, buf, 11);
 	if( MCU_Ack(dev, MCU_LIB_STD_TIMEOUT) != 1)
 	{
@@ -6309,7 +6310,7 @@ static int Transmit_Data(struct serial_device *dev, char *fw_ptr, int size)
 	int transmit;
 	char buf[UART_MAX_TEST_LEN];
 	char status;
-	
+
 	transmit = 0;
 	while(size != 0)
 	{
@@ -6381,7 +6382,7 @@ int MCU_FW_Upload(char *fw_ptr, int size)
 		printf("MCU fw upload fail\n");
 		return DIAG_ERROR;
 	}
-	
+
 	return DIAG_OK;
 }
 
@@ -9444,6 +9445,9 @@ static int BootPreProcessor(int parameter)
 			Set_MP_Flag(CONFIG_MP_FLAG_T1_MP);
 			break;
 		case CONFIG_MP_FLAG_T1_MP:
+			Set_MP_Flag(CONFIG_MP_FLAG_T1_2_MP);
+			break;			
+		case CONFIG_MP_FLAG_T1_2_MP:
 			Set_MP_Flag(CONFIG_MP_FLAG_T2_MP);
 			break;
 		case CONFIG_MP_FLAG_T2_MP:
@@ -9471,6 +9475,7 @@ static int BootPreProcessor(int parameter)
 		case CONFIG_MP_FLAG_T0_BIOS:
 		case CONFIG_MP_FLAG_T1_BIOS:
 		case CONFIG_MP_FLAG_T1_MP:
+		case CONFIG_MP_FLAG_T1_2_MP:
 		case CONFIG_MP_FLAG_T2_MP:
 		case CONFIG_MP_FLAG_T2_MP_ERR:
 		case CONFIG_MP_FLAG_T2_T_MP:
@@ -9730,6 +9735,7 @@ static DiagMenuStruct T0FlagMenu = {
 static DiagMenuTableStruct T1FlagMenuTable[] = {
 	{ '0',	"T1(BIOS)Flag",	CONFIG_MP_FLAG_T1_BIOS,	MM_Set_MP_Flag, NULL},
 	{ '1',	"T1-1(MP)Flag",	CONFIG_MP_FLAG_T1_MP,	MM_Set_MP_Flag, NULL},
+	{ '2',  "T1-2(MP)Flag", CONFIG_MP_FLAG_T1_2_MP,   MM_Set_MP_Flag, NULL},
 };
 static DiagMenuStruct T1FlagMenu = {
 	sizeof(T1FlagMenuTable)/sizeof(DiagMenuTableStruct),
